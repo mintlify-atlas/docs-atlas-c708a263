@@ -1,0 +1,190 @@
+{
+  "projectType": "general",
+  "projectName": "System Design 101",
+  "projectDescription": "A comprehensive visual guide to understanding complex systems and preparing for system design interviews.",
+  "theme": "sequoia",
+  "primaryColor": "#3B82F6",
+  "lightColor": "#60A5FA",
+  "darkColor": "#2563EB",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Learn",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "how-to-use"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/api-web-development",
+              "concepts/database-storage",
+              "concepts/caching-performance",
+              "concepts/cloud-distributed-systems",
+              "concepts/security"
+            ]
+          },
+          {
+            "group": "System Architecture",
+            "pages": [
+              "architecture/software-architecture",
+              "architecture/design-patterns",
+              "architecture/microservices",
+              "architecture/scalability"
+            ]
+          },
+          {
+            "group": "Infrastructure & Operations",
+            "pages": [
+              "infrastructure/devops-cicd",
+              "infrastructure/kubernetes-docker",
+              "infrastructure/monitoring-logging"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "APIs & Web",
+            "pages": [
+              "guides/api/rest-api",
+              "guides/api/graphql",
+              "guides/api/grpc",
+              "guides/api/api-gateway",
+              "guides/api/load-balancer",
+              "guides/api/http-protocols"
+            ]
+          },
+          {
+            "group": "Databases",
+            "pages": [
+              "guides/database/choosing-database",
+              "guides/database/sql-nosql",
+              "guides/database/sharding",
+              "guides/database/replication",
+              "guides/database/cap-theorem",
+              "guides/database/acid"
+            ]
+          },
+          {
+            "group": "Caching & Performance",
+            "pages": [
+              "guides/caching/redis",
+              "guides/caching/cdn",
+              "guides/caching/strategies",
+              "guides/caching/cache-eviction"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "guides/security/authentication",
+              "guides/security/oauth",
+              "guides/security/jwt",
+              "guides/security/https-ssl",
+              "guides/security/encryption"
+            ]
+          },
+          {
+            "group": "Cloud & Distributed Systems",
+            "pages": [
+              "guides/cloud/aws-services",
+              "guides/cloud/scalability",
+              "guides/cloud/distributed-patterns",
+              "guides/cloud/resilience"
+            ]
+          },
+          {
+            "group": "DevOps & CI/CD",
+            "pages": [
+              "guides/devops/cicd-pipeline",
+              "guides/devops/kubernetes",
+              "guides/devops/docker",
+              "guides/devops/deployment-strategies"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Case Studies",
+        "groups": [
+          {
+            "group": "Tech Giants",
+            "pages": [
+              "case-studies/netflix",
+              "case-studies/uber",
+              "case-studies/twitter",
+              "case-studies/airbnb",
+              "case-studies/discord"
+            ]
+          },
+          {
+            "group": "System Designs",
+            "pages": [
+              "case-studies/google-maps",
+              "case-studies/chat-application",
+              "case-studies/payment-system",
+              "case-studies/stock-exchange"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Interview Prep",
+        "groups": [
+          {
+            "group": "System Design Interviews",
+            "pages": [
+              "interviews/overview",
+              "interviews/how-to-ace",
+              "interviews/common-questions",
+              "interviews/algorithms"
+            ]
+          },
+          {
+            "group": "Fundamentals",
+            "pages": [
+              "interviews/computer-fundamentals",
+              "interviews/networking",
+              "interviews/data-structures"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Visual explanations of complex system design concepts",
+    "400+ comprehensive guides covering APIs, databases, caching, security, and more",
+    "Real-world case studies from Netflix, Uber, Twitter, Airbnb, Discord",
+    "System design interview preparation resources",
+    "Coverage of modern technologies: Kubernetes, Docker, Redis, Kafka, GraphQL",
+    "Best practices for scalability, performance, and security",
+    "Cloud architecture patterns for AWS, Azure, and GCP",
+    "DevOps and CI/CD pipeline guides"
+  ],
+  "publicApiSurface": [
+    "15 categories covering system design topics",
+    "API & Web Development - REST, GraphQL, gRPC, HTTP protocols, load balancing",
+    "Database & Storage - SQL/NoSQL, sharding, replication, CAP theorem, ACID",
+    "Caching & Performance - Redis, CDN, caching strategies, Elasticsearch",
+    "Security - OAuth, JWT, HTTPS/SSL, authentication, encryption",
+    "Cloud & Distributed Systems - AWS/Azure/GCP, scalability patterns, microservices",
+    "DevOps & CI/CD - Kubernetes, Docker, deployment strategies, monitoring",
+    "Payment & Fintech - Payment systems, SWIFT, QR payments, reconciliation",
+    "Software Architecture - Design patterns, DDD, microservices, OOP",
+    "AI & Machine Learning - Data pipelines, ChatGPT, AI agents",
+    "Computer Fundamentals - OSI model, TCP/UDP, DNS, processes/threads",
+    "Real World Case Studies - Netflix, Uber, Twitter, Airbnb architecture evolution",
+    "How It Works - Google Maps, Gmail, chat apps, search engines",
+    "Software Development - Programming paradigms, algorithms, code quality",
+    "DevTools & Productivity - Git, Linux, SEO, open-source projects",
+    "Technical Interviews - System design questions, coding challenges, interview tips"
+  ]
+}

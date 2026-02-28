@@ -1,0 +1,270 @@
+---
+title: 'Authentication'
+description: 'Learn about authentication mechanisms and best practices for securing user access to your system.'
+icon: 'shield-check'
+---
+
+Authentication is the process of verifying the identity of a user, device, or system. It's a critical security mechanism that ensures only authorized entities can access your system's resources.
+
+## Top Authentication Mechanisms
+
+<img src="https://assets.bytebytego.com/diagrams/0078-authentication-mechanisms.png" alt="Authentication Mechanisms" />
+
+There are four primary authentication mechanisms used in modern systems:
+
+### 1. SSH Keys
+
+Cryptographic keys are used to access remote systems and servers securely. SSH (Secure Shell) keys provide a more secure alternative to password-based authentication.
+
+**Key benefits:**
+- Eliminates password vulnerabilities
+- Supports automated, secure server access
+- Resistant to brute-force attacks
+
+### 2. OAuth Tokens
+
+Tokens that provide limited access to user data on third-party applications without sharing passwords.
+
+**Use cases:**
+- Third-party application integration
+- Single Sign-On (SSO) implementations
+- Mobile and web application authentication
+
+### 3. SSL Certificates
+
+Digital certificates ensure secure and encrypted communication between servers and clients.
+
+**Applications:**
+- HTTPS website security
+- Email encryption
+- VPN connections
+
+### 4. Credentials
+
+User authentication information (username and password) used to verify and grant access to various systems and services.
+
+<Warning>
+Never store credentials in plain text. Always use proper hashing and salting techniques for password storage.
+</Warning>
+
+## Session vs Token vs JWT
+
+<img src="https://assets.bytebytego.com/diagrams/0152-cookies-session-jwt.png" alt="Authentication Methods Comparison" />
+
+When you login to a website, your identity needs to be managed. Here's how different solutions work:
+
+### Session-Based Authentication
+
+The server stores your identity and gives the browser a session ID cookie. This allows the server to track login state.
+
+**Pros:**
+- Server has full control over sessions
+- Easy to invalidate sessions
+- Simple to implement
+
+**Cons:**
+- Requires server-side storage
+- Doesn't work well across devices
+- Scalability challenges in distributed systems
+
+### Token-Based Authentication
+
+Your identity is encoded into a token sent to the browser. The browser sends this token on future requests for authentication.
+
+**Pros:**
+- No server session storage required
+- Works across devices and domains
+- Scales well in distributed systems
+
+**Cons:**
+- Requires encryption/decryption
+- Cannot be easily invalidated
+- Token size can be large
+
+### JWT (JSON Web Tokens)
+
+JSON Web Tokens standardize identity tokens using digital signatures for trust. The signature is contained in the token so no server session is needed.
+
+**Advantages:**
+- Stateless authentication
+- Self-contained (includes user info)
+- Industry standard
+- Works across different domains
+
+<Info>
+Learn more about JWT implementation in the [JWT guide](/guides/security/jwt).
+</Info>
+
+## Multi-Factor Authentication (2FA)
+
+<img src="https://assets.bytebytego.com/diagrams/0079-authenticator.jpg" alt="Google Authenticator" />
+
+Multi-factor authentication adds an extra layer of security by requiring two or more verification methods.
+
+### How Google Authenticator Works
+
+Google Authenticator implements Time-based One-Time Password (TOTP) algorithm:
+
+**Stage 1: Setup**
+1. User enables two-step verification
+2. Authentication service generates a secret key
+3. Secret key is displayed as a QR code
+4. User scans QR code with authenticator app
+5. Secret key is stored in the app
+
+**Stage 2: Login**
+1. Every 30 seconds, the app generates a 6-digit code using TOTP
+2. User enters the code during login
+3. Server generates the same code using stored secret key
+4. Server compares both codes
+5. Access granted if codes match
+
+<Note>
+The 6-digit password has 1 million potential combinations and changes every 30 seconds, making it extremely difficult for hackers to guess.
+</Note>
+
+## Password Storage Best Practices
+
+<img src="https://assets.bytebytego.com/diagrams/0321-salt.png" alt="Password Hashing and Salting" />
+
+### What NOT to Do
+
+<Warning>
+**Never do these:**
+- Store passwords in plain text
+- Store password hashes directly without salting
+- Use weak hashing algorithms (MD5, SHA1)
+</Warning>
+
+### Using Salt for Security
+
+According to OWASP guidelines, "a salt is a unique, randomly generated string that is added to each password as part of the hashing process".
+
+**How to store passwords:**
+1. Generate a unique random salt for each password
+2. Store salt in plain text in the database (it's not secret)
+3. Store password as: `hash(password + salt)`
+
+**How to validate passwords:**
+1. Client enters password
+2. System fetches corresponding salt from database
+3. System appends salt to password and hashes it (H1)
+4. System compares H1 with stored hash (H2)
+5. If H1 == H2, password is valid
+
+### Recommended Hashing Algorithms
+
+- **bcrypt** - Adaptive hash function with built-in salt
+- **scrypt** - Memory-hard function resistant to hardware attacks
+- **Argon2** - Winner of Password Hashing Competition (recommended)
+
+## Single Sign-On (SSO)
+
+SSO uses a central authentication service that allows a single login to work across multiple sites and applications.
+
+**Benefits:**
+- Improved user experience
+- Reduced password fatigue
+- Centralized access control
+- Simplified user management
+
+**Popular SSO Protocols:**
+- SAML 2.0
+- OAuth 2.0 + OpenID Connect
+- CAS (Central Authentication Service)
+
+<Info>
+Learn more about OAuth 2.0 in the [OAuth guide](/guides/security/oauth).
+</Info>
+
+## Best Practices
+
+### For API Authentication
+
+<img src="https://assets.bytebytego.com/diagrams/0064-a-cheatsheet-to-build-secure-apis.png" alt="Secure API Cheatsheet" />
+
+1. **Don't use basic auth** - Use JWTs or OAuth tokens instead
+2. **Use random JWT secrets** - Make them long and hard to guess
+3. **Set short token expiration** - Balance security with user experience
+4. **Implement rate limiting** - Prevent brute-force attacks
+5. **Validate all inputs** - Prevent injection attacks
+6. **Use HTTPS only** - Never transmit credentials over HTTP
+
+### Security Key Management
+
+<Warning>
+**Never store security keys in:**
+- Public GitHub repositories
+- Client-side code
+- Plain text configuration files
+- Version control systems
+</Warning>
+
+**Instead, use:**
+- Environment variables
+- Secrets management services (AWS Secrets Manager, HashiCorp Vault)
+- Encrypted configuration stores
+- Hardware Security Modules (HSM) for critical keys
+
+### Monitoring and Logging
+
+- Log all authentication attempts
+- Monitor for suspicious patterns (multiple failed attempts)
+- Set up alerts for unusual authentication activity
+- Never log sensitive data (passwords, tokens, PII)
+
+<Note>
+Use tools like Kibana, CloudWatch, Datadog, or Slack for authentication monitoring and alerting.
+</Note>
+
+## Authentication vs Authorization
+
+**Authentication** answers: "Who are you?"
+- Verifies user identity
+- Happens first in the security flow
+- Examples: Login, 2FA, biometrics
+
+**Authorization** answers: "What can you do?"
+- Determines access permissions
+- Happens after authentication
+- Examples: Role-based access control (RBAC), permissions
+
+## Common Authentication Vulnerabilities
+
+### 1. Credential Stuffing
+**Attack:** Using leaked username/password pairs from other breaches
+**Mitigation:** Implement rate limiting, use 2FA, monitor for breach databases
+
+### 2. Session Hijacking
+**Attack:** Stealing session tokens to impersonate users
+**Mitigation:** Use secure cookies (HttpOnly, Secure flags), implement session timeout
+
+### 3. Brute Force Attacks
+**Attack:** Systematically trying all possible passwords
+**Mitigation:** Account lockout, rate limiting, CAPTCHA, strong password policies
+
+### 4. Man-in-the-Middle (MITM)
+**Attack:** Intercepting authentication credentials in transit
+**Mitigation:** Always use HTTPS/TLS, implement certificate pinning
+
+## Designing Secure Authentication Systems
+
+<img src="https://assets.bytebytego.com/diagrams/0138-cheat-sheet-for-designing-secure-systems.png" alt="Secure System Design" />
+
+Key considerations for secure authentication design:
+
+1. **Defense in Depth** - Multiple layers of security
+2. **Principle of Least Privilege** - Grant minimal necessary access
+3. **Fail Secure** - Default to denying access on errors
+4. **Audit Trail** - Log all authentication events
+5. **Regular Updates** - Keep authentication libraries current
+6. **Security Testing** - Regular penetration testing and vulnerability scans
+
+## Next Steps
+
+Explore related security topics:
+
+- [OAuth 2.0](/guides/security/oauth) - Learn about OAuth flows and implementations
+- [JWT](/guides/security/jwt) - Deep dive into JSON Web Tokens
+- [HTTPS/SSL](/guides/security/https-ssl) - Understand secure communication
+- [Encryption](/guides/security/encryption) - Learn about encryption techniques

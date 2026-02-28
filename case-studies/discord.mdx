@@ -1,0 +1,619 @@
+---
+title: 'Discord Architecture'
+description: 'Learn how Discord evolved its message storage from MongoDB to Cassandra to ScyllaDB to handle trillions of messages at scale.'
+icon: 'discord'
+---
+
+## Overview
+
+Discord has become one of the world's most popular communication platforms, serving millions of concurrent users across gaming communities, educational groups, and professional workspaces. The platform's success relies on its ability to deliver messages instantly while storing and retrieving billions of conversations reliably.
+
+This case study explores Discord's remarkable database evolution journey, demonstrating how architectural decisions must adapt as systems scale from thousands to trillions of messages.
+
+## The Challenge: Storing Trillions of Messages
+
+Discord faces unique challenges in message storage:
+
+<CardGroup cols={2}>
+  <Card title="Massive Scale" icon="database">
+    - Trillions of messages stored
+    - Billions of new messages daily
+    - Growing exponentially
+    - Must retain indefinitely
+  </Card>
+  
+  <Card title="Performance Requirements" icon="gauge-high">
+    - Real-time message delivery
+    - Fast historical message retrieval
+    - Low latency for search
+    - High availability (99.99%+)
+  </Card>
+  
+  <Card title="Access Patterns" icon="arrow-pointer">
+    - Recent messages accessed frequently
+    - Older messages rarely accessed
+    - Bursty traffic patterns
+    - Hot channels vs. quiet channels
+  </Card>
+  
+  <Card title="Operational Concerns" icon="wrench">
+    - Minimal downtime for maintenance
+    - Predictable performance
+    - Cost-effective storage
+    - Easy operational management
+  </Card>
+</CardGroup>
+
+## The Evolution Journey
+
+![Discord Message Storage Evolution](https://assets.bytebytego.com/diagrams/0174-discord-store-messages.png)
+
+### Stage 1: MongoDB (2015)
+
+#### The Beginning
+
+When Discord launched in 2015, the first version was built on a **single MongoDB replica set**.
+
+<Accordion title="Why MongoDB?">
+  **Advantages for Early Stage:**
+  - Quick to set up and get started
+  - Flexible schema for rapid iteration
+  - Built-in replication
+  - Good documentation and community
+  - Document model fit message structure
+  
+  **Architecture:**
+  - Single replica set (primary + secondaries)
+  - One collection for messages
+  - Indexed by channel ID and timestamp
+  - Simple backup strategy
+</Accordion>
+
+#### The Problems
+
+**Breaking Point: ~100 Million Messages (November 2015)**
+
+After just a few months of growth, critical issues emerged:
+
+<CardGroup cols={2}>
+  <Card title="Memory Exhaustion" icon="memory">
+    **The Issue:**
+    - MongoDB relies on RAM for indexes
+    - Working set exceeded available memory
+    - Data and indexes couldn't fit in RAM
+    
+    **Impact:**
+    - Frequent disk reads
+    - Performance degradation
+    - Unpredictable latency
+  </Card>
+  
+  <Card title="Unpredictable Latency" icon="clock">
+    **The Issue:**
+    - Latency spikes during peak hours
+    - Some queries taking seconds
+    - Cache thrashing
+    
+    **Impact:**
+    - Poor user experience
+    - Message delays
+    - Service instability
+  </Card>
+</CardGroup>
+
+**The Decision:** Migrate to a database designed for massive scale.
+
+### Stage 2: Cassandra (2015-2022)
+
+#### The Migration
+
+Discord chose **Apache Cassandra** for its next-generation message storage.
+
+<Accordion title="Why Cassandra?">
+  **Key Advantages:**
+  
+  **Horizontal Scalability:**
+  - Distributed architecture
+  - Add nodes to increase capacity
+  - No single point of failure
+  - Linear scalability
+  
+  **Write Performance:**
+  - Optimized for high write throughput
+  - LSM tree data structure
+  - Writes are sequential on disk
+  - Perfect for append-heavy workload
+  
+  **Fault Tolerance:**
+  - Replication across nodes
+  - Configurable consistency
+  - Automatic failure handling
+  - Multi-datacenter support
+  
+  **Data Model:**
+  - Wide-column store
+  - Natural fit for time-series data
+  - Partition by channel ID
+  - Sort by message timestamp
+</Accordion>
+
+#### Data Model Design
+
+**Table Schema:**
+```sql
+CREATE TABLE messages (
+  channel_id bigint,
+  message_id bigint,
+  author_id bigint,
+  content text,
+  timestamp timestamp,
+  PRIMARY KEY (channel_id, message_id)
+) WITH CLUSTERING ORDER BY (message_id DESC);
+```
+
+**Design Decisions:**
+- **Partition Key:** `channel_id` (distributes data across cluster)
+- **Clustering Key:** `message_id` (sorts messages within partition)
+- **Descending Order:** Most recent messages retrieved first
+- **Denormalization:** Accept data duplication for query performance
+
+#### Early Success (2017)
+
+**By 2017:**
+- **12 Cassandra nodes**
+- **Billions of messages** stored
+- Stable, predictable performance
+- Linear scalability confirmed
+- Happy operations team
+
+#### Growing Pains (2022)
+
+By early 2022, Discord had grown massively:
+
+**Scale:**
+- **177 Cassandra nodes**
+- **Trillions of messages**
+- Massive operational complexity
+
+**New Problems Emerged:**
+
+<Accordion title="1. Unpredictable Latency">
+  **Symptoms:**
+  - P99 latency spikes
+  - Occasional slow queries
+  - Inconsistent performance
+  
+  **Root Causes:**
+  
+  **Read Amplification:**
+  - LSM trees optimize for writes
+  - Reads must check multiple SSTables
+  - Compaction overhead
+  - Read path more expensive than writes
+  
+  **Hot Partitions:**
+  - Popular channels = hot partitions
+  - Hundreds of concurrent users
+  - Single node handling hot partition
+  - Uneven load distribution
+  
+  **Impact:**
+  - Messages sometimes delayed
+  - User complaints
+  - Poor experience in busy channels
+</Accordion>
+
+<Accordion title="2. Maintenance Operations">
+  **Challenges:**
+  
+  **Compaction:**
+  - Merges SSTables to reduce read amplification
+  - CPU and I/O intensive
+  - Impacts foreground query performance
+  - Must run regularly
+  - Difficult to schedule
+  
+  **Repairs:**
+  - Ensures replica consistency
+  - Extremely resource intensive at scale
+  - Takes days to complete
+  - Risks affecting production traffic
+  
+  **Node Replacement:**
+  - Streaming data to new nodes
+  - Hours or days to complete
+  - Network bottleneck
+  - Operational risk
+  
+  **Impact:**
+  - High operational burden
+  - Risk of performance degradation
+  - Difficult capacity planning
+</Accordion>
+
+<Accordion title="3. Garbage Collection Pauses">
+  **The Problem:**
+  - Cassandra written in Java
+  - JVM garbage collection
+  - GC pauses can be hundreds of milliseconds
+  - Stop-the-world events
+  
+  **Impact:**
+  - Latency spikes during GC
+  - Unpredictable performance
+  - Difficult to tune
+  - Affects all queries during GC
+  
+  **Why It Matters:**
+  - Real-time chat requires consistency
+  - GC pauses noticeable to users
+  - Harder to optimize as data grows
+</Accordion>
+
+**The Insight:** The fundamental limitations of Cassandra's architecture wouldn't improve with scale. Time for another evolution.
+
+### Stage 3: ScyllaDB (2022-Present)
+
+#### The Solution
+
+Discord migrated to **ScyllaDB**, a Cassandra-compatible database written in C++.
+
+<Accordion title="What is ScyllaDB?">
+  **Overview:**
+  - Drop-in replacement for Cassandra
+  - Compatible with Cassandra Query Language (CQL)
+  - Same data model and concepts
+  - Rewritten from scratch in C++
+  
+  **Why It Exists:**
+  - Remove JVM bottlenecks
+  - Better CPU utilization
+  - Predictable latency
+  - Higher throughput
+  
+  **Key Difference:**
+  - Not just faster Cassandra
+  - Fundamentally different internals
+  - Thread-per-core architecture
+  - Custom async framework
+</Accordion>
+
+#### Technical Advantages
+
+<CardGroup cols={2}>
+  <Card title="No Garbage Collection" icon="trash">
+    **C++ Memory Management:**
+    - No GC pauses
+    - Predictable performance
+    - Manual memory control
+    - Consistent latency
+  </Card>
+  
+  <Card title="Thread-Per-Core" icon="microchip">
+    **Architecture:**
+    - One thread per CPU core
+    - No context switching
+    - Lock-free data structures
+    - Better CPU cache usage
+  </Card>
+  
+  <Card title="Better Compaction" icon="gears">
+    **Improvements:**
+    - More efficient algorithms
+    - Less impact on queries
+    - Smarter scheduling
+    - Reduced overhead
+  </Card>
+  
+  <Card title="Auto-Tuning" icon="sliders">
+    **Smart Defaults:**
+    - Automatic resource management
+    - Self-optimizing
+    - Less manual tuning
+    - Adapts to workload
+  </Card>
+</CardGroup>
+
+#### Performance Improvements
+
+<Info>
+  **Dramatic Latency Reduction:** ScyllaDB delivered 3-8x better latency compared to Cassandra for Discord's workload.
+</Info>
+
+**Read Performance:**
+- **Cassandra P99:** 40-125ms
+- **ScyllaDB P99:** 15ms
+- **Improvement:** Up to 8x faster
+
+**Write Performance:**
+- **Cassandra P99:** 5-70ms
+- **ScyllaDB P99:** 5ms
+- **Improvement:** More consistent, up to 14x faster
+
+**Additional Benefits:**
+- More predictable performance
+- Fewer outliers
+- Lower P999 latency
+- Better tail latencies
+
+#### Architectural Redesign
+
+Discord didn't just swap databases - they redesigned their architecture:
+
+<Accordion title="New Architecture Components">
+  **1. Monolithic API:**
+  - Consolidated multiple APIs
+  - Simplified request routing
+  - Reduced network hops
+  - Easier to maintain
+  
+  **2. Data Service (Rust):**
+  - Written in Rust for performance
+  - Handles all database interactions
+  - Caching layer
+  - Connection pooling
+  - Query optimization
+  
+  **3. ScyllaDB Storage:**
+  - Primary message store
+  - Same data model as Cassandra
+  - Improved performance
+  - Better operational characteristics
+  
+  **Architecture Benefits:**
+  - Clear separation of concerns
+  - Optimized data access layer
+  - Better caching strategies
+  - Reduced latency
+</Accordion>
+
+#### Migration Strategy
+
+**How They Did It:**
+
+<Accordion title="Dual-Write Approach">
+  **Phase 1: Preparation**
+  - Set up ScyllaDB cluster
+  - Replicate schema
+  - Test thoroughly
+  - Performance benchmarking
+  
+  **Phase 2: Dual-Write**
+  - Write to both Cassandra and ScyllaDB
+  - Read from Cassandra (existing behavior)
+  - Monitor for inconsistencies
+  - Verify ScyllaDB performance
+  
+  **Phase 3: Backfill**
+  - Copy historical data to ScyllaDB
+  - Verify data integrity
+  - Check partition consistency
+  - Performance testing with real data
+  
+  **Phase 4: Gradual Read Migration**
+  - Start reading from ScyllaDB (small %)
+  - Monitor metrics carefully
+  - Gradually increase percentage
+  - Rollback capability at each step
+  
+  **Phase 5: Full Cutover**
+  - 100% reads from ScyllaDB
+  - Stop writes to Cassandra
+  - Keep Cassandra as backup (initially)
+  - Monitor for issues
+  
+  **Phase 6: Decommission**
+  - After confidence period
+  - Remove Cassandra cluster
+  - Complete migration
+</Accordion>
+
+## Key Architectural Patterns
+
+### 1. Time-Series Data Model
+
+Messages are inherently time-series data:
+
+**Characteristics:**
+- Append-only writes
+- Recent data accessed most
+- Partitioned by entity (channel)
+- Sorted by time
+
+**Optimizations:**
+- Partition by channel_id
+- Cluster by message_id (timestamp-based)
+- Descending order for recent-first access
+- TTL for very old data (if needed)
+
+### 2. Hot Partition Management
+
+**The Problem:**
+- Popular channels = hot partitions
+- Single partition can't scale beyond one node
+- Bottleneck for busy channels
+
+**Solutions:**
+
+<Accordion title="Read Replicas">
+  - Multiple replicas serve reads
+  - Distribute read load
+  - Eventual consistency acceptable
+  - Reduces hot partition impact
+</Accordion>
+
+<Accordion title="Caching Layer">
+  - Cache hot channel data
+  - Reduce database queries
+  - Redis/Memcached layer
+  - Warm cache for popular channels
+</Accordion>
+
+<Accordion title="Connection Pooling">
+  - Limit concurrent requests
+  - Queue excess requests
+  - Prevent database overload
+  - Graceful degradation
+</Accordion>
+
+### 3. Operational Efficiency
+
+**Automation:**
+- Automated repairs and compaction
+- Self-healing capabilities
+- Monitoring and alerting
+- Capacity planning tools
+
+**Observability:**
+- Per-node metrics
+- Query performance tracking
+- Compaction monitoring
+- Resource utilization
+
+## Lessons Learned
+
+<Info>
+  **Core Lesson:** No database is perfect forever. As your scale and requirements change, be willing to re-evaluate foundational technology choices.
+</Info>
+
+### Key Takeaways
+
+**1. Right Tool for Right Scale:**
+- MongoDB: Great for 0-100M messages
+- Cassandra: Perfect for 100M-100B messages
+- ScyllaDB: Best for 100B+ messages
+- Different databases excel at different scales
+
+**2. Write vs. Read Optimization:**
+- LSM trees (Cassandra/ScyllaDB) optimize writes
+- Read-heavy workloads need special consideration
+- Caching becomes more important
+- Monitor read amplification
+
+**3. Language and Runtime Matter:**
+- JVM GC pauses are real
+- C++ can offer significant performance benefits
+- Memory management affects predictability
+- Consider runtime characteristics at scale
+
+**4. Operational Complexity:**
+- More nodes = more complexity
+- Maintenance operations become critical
+- Automation is essential
+- Consider operational burden in database choice
+
+**5. Compatibility Enables Evolution:**
+- ScyllaDB's Cassandra compatibility was crucial
+- Drop-in replacement reduced migration risk
+- Same queries, same data model
+- Incremental migration possible
+
+**6. Measure Everything:**
+- Detailed metrics enabled informed decisions
+- Performance benchmarking crucial
+- Real-world testing before migration
+- Continuous monitoring post-migration
+
+## Performance Comparison
+
+### Latency Comparison
+
+| Metric | MongoDB (2015) | Cassandra (2022) | ScyllaDB (2022) |
+|--------|---------------|------------------|------------------|
+| **Messages Stored** | 100M | Trillions | Trillions |
+| **Nodes** | 1 replica set | 177 nodes | ~fewer nodes |
+| **P99 Read** | Seconds+ | 40-125ms | 15ms |
+| **P99 Write** | Varies | 5-70ms | 5ms |
+| **GC Pauses** | Yes | Yes (major issue) | No |
+| **Compaction Impact** | N/A | High | Low |
+
+### Cost Comparison
+
+**Infrastructure Savings:**
+- Fewer nodes needed for same performance
+- Better resource utilization
+- Reduced operational overhead
+- Lower maintenance costs
+
+## Technical Deep Dive: Why ScyllaDB is Faster
+
+### Thread-Per-Core Architecture
+
+**Traditional Approach (Cassandra):**
+- Shared-nothing thread pools
+- Context switching overhead
+- Lock contention
+- Cache line bouncing
+
+**ScyllaDB Approach:**
+- One shard per CPU core
+- Each shard is independent
+- No locks needed
+- Better CPU cache utilization
+
+### Async Programming Model
+
+**Seastar Framework:**
+- Custom C++ async framework
+- Futures and promises
+- Non-blocking I/O
+- Efficient task scheduling
+
+**Benefits:**
+- Maximum CPU utilization
+- Lower latency
+- Higher throughput
+- Better resource efficiency
+
+### Compaction Improvements
+
+**Smarter Scheduling:**
+- Compaction runs when resources available
+- Less impact on foreground queries
+- Adaptive algorithms
+- Better space amplification management
+
+**Incremental Compaction:**
+- Smaller compaction batches
+- More frequent but lighter
+- Reduced latency spikes
+- Predictable performance
+
+## Current Architecture
+
+**Message Pipeline:**
+
+1. **Client sends message** → Gateway
+2. **Gateway** → Monolithic API
+3. **API** → Data Service (Rust)
+4. **Data Service** → ScyllaDB
+5. **ScyllaDB** → Replicates to 3 nodes
+6. **Async:** Fanout to online users via WebSockets
+
+**Read Path:**
+
+1. **Client requests history** → Gateway
+2. **Gateway** → Monolithic API
+3. **API** → Data Service (Rust)
+4. **Data Service** → Check cache
+5. **If miss** → Query ScyllaDB
+6. **ScyllaDB** → Return messages
+7. **Data Service** → Update cache
+8. **Return** → Client
+
+## Scale Statistics
+
+- **Trillions** of messages stored
+- **Billions** of messages per day
+- **Millions** of concurrent users
+- **177 nodes** (Cassandra) → **fewer nodes** (ScyllaDB)
+- **15ms** P99 read latency
+- **5ms** P99 write latency
+- **3-8x** performance improvement
+
+## References
+
+- [Discord Engineering Blog](https://discord.com/blog)
+- [How Discord Stores Billions of Messages](https://discord.com/blog/how-discord-stores-billions-of-messages)
+- [Discord's Migration to ScyllaDB](https://www.scylladb.com/press-release/discord-scales-to-trillions-of-messages-with-scylladb/)
+- [Discord Message Storage Evolution](https://assets.bytebytego.com/diagrams/0174-discord-store-messages.png)

@@ -1,0 +1,304 @@
+---
+title: 'DevOps & CI/CD'
+description: 'Learn about DevOps practices, CI/CD pipelines, and modern software delivery workflows'
+icon: 'rocket'
+---
+
+## What is DevOps?
+
+DevOps is a culture and set of practices that bridge the gap between software development and operations, promoting collaboration and shared responsibility throughout the entire software development lifecycle.
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0172-devops-sre-platform.png" alt="DevOps vs SRE vs Platform Engineering" />
+</Frame>
+
+### Evolution of DevOps
+
+DevOps as a concept was introduced in 2009 by Patrick Debois and Andrew Shafer at the Agile conference. They sought to bridge the gap between software development and operations by promoting a collaborative culture and shared responsibility for the entire software development lifecycle.
+
+<CardGroup cols={3}>
+  <Card title="Traditional SDLC" icon="timeline">
+    Code, build, test, release, and monitoring are siloed functions working independently
+  </Card>
+  <Card title="DevOps" icon="infinity">
+    Continuous development and collaboration between developers and operations
+  </Card>
+  <Card title="NoOps" icon="wand-magic-sparkles">
+    Serverless computing with FaaS and BaaS, automating most operations tasks
+  </Card>
+</CardGroup>
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0099-devops-vs-noops.png" alt="DevOps vs NoOps" />
+</Frame>
+
+### DevOps vs SRE vs Platform Engineering
+
+<AccordionGroup>
+  <Accordion title="DevOps" icon="infinity">
+    Introduced in 2009, DevOps focuses on breaking down silos between development and operations teams. It emphasizes:
+    - Collaborative culture
+    - Automation of workflows
+    - Continuous integration and delivery
+    - Shared responsibility for the entire SDLC
+  </Accordion>
+  
+  <Accordion title="Site Reliability Engineering (SRE)" icon="shield-check">
+    Pioneered by Google in the early 2000s, SRE addresses operational challenges in managing large-scale, complex systems:
+    - Reliability-focused engineering practices
+    - Service Level Objectives (SLOs) and error budgets
+    - Automation to reduce manual operations
+    - Tools like Borg cluster management and Monarch monitoring
+  </Accordion>
+  
+  <Accordion title="Platform Engineering" icon="layer-group">
+    A more recent concept building on DevOps and SRE foundations:
+    - Delivers comprehensive platforms for product development
+    - Focuses on developer experience and productivity
+    - Provides self-service infrastructure capabilities
+    - Supports the entire business perspective
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+While these concepts emerged at different times, they are all related to the broader trend of improving collaboration, automation, and efficiency in software development and operations.
+</Note>
+
+## CI/CD Fundamentals
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0140-ci-cd-pipeline.png" alt="CI/CD Pipeline" />
+</Frame>
+
+### Software Development Life Cycle with CI/CD
+
+The software development life cycle (SDLC) consists of several key stages: development, testing, deployment, and maintenance. CI/CD automates and integrates these stages to enable faster, more reliable releases.
+
+When code is pushed to a git repository, it triggers an automated build and test process. End-to-end (e2e) test cases are run to validate the code. If tests pass, the code can be automatically deployed to staging/production. If issues are found, the code is sent back to development for bug fixing. This automation provides fast feedback to developers and reduces risk of bugs in production.
+
+### Continuous Integration (CI)
+
+<Card title="What is CI?" icon="code-merge">
+  Continuous Integration automates the build, test, and merge process. It runs tests whenever code is committed to detect integration issues early.
+</Card>
+
+**Key Benefits:**
+- Early detection of integration issues
+- Encourages frequent code commits
+- Rapid feedback to developers
+- Reduced risk of merge conflicts
+- Automated testing and validation
+
+### Continuous Delivery/Deployment (CD)
+
+<Card title="What is CD?" icon="truck-fast">
+  Continuous Delivery automates release processes like infrastructure changes and deployment. It ensures software can be released reliably at any time through automated workflows.
+</Card>
+
+**Key Benefits:**
+- Automated deployment workflows
+- Reduced manual intervention
+- Faster time to market
+- Consistent release processes
+- Lower deployment risk
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0141-ci-cd-workflow.png" alt="CI/CD Workflow" />
+</Frame>
+
+## CI/CD Pipeline Stages
+
+A typical CI/CD pipeline has several connected stages:
+
+<Steps>
+  <Step title="Source Control">
+    Developer commits code changes to source control (Git, GitHub, GitLab)
+  </Step>
+  
+  <Step title="Build Trigger">
+    CI server detects changes and triggers automated build
+  </Step>
+  
+  <Step title="Compile & Test">
+    Code is compiled and tested (unit tests, integration tests)
+  </Step>
+  
+  <Step title="Feedback">
+    Test results are reported back to the developer
+  </Step>
+  
+  <Step title="Staging Deployment">
+    On success, artifacts are deployed to staging environments
+  </Step>
+  
+  <Step title="Additional Testing">
+    Further testing may be done on staging before release
+  </Step>
+  
+  <Step title="Production Deployment">
+    CD system deploys approved changes to production
+  </Step>
+</Steps>
+
+## Real-World CI/CD Examples
+
+### Netflix CI/CD Pipeline
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0287-netflix-ci-cd.png" alt="Netflix CI/CD" />
+</Frame>
+
+Netflix's comprehensive CI/CD pipeline demonstrates enterprise-scale practices:
+
+<AccordionGroup>
+  <Accordion title="Planning & Documentation" icon="list-check">
+    - **JIRA** for planning and project management
+    - **Confluence** for documentation and knowledge sharing
+  </Accordion>
+  
+  <Accordion title="Development & Build" icon="code">
+    - **Java** as primary programming language for backend services
+    - **Gradle** for building with custom plugins for various use cases
+  </Accordion>
+  
+  <Accordion title="Packaging & Testing" icon="box">
+    - Packages and dependencies packed into **Amazon Machine Images (AMI)**
+    - Testing emphasizes production culture with chaos engineering tools
+  </Accordion>
+  
+  <Accordion title="Deployment & Monitoring" icon="rocket">
+    - **Spinnaker** (self-built) for canary rollout deployment
+    - **Atlas** for centralized monitoring metrics
+    - **Kayenta** for anomaly detection
+  </Accordion>
+  
+  <Accordion title="Incident Management" icon="bell">
+    - Incidents dispatched according to priority
+    - **PagerDuty** for incident handling
+  </Accordion>
+</AccordionGroup>
+
+### Uber CI/CD Tech Stack
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0398-uber-tech-stack-ci-cd.png" alt="Uber CI/CD" />
+</Frame>
+
+Uber's innovative CI/CD approach showcases cutting-edge practices:
+
+<CardGroup cols={2}>
+  <Card title="Project Planning" icon="clipboard">
+    **JIRA** for project management and tracking
+  </Card>
+  
+  <Card title="Backend Services" icon="server">
+    **Spring Boot** with custom **Flipr** configuration system for speedy releases
+  </Card>
+  
+  <Card title="Code Quality" icon="magnifying-glass">
+    - **NullAway** for NullPointer problems
+    - **NEAL** for code linting
+    - **Piranha** for cleaning outdated feature flags
+  </Card>
+  
+  <Card title="Repository" icon="folder-tree">
+    **Monorepo** approach using **Bazel** at scale
+  </Card>
+  
+  <Card title="Testing" icon="vial">
+    - **SLATE** for short-lived testing environments
+    - **Shadower** for load testing with production traffic replay
+    - **Ballast** for smooth user experience
+  </Card>
+  
+  <Card title="Experimentation" icon="flask">
+    Deep learning-based platform with open-sourced components like **Pyro**
+  </Card>
+  
+  <Card title="Build & Package" icon="box-archive">
+    **uBuild** powered by **Buildkite** for containerizing services
+  </Card>
+  
+  <Card title="Deployment" icon="cloud-arrow-up">
+    **Netflix Spinnaker** for production deployments
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    Custom **uMetric** platform built on **Cassandra**
+  </Card>
+  
+  <Card title="Operations" icon="gears">
+    - **Peloton** for capacity planning and scheduling
+    - **Crane** for multi-cloud cost optimization
+    - **uAct** and **OnCall** dashboard for event tracing
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Automate Everything" icon="robot">
+    Automate builds, tests, deployments, and infrastructure provisioning to reduce human error and increase consistency
+  </Card>
+  
+  <Card title="Version Control All Things" icon="code-branch">
+    Store code, configuration, infrastructure-as-code, and documentation in version control
+  </Card>
+  
+  <Card title="Test Early and Often" icon="vial-circle-check">
+    Implement comprehensive testing at all levels: unit, integration, end-to-end, and performance
+  </Card>
+  
+  <Card title="Deploy Frequently" icon="arrows-rotate">
+    Small, frequent deployments reduce risk and make issues easier to identify and fix
+  </Card>
+  
+  <Card title="Monitor Everything" icon="chart-mixed">
+    Comprehensive monitoring and observability are essential for catching issues early
+  </Card>
+  
+  <Card title="Build Security In" icon="lock">
+    Integrate security scanning and testing throughout the pipeline (DevSecOps)
+  </Card>
+  
+  <Card title="Use Infrastructure as Code" icon="file-code">
+    Manage infrastructure through code for consistency, versioning, and reproducibility
+  </Card>
+  
+  <Card title="Enable Fast Feedback" icon="comments">
+    Provide developers with quick feedback on build, test, and deployment status
+  </Card>
+</CardGroup>
+
+## Key Takeaways
+
+<Check>
+  **DevOps Culture**: Focus on collaboration, automation, and shared responsibility between development and operations teams
+</Check>
+
+<Check>
+  **CI Automation**: Continuous Integration detects issues early through automated builds and tests on every commit
+</Check>
+
+<Check>
+  **CD Automation**: Continuous Delivery enables reliable, automated deployments to staging and production environments
+</Check>
+
+<Check>
+  **Pipeline Stages**: A well-designed pipeline includes source control, build, test, staging, and production deployment stages
+</Check>
+
+<Check>
+  **Real-World Scale**: Companies like Netflix and Uber demonstrate advanced CI/CD practices at enterprise scale
+</Check>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Kubernetes & Docker" icon="dharmachakra" href="./kubernetes-docker">
+    Learn about containerization and orchestration
+  </Card>
+  <Card title="Monitoring & Logging" icon="chart-line" href="./monitoring-logging">
+    Explore observability and system monitoring
+  </Card>
+</CardGroup>

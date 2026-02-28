@@ -1,122 +1,174 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "System Design 101",
+  "theme": "sequoia",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#3B82F6",
+    "light": "#60A5FA",
+    "dark": "#2563EB"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/ByteByteGoHq/system-design-101"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/ByteByteGoHq/system-design-101"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Learn",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "how-to-use"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/api-web-development",
+              "concepts/database-storage",
+              "concepts/caching-performance",
+              "concepts/cloud-distributed-systems",
+              "concepts/security"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "System Architecture",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "architecture/software-architecture",
+              "architecture/design-patterns",
+              "architecture/microservices",
+              "architecture/scalability"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Infrastructure & Operations",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "infrastructure/devops-cicd",
+              "infrastructure/kubernetes-docker",
+              "infrastructure/monitoring-logging"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Guides",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "APIs & Web",
             "pages": [
-              "api-reference/introduction"
+              "guides/api/rest-api",
+              "guides/api/graphql",
+              "guides/api/grpc",
+              "guides/api/api-gateway",
+              "guides/api/load-balancer",
+              "guides/api/http-protocols"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Databases",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "guides/database/choosing-database",
+              "guides/database/sql-nosql",
+              "guides/database/sharding",
+              "guides/database/replication",
+              "guides/database/cap-theorem",
+              "guides/database/acid"
+            ]
+          },
+          {
+            "group": "Caching & Performance",
+            "pages": [
+              "guides/caching/redis",
+              "guides/caching/cdn",
+              "guides/caching/strategies",
+              "guides/caching/cache-eviction"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "guides/security/authentication",
+              "guides/security/oauth",
+              "guides/security/jwt",
+              "guides/security/https-ssl",
+              "guides/security/encryption"
+            ]
+          },
+          {
+            "group": "Cloud & Distributed Systems",
+            "pages": [
+              "guides/cloud/aws-services",
+              "guides/cloud/scalability",
+              "guides/cloud/distributed-patterns",
+              "guides/cloud/resilience"
+            ]
+          },
+          {
+            "group": "DevOps & CI/CD",
+            "pages": [
+              "guides/devops/cicd-pipeline",
+              "guides/devops/kubernetes",
+              "guides/devops/docker",
+              "guides/devops/deployment-strategies"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Case Studies",
+        "groups": [
+          {
+            "group": "Tech Giants",
+            "pages": [
+              "case-studies/netflix",
+              "case-studies/uber",
+              "case-studies/twitter",
+              "case-studies/airbnb",
+              "case-studies/discord"
+            ]
+          },
+          {
+            "group": "System Designs",
+            "pages": [
+              "case-studies/google-maps",
+              "case-studies/chat-application",
+              "case-studies/payment-system",
+              "case-studies/stock-exchange"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Interview Prep",
+        "groups": [
+          {
+            "group": "System Design Interviews",
+            "pages": [
+              "interviews/overview",
+              "interviews/how-to-ace",
+              "interviews/common-questions",
+              "interviews/algorithms"
+            ]
+          },
+          {
+            "group": "Fundamentals",
+            "pages": [
+              "interviews/computer-fundamentals",
+              "interviews/networking",
+              "interviews/data-structures"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

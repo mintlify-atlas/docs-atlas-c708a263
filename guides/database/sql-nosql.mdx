@@ -1,0 +1,327 @@
+---
+title: 'SQL vs NoSQL Databases'
+description: 'Understanding the differences between SQL and NoSQL databases, and when to use each'
+---
+
+## Introduction
+
+One of the most fundamental decisions in system design is choosing between SQL (relational) and NoSQL databases. Each has distinct characteristics, strengths, and ideal use cases. This guide will help you understand when to use each type.
+
+## What is a Database?
+
+First off, what's a database? Think of it as a digital playground where we organize and store loads of information in a structured manner. Databases enable applications to persist, query, and manage data efficiently.
+
+![Database Types Overview](https://assets.bytebytego.com/diagrams/0097-dbtypes.png)
+
+## Relational Databases (SQL)
+
+### Overview
+
+Relational databases organize data in tables (relations) consisting of rows (tuples) and columns (attributes). Introduced by E.F. Codd in 1970, the relational model represents one of computer science's most influential ideas.
+
+### Key Characteristics
+
+<CardGroup cols={2}>
+  <Card title="Fixed Schema" icon="table">
+    Data structure is defined upfront with tables, columns, and relationships
+  </Card>
+  <Card title="ACID Compliance" icon="shield-check">
+    Guarantees Atomicity, Consistency, Isolation, and Durability
+  </Card>
+  <Card title="SQL Language" icon="code">
+    Standardized query language for data manipulation
+  </Card>
+  <Card title="Relationships" icon="diagram-project">
+    Built-in support for foreign keys and joins
+  </Card>
+</CardGroup>
+
+### Strengths
+
+**Data Integrity**: Relational databases support data integrity through:
+- Primary and foreign key constraints
+- Unique constraints
+- Check constraints
+- Referential integrity
+
+**Query Flexibility**: SQL provides powerful querying capabilities:
+- Complex joins across multiple tables
+- Aggregations and grouping
+- Subqueries and CTEs (Common Table Expressions)
+- Window functions for advanced analytics
+
+**Transactions**: Full ACID support ensures:
+- Atomic operations (all-or-nothing)
+- Consistent state transitions
+- Isolation between concurrent transactions
+- Durable writes that survive failures
+
+**Normalization**: Reduces data redundancy through:
+- Organized table structures
+- Elimination of duplicate data
+- Efficient storage utilization
+
+### Weaknesses
+
+<Warning>
+  Relational databases can face challenges with:
+  - **Rigid Schema**: Changes require migrations that can be complex
+  - **Vertical Scaling Limits**: Eventually hit hardware constraints
+  - **Join Performance**: Complex queries with many joins can be slow
+  - **Horizontal Scaling**: Difficult to scale across multiple servers
+</Warning>
+
+### Popular SQL Databases
+
+- **PostgreSQL**: Feature-rich, excellent for complex applications
+- **MySQL/MariaDB**: Fast, reliable, widely adopted
+- **Oracle**: Enterprise-grade with advanced features
+- **Microsoft SQL Server**: Strong Windows ecosystem integration
+- **SQLite**: Embedded, serverless, perfect for mobile/desktop apps
+
+## NoSQL Databases
+
+### Overview
+
+NoSQL databases say "No" to traditional SQL approaches, offering flexibility and horizontal scalability. They come in four main flavors, each optimized for different use cases.
+
+### Types of NoSQL Databases
+
+#### 1. Key-Value Stores
+
+**Think of it like a treasure chest**: Each item has its unique key. Finding what you need is a piece of cake.
+
+<Info>
+  Key-value stores are the simplest NoSQL databases but can be extremely powerful for caching and session management.
+</Info>
+
+**Characteristics**:
+- Simple data model (key → value)
+- Extremely fast lookups
+- High scalability
+- No complex queries
+
+**Use Cases**:
+- Session storage
+- User preferences
+- Shopping carts
+- Caching layers
+
+**Examples**: Redis, Memcached, Amazon DynamoDB, Riak
+
+#### 2. Document Databases
+
+Document databases store information in a format similar to JSON. They're designed for working with documents instead of tables.
+
+**Characteristics**:
+- Store semi-structured data
+- Flexible schema
+- Nested objects and arrays
+- Rich query capabilities
+
+**Use Cases**:
+- Content management systems
+- Product catalogs
+- User profiles
+- Event logging
+
+**Examples**: MongoDB, CouchDB, Amazon DocumentDB
+
+#### 3. Column-Family Stores
+
+**Imagine slicing and dicing your data like a chef prepping ingredients**. Column stores are efficient and speedy for analytical workloads.
+
+**Characteristics**:
+- Data organized by columns, not rows
+- Optimized for write-heavy workloads
+- Compression-friendly
+- Wide row support
+
+**Use Cases**:
+- Time-series data
+- Analytics and reporting
+- Event logging
+- IoT applications
+
+**Examples**: Apache Cassandra, HBase, ScyllaDB
+
+#### 4. Graph Databases
+
+**Think of social networks**: The relationships between people matter most. It's like mapping who's friends with whom.
+
+**Characteristics**:
+- Native graph storage
+- Efficient relationship traversal
+- Pattern matching
+- Relationship-first design
+
+**Use Cases**:
+- Social networks
+- Recommendation engines
+- Fraud detection
+- Network mapping
+
+**Examples**: Neo4j, Amazon Neptune, ArangoDB
+
+## SQL vs NoSQL: Key Differences
+
+<Accordion title="Schema Design">
+  **SQL**: Fixed schema defined upfront. Changes require migrations.
+  
+  **NoSQL**: Flexible or schema-less. Documents can have different structures.
+</Accordion>
+
+<Accordion title="Scalability">
+  **SQL**: Primarily vertical scaling (bigger servers). Horizontal scaling is complex.
+  
+  **NoSQL**: Designed for horizontal scaling across commodity hardware.
+</Accordion>
+
+<Accordion title="Transactions">
+  **SQL**: Full ACID support with multi-row transactions.
+  
+  **NoSQL**: Often eventual consistency. Some support ACID at document level.
+</Accordion>
+
+<Accordion title="Query Language">
+  **SQL**: Standardized SQL across vendors (with variations).
+  
+  **NoSQL**: Database-specific APIs. No standard query language.
+</Accordion>
+
+<Accordion title="Data Relationships">
+  **SQL**: Built-in support via foreign keys and joins.
+  
+  **NoSQL**: Relationships handled at application level or through denormalization.
+</Accordion>
+
+## When to Use SQL
+
+Choose relational databases when you need:
+
+<Check>**Structured data** with clear relationships</Check>
+<Check>**ACID transactions** for data integrity</Check>
+<Check>**Complex queries** with joins and aggregations</Check>
+<Check>**Data consistency** is critical</Check>
+<Check>**Mature tooling** and ecosystem</Check>
+
+**Ideal Scenarios**:
+- Financial applications
+- E-commerce platforms
+- ERP systems
+- Traditional web applications
+- Systems requiring complex reporting
+
+## When to Use NoSQL
+
+Choose NoSQL databases when you need:
+
+<Check>**Flexible schema** that evolves over time</Check>
+<Check>**Horizontal scalability** across multiple servers</Check>
+<Check>**High throughput** for writes</Check>
+<Check>**Simple queries** (key-based lookups)</Check>
+<Check>**Eventual consistency** is acceptable</Check>
+
+**Ideal Scenarios**:
+- Real-time big data applications
+- Content management systems
+- IoT and time-series data
+- Social networks
+- Gaming leaderboards
+- Caching layers
+
+## Hybrid Approaches
+
+Modern applications often use both SQL and NoSQL databases:
+
+```
+┌─────────────────────────────────────────┐
+│         Application Layer               │
+└─────────────────────────────────────────┘
+           │              │
+           ▼              ▼
+    ┌──────────┐    ┌──────────┐
+    │   SQL    │    │  NoSQL   │
+    │PostgreSQL│    │  Redis   │
+    └──────────┘    └──────────┘
+   Transactional     Caching &
+       Data          Sessions
+```
+
+<Tip>
+  **Polyglot Persistence**: Use the right database for each specific use case within your application. For example:
+  - PostgreSQL for user accounts and orders
+  - Redis for sessions and caching
+  - Elasticsearch for search
+  - MongoDB for product catalogs
+</Tip>
+
+## Common Misconceptions
+
+<Warning>
+  **Myth**: NoSQL databases are always faster than SQL databases.
+  
+  **Reality**: Performance depends on the use case. SQL databases can be extremely fast for their designed workloads.
+</Warning>
+
+<Warning>
+  **Myth**: NoSQL means no structure.
+  
+  **Reality**: NoSQL databases still need structure; it's just more flexible than rigid table schemas.
+</Warning>
+
+<Warning>
+  **Myth**: You must choose one or the other.
+  
+  **Reality**: Many successful systems use both SQL and NoSQL databases for different purposes.
+</Warning>
+
+## Migration Considerations
+
+If you're considering migrating from SQL to NoSQL (or vice versa):
+
+<Steps>
+  <Step title="Evaluate Access Patterns">
+    Analyze how your application reads and writes data
+  </Step>
+  <Step title="Consider Consistency Needs">
+    Determine if eventual consistency is acceptable
+  </Step>
+  <Step title="Plan Data Modeling">
+    Redesign your schema for the target database paradigm
+  </Step>
+  <Step title="Test Performance">
+    Run benchmarks with realistic workloads
+  </Step>
+  <Step title="Migrate Incrementally">
+    Use a phased approach rather than big-bang migration
+  </Step>
+</Steps>
+
+## Conclusion
+
+There's no universal winner between SQL and NoSQL. The best choice depends on:
+- Your data model and relationships
+- Consistency requirements
+- Scaling needs
+- Query patterns
+- Team expertise
+
+Many modern systems succeed by using both paradigms strategically—relational databases for transactional data and NoSQL for specific high-scale or flexible-schema needs.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Choosing a Database" icon="database" href="/guides/database/choosing-database">
+    Learn how to select the right database type
+  </Card>
+  <Card title="Database Sharding" icon="layer-group" href="/guides/database/sharding">
+    Scale your database horizontally
+  </Card>
+  <Card title="CAP Theorem" icon="triangle-exclamation" href="/guides/database/cap-theorem">
+    Understand trade-offs in distributed systems
+  </Card>
+  <Card title="ACID Properties" icon="shield-check" href="/guides/database/acid">
+    Deep dive into transaction guarantees
+  </Card>
+</CardGroup>

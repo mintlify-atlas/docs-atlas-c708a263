@@ -1,0 +1,542 @@
+---
+title: 'JSON Web Tokens (JWT)'
+description: 'Learn about JSON Web Tokens for secure, stateless authentication and authorization in modern applications.'
+icon: 'ticket'
+---
+
+JSON Web Tokens (JWT) are an open standard (RFC 7519) for securely transmitting information between parties as a JSON object. They are widely used for authentication and authorization in modern web applications.
+
+## What is JWT?
+
+<img src="https://assets.bytebytego.com/diagrams/0244-jwt-101-key-to-stateless-authentication.png" alt="JWT 101" />
+
+JWT (pronounced "jot") is a compact, URL-safe means of representing claims to be transferred between two parties. The claims in a JWT are encoded as a JSON object that is used as the payload of a JSON Web Signature (JWS) structure or as the plaintext of a JSON Web Encryption (JWE) structure.
+
+### Why Use JWT?
+
+**Benefits:**
+- **Stateless** - No server-side session storage required
+- **Self-contained** - Token contains all user information
+- **Scalable** - Works well in distributed systems
+- **Cross-domain** - Can be used across different domains
+- **Mobile-friendly** - Easy to use in mobile applications
+
+**Use cases:**
+- User authentication
+- Information exchange
+- Authorization
+- Single Sign-On (SSO)
+- API authentication
+
+## JWT Structure
+
+A JWT consists of three parts separated by dots (.):
+
+```
+header.payload.signature
+```
+
+Example:
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+### 1. Header
+
+The header typically consists of two parts:
+- Token type (JWT)
+- Signing algorithm (e.g., HMAC SHA256, RSA)
+
+**Example:**
+```json
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+```
+
+This JSON is then **Base64Url encoded** to form the first part of the JWT.
+
+<Info>
+Base64Url encoding is similar to Base64 but uses URL-safe characters.
+</Info>
+
+### 2. Payload
+
+The payload contains the claims, which are statements about an entity (typically the user) and additional data.
+
+**Example:**
+```json
+{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "iat": 1516239022,
+  "exp": 1516242622
+}
+```
+
+This JSON is also **Base64Url encoded** to form the second part of the JWT.
+
+#### Types of Claims
+
+**1. Registered Claims**
+
+Predefined claims recommended by the JWT specification:
+
+- `iss` (issuer) - Who issued the token
+- `sub` (subject) - Subject of the token (usually user ID)
+- `aud` (audience) - Intended recipient
+- `exp` (expiration time) - When token expires (Unix timestamp)
+- `nbf` (not before) - Token not valid before this time
+- `iat` (issued at) - When token was issued
+- `jti` (JWT ID) - Unique identifier for the token
+
+**2. Public Claims**
+
+Custom claims that should be defined in the IANA JSON Web Token Registry or use collision-resistant names:
+
+```json
+{
+  "https://example.com/roles": ["admin", "user"]
+}
+```
+
+**3. Private Claims**
+
+Custom claims created by agreement between parties:
+
+```json
+{
+  "user_id": "12345",
+  "department": "engineering",
+  "permissions": ["read", "write"]
+}
+```
+
+<Warning>
+Don't put sensitive information in JWT payload as it's only Base64 encoded, not encrypted. Anyone can decode and read it.
+</Warning>
+
+### 3. Signature
+
+The signature is created by taking the encoded header, encoded payload, a secret key, and the algorithm specified in the header, then signing it.
+
+**Example (using HMAC SHA256):**
+```javascript
+HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload),
+  secret
+)
+```
+
+The signature ensures:
+- The token hasn't been tampered with
+- The token was issued by a trusted party (if using asymmetric signing)
+
+## JWT Signing Methods
+
+JWTs can be signed using two different approaches:
+
+### Symmetric Signatures (HMAC)
+
+<img src="https://assets.bytebytego.com/diagrams/0244-jwt-101-key-to-stateless-authentication.png" alt="JWT Symmetric Signing" />
+
+Uses a single secret key for both signing the token and verifying it.
+
+**How it works:**
+1. Server signs JWT with secret key
+2. Client receives JWT
+3. Server verifies JWT with same secret key
+
+**Algorithms:**
+- HS256 (HMAC with SHA-256)
+- HS384 (HMAC with SHA-384)
+- HS512 (HMAC with SHA-512)
+
+**Pros:**
+- Fast and efficient
+- Simple to implement
+- Smaller signatures
+
+**Cons:**
+- Secret must be shared between all parties
+- Any party with the secret can create valid tokens
+- Not suitable for scenarios where multiple parties need to verify tokens
+
+**Best for:**
+- Single server authentication
+- Microservices within same organization
+- Internal APIs
+
+### Asymmetric Signatures (RSA/ECDSA)
+
+Uses a private key to sign the token and a public key to verify it.
+
+**How it works:**
+1. Server signs JWT with private key
+2. Client receives JWT
+3. Anyone with public key can verify JWT
+4. Only private key holder can create valid tokens
+
+**Algorithms:**
+- RS256 (RSA with SHA-256)
+- RS384 (RSA with SHA-384)
+- RS512 (RSA with SHA-512)
+- ES256 (ECDSA with SHA-256)
+- ES384 (ECDSA with SHA-384)
+- ES512 (ECDSA with SHA-512)
+
+**Pros:**
+- Private key never shared
+- Public key can be distributed freely
+- Suitable for multiple verifiers
+- Higher security
+
+**Cons:**
+- Slower than symmetric
+- Larger signatures
+- More complex key management
+
+**Best for:**
+- Multiple services need to verify tokens
+- Third-party integrations
+- OAuth 2.0 implementations
+- Public APIs
+
+<Note>
+Choose HMAC for simplicity and speed in internal systems. Choose RSA/ECDSA when you need to distribute public keys for verification.
+</Note>
+
+## JWT Workflow
+
+Here's how JWT works in a typical authentication flow:
+
+### 1. User Login
+
+```
+┌──────┐                 ┌──────────┐
+│Client│                 │  Server  │
+└──┬───┘                 └────┬─────┘
+   │                          │
+   │ 1. POST /login           │
+   │ {username, password}     │
+   │─────────────────────────>│
+   │                          │
+   │                     2. Validate
+   │                     credentials
+   │                          │
+   │                     3. Generate
+   │                     JWT token
+   │                          │
+   │ 4. Return JWT token      │
+   │<─────────────────────────│
+   │                          │
+```
+
+### 2. Accessing Protected Resources
+
+```
+┌──────┐                 ┌──────────┐
+│Client│                 │  Server  │
+└──┬───┘                 └────┬─────┘
+   │                          │
+   │ 1. GET /api/protected    │
+   │ Authorization:           │
+   │ Bearer <JWT>             │
+   │─────────────────────────>│
+   │                          │
+   │                     2. Verify
+   │                     JWT signature
+   │                          │
+   │                     3. Extract
+   │                     user info
+   │                          │
+   │ 4. Return protected data │
+   │<─────────────────────────│
+   │                          │
+```
+
+## JWT vs Sessions
+
+<img src="https://assets.bytebytego.com/diagrams/0152-cookies-session-jwt.png" alt="JWT vs Sessions" />
+
+### Session-Based Authentication
+
+**Flow:**
+1. User logs in
+2. Server creates session, stores in database
+3. Server returns session ID cookie
+4. Client sends cookie with each request
+5. Server looks up session in database
+
+**Pros:**
+- Server has full control
+- Easy to invalidate
+- Can store any data server-side
+
+**Cons:**
+- Requires server-side storage
+- Doesn't scale well horizontally
+- Doesn't work well across domains
+- Not ideal for mobile apps
+
+### JWT-Based Authentication
+
+**Flow:**
+1. User logs in
+2. Server generates JWT
+3. Server returns JWT
+4. Client stores JWT (usually in memory or storage)
+5. Client sends JWT with each request
+6. Server verifies JWT signature
+
+**Pros:**
+- No server-side storage
+- Scales horizontally
+- Works across domains
+- Mobile-friendly
+- Stateless
+
+**Cons:**
+- Cannot easily invalidate
+- Larger payload than session IDs
+- Need to handle token refresh
+- Vulnerable if not handled properly
+
+<Info>
+Many modern applications use a hybrid approach: JWT for authentication and sessions for sensitive operations.
+</Info>
+
+## Security Best Practices
+
+### 1. Use Strong Secrets
+
+<Warning>
+For HMAC algorithms, use a strong, random secret key of at least 256 bits (32 bytes).
+</Warning>
+
+**Good:**
+```javascript
+const secret = crypto.randomBytes(32).toString('hex');
+```
+
+**Bad:**
+```javascript
+const secret = 'myapp_secret'; // Too weak!
+```
+
+### 2. Set Short Expiration Times
+
+Keep JWT lifetimes short to minimize the impact of token theft:
+
+```json
+{
+  "exp": 1516239022, // 15 minutes from issue
+  "iat": 1516238122
+}
+```
+
+**Recommended expiration times:**
+- Access tokens: 15 minutes to 1 hour
+- Refresh tokens: 7 to 30 days
+
+### 3. Use HTTPS Only
+
+<Warning>
+Always transmit JWTs over HTTPS to prevent token interception.
+</Warning>
+
+### 4. Validate All Claims
+
+When verifying JWTs, validate:
+- Signature is valid
+- Token hasn't expired (`exp` claim)
+- Token is not used before valid time (`nbf` claim)
+- Issuer is expected (`iss` claim)
+- Audience matches your application (`aud` claim)
+
+```javascript
+// Example validation
+const decoded = jwt.verify(token, secret, {
+  algorithms: ['HS256'],
+  issuer: 'https://your-domain.com',
+  audience: 'your-app-id'
+});
+
+if (decoded.exp < Date.now() / 1000) {
+  throw new Error('Token expired');
+}
+```
+
+### 5. Don't Store Sensitive Data
+
+<Warning>
+Never include sensitive information in JWT payload:
+- Passwords
+- Credit card numbers
+- Social security numbers
+- Private keys
+</Warning>
+
+JWTs are encoded, not encrypted. Anyone can decode and read the payload.
+
+### 6. Implement Token Refresh
+
+Use refresh tokens to obtain new access tokens:
+
+```
+┌──────┐                 ┌──────────┐
+│Client│                 │  Server  │
+└──┬───┘                 └────┬─────┘
+   │                          │
+   │ 1. POST /refresh         │
+   │ {refresh_token}          │
+   │─────────────────────────>│
+   │                          │
+   │                     2. Validate
+   │                     refresh token
+   │                          │
+   │                     3. Generate
+   │                     new access token
+   │                          │
+   │ 4. Return new tokens     │
+   │<─────────────────────────│
+   │                          │
+```
+
+### 7. Store JWTs Securely
+
+**Client-side storage options:**
+
+| Storage | Pros | Cons | Best for |
+|---------|------|------|----------|
+| Memory | Most secure | Lost on refresh | SPAs |
+| HttpOnly Cookie | Secure from XSS | Vulnerable to CSRF | Server-rendered apps |
+| Local Storage | Persistent | Vulnerable to XSS | Not recommended |
+| Session Storage | Cleared on tab close | Vulnerable to XSS | Not recommended |
+
+<Note>
+For SPAs, store JWTs in memory and implement token refresh. For server-rendered apps, use httpOnly cookies with CSRF protection.
+</Note>
+
+### 8. Implement Token Blacklisting
+
+For logout and security, maintain a blacklist of invalidated tokens:
+
+```javascript
+// Pseudo-code
+const blacklist = new Set();
+
+function logout(token) {
+  blacklist.add(token);
+  // Optionally store in Redis with TTL
+}
+
+function verifyToken(token) {
+  if (blacklist.has(token)) {
+    throw new Error('Token has been revoked');
+  }
+  return jwt.verify(token, secret);
+}
+```
+
+## Common JWT Vulnerabilities
+
+### 1. Algorithm None Attack
+
+**Attack:** Change algorithm to "none" to bypass signature verification
+
+**Vulnerable code:**
+```javascript
+jwt.verify(token, secret, { algorithms: ['HS256', 'none'] });
+```
+
+**Mitigation:**
+```javascript
+jwt.verify(token, secret, { algorithms: ['HS256'] }); // Don't allow 'none'
+```
+
+### 2. Algorithm Confusion Attack
+
+**Attack:** Change algorithm from RS256 to HS256, using public key as HMAC secret
+
+**Mitigation:**
+- Explicitly specify allowed algorithms
+- Use separate keys for different algorithms
+- Validate algorithm in header matches expected
+
+### 3. Token Sidejacking
+
+**Attack:** Steal JWT from client-side storage or network traffic
+
+**Mitigation:**
+- Use HTTPS only
+- Store tokens securely
+- Implement short expiration times
+- Use refresh tokens
+
+### 4. Weak Secrets
+
+**Attack:** Brute force or dictionary attack on weak secrets
+
+**Mitigation:**
+- Use strong, random secrets (256+ bits)
+- Rotate secrets regularly
+- Use asymmetric signing for public APIs
+
+## JWT Libraries
+
+### Node.js
+```javascript
+const jwt = require('jsonwebtoken');
+
+// Sign
+const token = jwt.sign({ userId: 123 }, secret, { expiresIn: '1h' });
+
+// Verify
+const decoded = jwt.verify(token, secret);
+```
+
+### Python
+```python
+import jwt
+import datetime
+
+# Sign
+token = jwt.encode({
+    'user_id': 123,
+    'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+}, secret, algorithm='HS256')
+
+# Verify
+decoded = jwt.decode(token, secret, algorithms=['HS256'])
+```
+
+### Java
+```java
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
+// Sign
+String token = Jwts.builder()
+    .setSubject("123")
+    .setExpiration(new Date(System.currentTimeMillis() + 3600000))
+    .signWith(SignatureAlgorithm.HS256, secret)
+    .compact();
+
+// Verify
+Claims claims = Jwts.parser()
+    .setSigningKey(secret)
+    .parseClaimsJws(token)
+    .getBody();
+```
+
+## Next Steps
+
+Explore related security topics:
+
+- [OAuth 2.0](/guides/security/oauth) - OAuth uses JWTs for tokens
+- [Authentication](/guides/security/authentication) - Broader authentication concepts
+- [HTTPS/SSL](/guides/security/https-ssl) - Secure token transmission
+- [Encryption](/guides/security/encryption) - Encrypting sensitive data

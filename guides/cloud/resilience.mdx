@@ -1,0 +1,716 @@
+---
+title: 'Building Resilient Systems'
+description: 'Patterns and strategies for building fault-tolerant, highly available systems'
+---
+
+## Introduction
+
+Have you noticed that the largest incidents are usually caused by something very small? A minor error starts the snowball effect that keeps building up. Suddenly, everything is down.
+
+Building resilient systems requires understanding failure modes and implementing patterns that minimize the impact of failures. This guide covers essential strategies for creating robust, fault-tolerant systems.
+
+<img src="https://assets.bytebytego.com/diagrams/0316-reliciency-patterns.jpg" alt="Resiliency Patterns" />
+
+## 8 Cloud Design Patterns for Resilience
+
+Here are 8 cloud design patterns to reduce the damage done by failures:
+
+- Timeout
+- Retry
+- Circuit Breaker
+- Rate Limiting
+- Load Shedding
+- Bulkhead
+- Back Pressure
+- Let it Crash
+
+<Note>
+These patterns are usually not used alone. To apply them effectively, we need to understand why we need them, how they work, and their limitations.
+</Note>
+
+## 1. Timeout Pattern
+
+Set maximum time limits for operations to prevent indefinite waiting.
+
+**Purpose:**
+- Prevent resource exhaustion
+- Fail fast instead of hanging
+- Free up resources for other requests
+- Improve user experience
+
+**Implementation:**
+
+<Tabs>
+  <Tab title="Connection Timeout">
+    Time to establish a connection to the server.
+    
+    **Typical values**: 5-10 seconds
+  </Tab>
+  
+  <Tab title="Request Timeout">
+    Time to receive a response after connection is established.
+    
+    **Typical values**: 30-60 seconds
+  </Tab>
+  
+  <Tab title="Idle Timeout">
+    Time a connection can remain idle before closing.
+    
+    **Typical values**: 60-300 seconds
+  </Tab>
+</Tabs>
+
+**Best Practices:**
+- Set aggressive timeouts for non-critical operations
+- Use longer timeouts for critical operations
+- Make timeouts configurable
+- Log timeout events for monitoring
+
+<Tip>
+Shopify's experience: Lower timeouts help services fail early. They use read timeout of 5 seconds and write timeout of 1 second.
+</Tip>
+
+## 2. Retry Pattern
+
+<img src="https://assets.bytebytego.com/diagrams/0229-how-do-we-retry-on-failures.png" alt="Retry Strategies" />
+
+Automatically retry failed operations with intelligent backoff strategies.
+
+### Retry Strategies
+
+<AccordionGroup>
+  <Accordion title="Linear Backoff">
+    Wait for progressively increasing fixed interval between retries.
+    
+    **Example**: 1s, 2s, 3s, 4s, 5s
+    
+    **Pros**: Simple to implement and understand
+    
+    **Cons**: May cause retry storms under high load
+  </Accordion>
+  
+  <Accordion title="Linear Jitter Backoff">
+    Linear backoff with added randomness.
+    
+    **Example**: 1s±0.5s, 2s±1s, 3s±1.5s
+    
+    **Pros**: Reduces synchronized retries
+    
+    **Cons**: Still somewhat predictable
+  </Accordion>
+  
+  <Accordion title="Exponential Backoff">
+    Delay increases exponentially between retries.
+    
+    **Example**: 1s, 2s, 4s, 8s, 16s
+    
+    **Pros**: Significantly reduces system load
+    
+    **Cons**: May delay resolution for transient issues
+  </Accordion>
+  
+  <Accordion title="Exponential Jitter Backoff" icon="star">
+    Exponential backoff with randomness (recommended).
+    
+    **Example**: 1s±0.5s, 2s±1s, 4s±2s, 8s±4s
+    
+    **Pros**: Best balance, reduces collisions significantly
+    
+    **Cons**: Randomness can cause longer delays
+  </Accordion>
+</AccordionGroup>
+
+### Retry Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Idempotency" icon="repeat">
+    Ensure operations can be safely retried without side effects.
+  </Card>
+  
+  <Card title="Max Attempts" icon="hashtag">
+    Set a maximum number of retry attempts (typically 3-5).
+  </Card>
+  
+  <Card title="Retry Conditions" icon="filter">
+    Only retry transient failures (network errors, timeouts, 5xx errors).
+  </Card>
+  
+  <Card title="Circuit Breaking" icon="bolt">
+    Combine with circuit breaker to stop retrying when service is down.
+  </Card>
+</CardGroup>
+
+**Errors to Retry:**
+- Network timeouts
+- Connection failures
+- HTTP 429 (Too Many Requests)
+- HTTP 503 (Service Unavailable)
+- Temporary database unavailability
+
+**Errors NOT to Retry:**
+- HTTP 4xx (except 429)
+- Authentication failures
+- Validation errors
+- Resource not found
+
+## 3. Circuit Breaker Pattern
+
+Prevent cascading failures by stopping requests to failing services.
+
+**Covered in detail in the [Distributed Patterns Guide](/guides/cloud/distributed-patterns#2-circuit-breaker-pattern)**
+
+<img src="https://assets.bytebytego.com/diagrams/0336-shopify.png" alt="Shopify Resilience Principles" />
+
+### Shopify's Approach
+
+Shopify developed **Semian** to protect services with circuit breakers:
+- Net::HTTP protection
+- MySQL protection
+- Redis protection
+- gRPC services protection
+
+**Key Configuration:**
+- Fast failure with low timeouts
+- Circuit breaker thresholds tuned per service
+- Automatic recovery testing
+
+## 4. Rate Limiting Pattern
+
+Control the rate of requests to protect system resources.
+
+**Algorithms:**
+
+<Tabs>
+  <Tab title="Token Bucket">
+    Tokens added at fixed rate, requests consume tokens.
+    
+    **Best for**: Smooth traffic with occasional bursts
+  </Tab>
+  
+  <Tab title="Leaky Bucket">
+    Requests processed at constant rate.
+    
+    **Best for**: Strict rate enforcement
+  </Tab>
+  
+  <Tab title="Fixed Window">
+    Count requests in fixed time windows.
+    
+    **Best for**: Simple implementation
+  </Tab>
+  
+  <Tab title="Sliding Window">
+    Weighted count based on current time.
+    
+    **Best for**: Smooth rate limiting
+  </Tab>
+</Tabs>
+
+**Rate Limiting Strategies:**
+
+- **Per User**: Limit requests per user/API key
+- **Per IP**: Limit requests per IP address
+- **Global**: System-wide rate limits
+- **Endpoint Specific**: Different limits per endpoint
+
+**Response Handling:**
+
+```
+HTTP 429 Too Many Requests
+Retry-After: 60
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1640000000
+```
+
+## 5. Load Shedding Pattern
+
+Drop low-priority requests when system is overloaded to maintain service for high-priority requests.
+
+**Priority Levels:**
+
+<Steps>
+  <Step title="Critical">
+    Core business operations, never shed
+    
+    Examples: Payment processing, order creation
+  </Step>
+  
+  <Step title="High">
+    Important features, shed only under extreme load
+    
+    Examples: User authentication, checkout
+  </Step>
+  
+  <Step title="Medium">
+    Standard features, can be shed under moderate load
+    
+    Examples: Search, recommendations
+  </Step>
+  
+  <Step title="Low">
+    Nice-to-have features, shed first
+    
+    Examples: Analytics, thumbnails, tracking
+  </Step>
+</Steps>
+
+**Implementation Strategies:**
+
+1. **Queue-based**: Drop from queue tail when full
+2. **Probabilistic**: Randomly drop based on load level
+3. **Admission Control**: Reject at entry point
+4. **Graceful Degradation**: Reduce quality/features
+
+## 6. Bulkhead Pattern
+
+Isolate system resources to prevent cascading failures.
+
+**Concept:**
+Like compartments in a ship's hull, failures in one area don't sink the entire system.
+
+**Implementation:**
+
+<CardGroup cols={2}>
+  <Card title="Thread Pool Isolation" icon="layer-group">
+    Separate thread pools for different operations.
+    
+    One slow operation doesn't block all threads.
+  </Card>
+  
+  <Card title="Connection Pool Isolation" icon="database">
+    Separate connection pools per client/tenant.
+    
+    One heavy user doesn't exhaust all connections.
+  </Card>
+  
+  <Card title="Process Isolation" icon="box">
+    Run services in separate processes.
+    
+    Process crash doesn't affect others.
+  </Card>
+  
+  <Card title="Resource Limits" icon="gauge">
+    Set CPU, memory, disk limits per component.
+    
+    Prevent resource monopolization.
+  </Card>
+</CardGroup>
+
+**Example Configuration:**
+
+```yaml
+Services:
+  critical-service:
+    thread_pool_size: 100
+    connection_pool_size: 50
+    cpu_limit: 2000m
+    memory_limit: 2Gi
+  
+  non-critical-service:
+    thread_pool_size: 20
+    connection_pool_size: 10
+    cpu_limit: 500m
+    memory_limit: 512Mi
+```
+
+## 7. Back Pressure Pattern
+
+Signal to upstream services when downstream is overloaded.
+
+**Mechanisms:**
+
+<AccordionGroup>
+  <Accordion title="Bounded Queues">
+    Use fixed-size queues that block or reject when full.
+    
+    Provides natural back pressure to producers.
+  </Accordion>
+  
+  <Accordion title="Flow Control">
+    Explicit signals to slow down/pause sending.
+    
+    Common in streaming protocols (gRPC, HTTP/2).
+  </Accordion>
+  
+  <Accordion title="Reactive Streams">
+    Publisher-subscriber with demand signaling.
+    
+    Subscriber controls how much data it can handle.
+  </Accordion>
+  
+  <Accordion title="Load Feedback">
+    Share load metrics with clients.
+    
+    Clients adjust request rate based on feedback.
+  </Accordion>
+</AccordionGroup>
+
+**Benefits:**
+- Prevents memory exhaustion
+- Maintains system stability
+- Better resource utilization
+- Coordinated flow control
+
+## 8. Let it Crash Pattern
+
+Allow processes to fail and restart rather than trying to handle every error.
+
+**Philosophy:**
+- Design for failure and recovery
+- Supervision trees restart failed processes
+- Clean state after restart
+- Simple error handling
+
+**Requirements:**
+- Fast startup time
+- Stateless design or external state storage
+- Health checks and monitoring
+- Supervision and orchestration (Kubernetes, Nomad)
+
+**Erlang/Elixir Example:**
+
+This pattern originated from Erlang's "Let it crash" philosophy:
+- Processes are lightweight
+- Supervisors monitor and restart
+- System remains available
+- Proven in telecom systems (99.9999999% availability)
+
+## High Availability Architecture
+
+<img src="https://assets.bytebytego.com/diagrams/0211-high-availability.jpg" alt="High Availability Architecture" />
+
+### What is High Availability?
+
+In system design, availability means all (non-failing) nodes are available for queries. When you send requests to nodes, a non-failing node returns a reasonable response within a reasonable time (no error or timeout).
+
+**Target**: For 4-9's (99.99%), services can only be down for 52.5 minutes per year.
+
+<Note>
+Availability guarantees you will receive a response, but doesn't guarantee the data is the most up-to-date.
+</Note>
+
+### High Availability Architectures
+
+<Tabs>
+  <Tab title="Primary-Backup">
+    **Setup:**
+    - Backup node is stand-by
+    - Data replicated from primary to backup
+    - Manual failover when primary fails
+    
+    **Pros**: Simple, data integrity
+    
+    **Cons**: Backup resources underutilized, manual failover
+    
+    **Availability**: 90% → 99% (if deployed on EC2)
+  </Tab>
+  
+  <Tab title="Primary-Secondary">
+    **Setup:**
+    - Secondary takes read requests
+    - Primary handles writes
+    - Automatic or manual failover
+    
+    **Pros**: Better resource utilization, load distribution
+    
+    **Cons**: Eventual consistency, replication lag
+    
+    **Availability**: 90% → 99%
+  </Tab>
+  
+  <Tab title="Primary-Primary">
+    **Setup:**
+    - Both nodes handle reads and writes
+    - Bidirectional replication
+    - Active-active configuration
+    
+    **Pros**: Higher throughput, better resource usage
+    
+    **Cons**: Complex conflict resolution, limited use cases
+    
+    **Warning**: Use with caution! Can lead to data inconsistencies.
+  </Tab>
+</Tabs>
+
+### Multi-Region Deployment
+
+**Benefits:**
+- Lower latency for global users
+- Disaster recovery
+- Regulatory compliance
+- Higher availability
+
+**Challenges:**
+- Data consistency across regions
+- Increased complexity
+- Higher costs
+- Latency between regions
+
+## Disaster Recovery Strategies
+
+<img src="https://assets.bytebytego.com/diagrams/0050-cloud-disaster-recovery-strategies.png" alt="Cloud Disaster Recovery Strategies" />
+
+An effective Disaster Recovery (DR) plan is not just a precaution; it's a necessity.
+
+### Key Metrics
+
+<CardGroup cols={2}>
+  <Card title="RTO" icon="clock">
+    **Recovery Time Objective**
+    
+    Maximum acceptable time application can be offline after a disaster.
+  </Card>
+  
+  <Card title="RPO" icon="database">
+    **Recovery Point Objective**
+    
+    Maximum acceptable amount of data loss measured in time.
+  </Card>
+</CardGroup>
+
+### DR Strategies
+
+<AccordionGroup>
+  <Accordion title="Backup and Restore">
+    Regular backups to facilitate post-disaster recovery.
+    
+    **RTO**: Several hours to days
+    
+    **RPO**: Hours to last backup
+    
+    **Cost**: Lowest
+    
+    **Use case**: Non-critical systems, archival
+  </Accordion>
+  
+  <Accordion title="Pilot Light">
+    Critical components in ready-to-activate mode.
+    
+    **RTO**: Minutes to several hours
+    
+    **RPO**: Depends on data sync frequency
+    
+    **Cost**: Low to medium
+    
+    **Use case**: Important but not critical systems
+  </Accordion>
+  
+  <Accordion title="Warm Standby">
+    Semi-active environment with current data.
+    
+    **RTO**: Minutes to hours
+    
+    **RPO**: Last few minutes to hours
+    
+    **Cost**: Medium to high
+    
+    **Use case**: Business-critical applications
+  </Accordion>
+  
+  <Accordion title="Hot Site / Multi-Site">
+    Fully operational duplicate environment running in parallel.
+    
+    **RTO**: Almost immediate (minutes)
+    
+    **RPO**: Minimal (seconds)
+    
+    **Cost**: Highest
+    
+    **Use case**: Mission-critical systems (banking, healthcare)
+  </Accordion>
+</AccordionGroup>
+
+## 10 Principles from Shopify
+
+Shopify has valuable tips for building resilient payment systems that apply broadly:
+
+<Steps>
+  <Step title="Lower the timeouts">
+    Let services fail early. Use read timeout of 5s and write timeout of 1s.
+  </Step>
+  
+  <Step title="Install circuit breakers">
+    Use tools like Semian to protect services (Net::HTTP, MySQL, Redis, gRPC).
+  </Step>
+  
+  <Step title="Capacity management">
+    Understand throughput: 50 requests in queue, 100ms processing = 500 req/sec.
+  </Step>
+  
+  <Step title="Add monitoring and alerting">
+    Monitor four golden signals: latency, traffic, errors, and saturation.
+  </Step>
+  
+  <Step title="Implement structured logging">
+    Store logs centrally and make them easily searchable.
+  </Step>
+  
+  <Step title="Use idempotency keys">
+    Use ULID (Universally Unique Lexicographically Sortable Identifier) for idempotency.
+  </Step>
+  
+  <Step title="Be consistent with reconciliation">
+    Store reconciliation breaks with financial partners in database.
+  </Step>
+  
+  <Step title="Incorporate load testing">
+    Regularly simulate high-volume scenarios to get benchmark results.
+  </Step>
+  
+  <Step title="Get on top of incident management">
+    Define clear roles: Incident Manager, Support Response Manager, Service Owners.
+  </Step>
+  
+  <Step title="Organize incident retrospectives">
+    Ask three questions: What happened? What assumptions were wrong? How to prevent?
+  </Step>
+</Steps>
+
+## Observability and Monitoring
+
+### Four Golden Signals (Google SRE)
+
+<CardGroup cols={2}>
+  <Card title="Latency" icon="gauge">
+    Time to service a request.
+    
+    Track p50, p95, p99 percentiles.
+  </Card>
+  
+  <Card title="Traffic" icon="arrow-up-right-dots">
+    Demand on your system.
+    
+    Requests per second, transactions per second.
+  </Card>
+  
+  <Card title="Errors" icon="triangle-exclamation">
+    Rate of failed requests.
+    
+    Track error types and frequencies.
+  </Card>
+  
+  <Card title="Saturation" icon="fill">
+    How "full" your service is.
+    
+    CPU, memory, disk, network utilization.
+  </Card>
+</CardGroup>
+
+### Distributed Tracing
+
+**Components:**
+- **Trace**: End-to-end request flow
+- **Span**: Individual operation
+- **Tags**: Metadata for filtering
+- **Logs**: Time-stamped events
+
+**Popular Tools:**
+- Jaeger
+- Zipkin
+- AWS X-Ray
+- Google Cloud Trace
+- Datadog APM
+
+### Structured Logging
+
+**Best Practices:**
+- Use JSON format
+- Include correlation IDs
+- Add contextual information
+- Centralize logs (ELK, Splunk, CloudWatch)
+- Set appropriate log levels
+
+## Chaos Engineering
+
+Proactively test system resilience by introducing failures.
+
+**Principles:**
+
+1. **Build a hypothesis** around steady state behavior
+2. **Vary real-world events** (server failures, network issues)
+3. **Run experiments** in production (carefully)
+4. **Automate** experiments to run continuously
+5. **Minimize blast radius** to limit potential impact
+
+**Common Experiments:**
+
+- Kill random instances
+- Introduce network latency
+- Simulate network partitions
+- Exhaust resources (CPU, memory, disk)
+- Inject errors in dependencies
+
+**Tools:**
+- Chaos Monkey (Netflix)
+- Gremlin
+- Chaos Toolkit
+- LitmusChaos
+- AWS Fault Injection Simulator
+
+## Testing for Resilience
+
+<CardGroup cols={2}>
+  <Card title="Load Testing" icon="weight-hanging">
+    Test system behavior under expected load.
+    
+    Tools: JMeter, Gatling, k6
+  </Card>
+  
+  <Card title="Stress Testing" icon="fire">
+    Push system beyond normal capacity.
+    
+    Identify breaking points.
+  </Card>
+  
+  <Card title="Soak Testing" icon="droplet">
+    Run at normal load for extended period.
+    
+    Detect memory leaks, resource exhaustion.
+  </Card>
+  
+  <Card title="Spike Testing" icon="bolt">
+    Sudden increase in load.
+    
+    Test auto-scaling, surge capacity.
+  </Card>
+</CardGroup>
+
+## Best Practices Summary
+
+<Warning>
+**Design for Failure**: Assume everything will fail eventually. Build systems that can handle partial failures gracefully.
+</Warning>
+
+**Key Principles:**
+
+1. ✅ Implement multiple layers of resilience
+2. ✅ Use timeouts and circuit breakers
+3. ✅ Design for graceful degradation
+4. ✅ Implement comprehensive monitoring
+5. ✅ Practice incident response
+6. ✅ Use load testing and chaos engineering
+7. ✅ Document failure modes and runbooks
+8. ✅ Implement automated recovery
+9. ✅ Use bulkheads to isolate failures
+10. ✅ Regular disaster recovery drills
+
+<Tip>
+Resilience is not a feature you add at the end. It must be designed into the system from the beginning.
+</Tip>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="AWS Services" icon="aws" href="/guides/cloud/aws-services">
+    Learn about AWS services for resilient systems
+  </Card>
+  
+  <Card title="Scalability" icon="arrow-up-right-dots" href="/guides/cloud/scalability">
+    Scale systems while maintaining resilience
+  </Card>
+  
+  <Card title="Distributed Patterns" icon="network-wired" href="/guides/cloud/distributed-patterns">
+    Patterns for building distributed systems
+  </Card>
+</CardGroup>

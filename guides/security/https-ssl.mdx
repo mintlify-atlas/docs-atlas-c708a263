@@ -1,0 +1,549 @@
+---
+title: 'HTTPS and SSL/TLS'
+description: 'Learn how HTTPS, SSL/TLS, and encryption protocols secure data transmission over the internet.'
+icon: 'lock'
+---
+
+HTTPS (Hypertext Transfer Protocol Secure) is an extension of HTTP that uses encryption to secure data transmission over the internet. It's the foundation of secure communication on the web.
+
+## What is HTTPS?
+
+<img src="https://assets.bytebytego.com/diagrams/0220-how-does-https-work.png" alt="How HTTPS Works" />
+
+HTTPS transmits encrypted data using Transport Layer Security (TLS), formerly known as Secure Sockets Layer (SSL). If data is intercepted during transmission, attackers only see encrypted binary code, not the actual content.
+
+### Why HTTPS Matters
+
+**Protection against:**
+- Eavesdropping - Prevents attackers from reading transmitted data
+- Man-in-the-middle attacks - Ensures you're communicating with the intended server
+- Data tampering - Detects if data has been modified during transmission
+- Impersonation - Verifies server identity through certificates
+
+**Benefits:**
+- User trust and confidence
+- SEO ranking boost (Google favors HTTPS sites)
+- Required for modern browser features (geolocation, service workers)
+- Compliance with security standards
+
+<Warning>
+Always use HTTPS for websites that handle sensitive data like passwords, payment information, or personal data.
+</Warning>
+
+## How HTTPS Works
+
+HTTPS combines the standard HTTP protocol with TLS encryption. Here's the complete flow:
+
+### Step 1: TCP Connection
+
+The client (browser) and server establish a TCP connection using the three-way handshake.
+
+```
+Client                Server
+  │                     │
+  │──── SYN ──────────→│
+  │←─── SYN-ACK ───────│
+  │──── ACK ──────────→│
+  │                     │
+```
+
+### Step 2: TLS Handshake
+
+The client and server negotiate encryption parameters:
+
+**Client Hello:**
+- TLS version the client supports
+- List of cipher suites (encryption algorithms)
+- Random data for key generation
+
+**Server Hello:**
+- Selected TLS version
+- Selected cipher suite
+- Random data for key generation
+- SSL certificate containing:
+  - Server's public key
+  - Domain name (hostname)
+  - Certificate expiration date
+  - Issuing Certificate Authority (CA)
+  - Digital signature
+
+**Certificate Validation:**
+The client validates the SSL certificate:
+1. Check if certificate is issued by trusted CA
+2. Verify certificate hasn't expired
+3. Confirm domain name matches
+4. Validate digital signature
+
+<Note>
+Browsers maintain a list of trusted Certificate Authorities (CAs) to validate certificates.
+</Note>
+
+### Step 3: Session Key Exchange
+
+After validating the certificate, the client generates a session key:
+
+1. **Client generates** a random session key
+2. **Client encrypts** session key with server's public key (from certificate)
+3. **Client sends** encrypted session key to server
+4. **Server decrypts** session key using its private key
+
+**Result:** Both client and server now have the same session key.
+
+<Info>
+This process uses asymmetric encryption (public/private key pair) for the key exchange, then switches to symmetric encryption for data transmission.
+</Info>
+
+### Step 4: Secure Data Transmission
+
+Once both parties have the session key, they use **symmetric encryption** for all subsequent communication:
+
+```
+Client                Server
+  │                     │
+  │ Encrypted Request  │
+  │───────────────────→│
+  │                     │
+  │                 Decrypt
+  │                 Process
+  │                 Encrypt
+  │                     │
+  │ Encrypted Response │
+  │←───────────────────│
+  │                     │
+Decrypt
+Display
+```
+
+## Why Switch to Symmetric Encryption?
+
+<img src="https://assets.bytebytego.com/diagrams/0220-how-does-https-work.png" alt="Asymmetric to Symmetric" />
+
+HTTPS uses asymmetric encryption for the handshake but switches to symmetric encryption for data transmission. Here's why:
+
+### 1. Security
+
+**Asymmetric encryption is one-way:**
+- Server can encrypt with private key → anyone can decrypt with public key
+- Public key is public, so no secrecy for server-to-client messages
+- Not suitable for two-way secure communication
+
+**Symmetric encryption is two-way:**
+- Both parties use the same key
+- Key is kept secret between client and server
+- Enables secure bidirectional communication
+
+### 2. Performance
+
+**Asymmetric encryption:**
+- Computationally expensive
+- Involves complex mathematical operations
+- Not suitable for large amounts of data
+- Can slow down long sessions significantly
+
+**Symmetric encryption:**
+- Much faster
+- Lower computational overhead
+- Suitable for streaming data
+- Better for long-lived connections
+
+<Note>
+Asymmetric encryption can be 1000x slower than symmetric encryption. That's why HTTPS uses it only for the initial handshake.
+</Note>
+
+## SSL/TLS Handshake Explained
+
+<img src="https://assets.bytebytego.com/diagrams/0409-https-ssl-handshake-and-data-encryption-explained-to-kids.png" alt="SSL Handshake" />
+
+Let's dive deeper into the cryptographic protocols that establish a secure connection:
+
+### Complete TLS 1.3 Handshake
+
+```
+Client                                    Server
+  │                                         │
+  │────── ClientHello ─────────────────────→│
+  │  - TLS version                           │
+  │  - Cipher suites                         │
+  │  - Random bytes                          │
+  │                                         │
+  │←────── ServerHello ─────────────────────│
+  │  - Selected cipher suite                 │
+  │  - Server certificate                    │
+  │  - Server random bytes                   │
+  │  - Key exchange parameters               │
+  │                                         │
+  [Client validates certificate]            │
+  │                                         │
+  │────── ClientKeyExchange ────────────────→│
+  │  - Encrypted pre-master secret           │
+  │                                         │
+  [Both derive session key]                 │
+  │                                         │
+  │────── ChangeCipherSpec ─────────────────→│
+  │────── Finished (encrypted) ─────────────→│
+  │                                         │
+  │←────── ChangeCipherSpec ────────────────│
+  │←────── Finished (encrypted) ────────────│
+  │                                         │
+  [Encrypted application data]              │
+  │                                         │
+```
+
+### TLS 1.3 Improvements
+
+TLS 1.3 (the latest version) improves upon previous versions:
+
+**Faster handshake:**
+- 1-RTT (Round Trip Time) instead of 2-RTT
+- 0-RTT for resumed sessions
+
+**Stronger security:**
+- Removed weak cipher suites
+- Forward secrecy by default
+- Encrypted handshake messages
+
+**Simplified:**
+- Fewer cipher suite options
+- Cleaner protocol design
+
+## SSL Certificates
+
+### What's in an SSL Certificate?
+
+An SSL certificate contains:
+
+1. **Subject** - Domain name(s) the certificate is issued for
+2. **Issuer** - Certificate Authority that issued it
+3. **Valid From/To** - Certificate validity period
+4. **Public Key** - Server's public key
+5. **Signature Algorithm** - Algorithm used to sign the certificate
+6. **Digital Signature** - CA's signature of the certificate
+
+### Types of SSL Certificates
+
+#### By Validation Level
+
+**1. Domain Validation (DV)**
+- Validates domain ownership only
+- Issued quickly (minutes to hours)
+- Lowest cost
+- Suitable for blogs, personal sites
+
+**2. Organization Validation (OV)**
+- Validates domain and organization
+- Requires business verification
+- Moderate cost and time
+- Suitable for business websites
+
+**3. Extended Validation (EV)**
+- Strict validation process
+- Highest trust level
+- Shows organization name in browser
+- Most expensive
+- Suitable for e-commerce, banking
+
+#### By Coverage
+
+**1. Single Domain**
+- Covers one domain (e.g., example.com)
+- Most common type
+
+**2. Wildcard**
+- Covers domain and all subdomains (e.g., *.example.com)
+- Covers www.example.com, api.example.com, etc.
+
+**3. Multi-Domain (SAN)**
+- Covers multiple different domains
+- Subject Alternative Names (SAN)
+- Example: example.com, example.org, example.net
+
+### Certificate Authorities (CAs)
+
+Trusted organizations that issue SSL certificates:
+
+**Popular CAs:**
+- Let's Encrypt (Free, automated)
+- DigiCert
+- GlobalSign
+- Sectigo (formerly Comodo)
+- GoDaddy
+
+<Info>
+Let's Encrypt provides free SSL certificates with automated renewal. Perfect for most websites.
+</Info>
+
+## Is HTTPS Safe?
+
+<img src="https://assets.bytebytego.com/diagrams/0238-is-https-reliable.png" alt="HTTPS Security" />
+
+While HTTPS is generally secure, it can be compromised if intermediate servers hijack packets.
+
+### How HTTPS Can Be Intercepted
+
+**Prerequisite:** The attacker's root certificate must be installed in the client's trust store.
+
+**Attack scenario:**
+1. Client attempts HTTPS connection to server
+2. Request is routed to malicious intermediate server
+3. Intermediate establishes separate HTTPS connections:
+   - One with the client (using attacker's certificate)
+   - One with the real server (as a legitimate client)
+4. Intermediate decrypts traffic from both sides
+5. Intermediate can read, modify, or log all data
+
+### When This Happens
+
+**Legitimate use cases:**
+- Corporate proxy servers for monitoring
+- Parental control software
+- Security analysis tools (Fiddler, Wireshark)
+- Development debugging tools
+
+**Malicious scenarios:**
+- Man-in-the-middle attacks
+- Certificate authority compromise
+- Government surveillance
+
+### Protection Against Interception
+
+<Warning>
+HTTPS can be intercepted if a malicious certificate is installed on your device. Regularly check your trusted certificates.
+</Warning>
+
+**Best practices:**
+1. **Certificate Pinning** - App only accepts specific certificates
+2. **HSTS** - HTTP Strict Transport Security forces HTTPS
+3. **Certificate Transparency** - Public log of all issued certificates
+4. **Mutual TLS** - Both client and server verify certificates
+5. **Monitor installed certificates** - Remove unknown/suspicious ones
+
+## Encryption Types
+
+<img src="https://assets.bytebytego.com/diagrams/0349-symmetric-encryption-vs-asymmetric-encryption.png" alt="Encryption Types" />
+
+### Symmetric Encryption
+
+A single key is used for both encryption and decryption.
+
+**Characteristics:**
+- Fast and efficient
+- Suitable for large amounts of data
+- Key must be kept secret
+- Key distribution is challenging
+
+**Common algorithms:**
+- AES (Advanced Encryption Standard) - Most widely used
+- ChaCha20 - Modern alternative to AES
+- DES/3DES - Legacy, not recommended
+
+**Use cases:**
+- Bulk data encryption
+- File encryption
+- Database encryption
+- Encrypted sessions in HTTPS
+
+### Asymmetric Encryption
+
+Uses a pair of keys: public key (encrypt) and private key (decrypt).
+
+**Characteristics:**
+- Slower than symmetric
+- Solves key distribution problem
+- Enables digital signatures
+- Smaller data limits
+
+**Common algorithms:**
+- RSA - Most popular
+- ECC (Elliptic Curve Cryptography) - Faster, smaller keys
+- DSA - Digital signatures
+
+**Use cases:**
+- TLS handshake
+- Digital signatures
+- Email encryption (PGP)
+- Cryptocurrency transactions
+
+<Note>
+HTTPS uses asymmetric encryption to exchange keys during handshake, then symmetric encryption for actual data transmission.
+</Note>
+
+## Common HTTPS Issues
+
+### 1. Certificate Errors
+
+**"Your connection is not private"**
+- Expired certificate
+- Self-signed certificate
+- Domain name mismatch
+- Untrusted certificate authority
+
+**Solutions:**
+- Renew expired certificates
+- Use certificates from trusted CAs
+- Ensure certificate matches domain name
+
+### 2. Mixed Content
+
+HTTPS page loading HTTP resources (images, scripts, etc.).
+
+**Problem:** Browser blocks or warns about insecure content
+
+**Solution:**
+```html
+<!-- Bad: Mixed content -->
+<img src="http://example.com/image.jpg">
+<script src="http://example.com/script.js"></script>
+
+<!-- Good: All HTTPS -->
+<img src="https://example.com/image.jpg">
+<script src="https://example.com/script.js"></script>
+
+<!-- Better: Protocol-relative URLs -->
+<img src="//example.com/image.jpg">
+```
+
+### 3. Performance Impact
+
+HTTPS adds overhead from encryption/decryption.
+
+**Mitigation strategies:**
+- Use HTTP/2 (optimized for HTTPS)
+- Implement session resumption
+- Use OCSP stapling
+- Enable TLS 1.3
+- Optimize cipher suite selection
+
+<Info>
+Modern hardware and TLS 1.3 make HTTPS performance impact negligible for most applications.
+</Info>
+
+## Implementing HTTPS
+
+### 1. Obtain SSL Certificate
+
+**Using Let's Encrypt (Free):**
+```bash
+# Install Certbot
+sudo apt-get install certbot
+
+# Obtain certificate
+sudo certbot certonly --standalone -d example.com
+```
+
+### 2. Configure Web Server
+
+**Nginx:**
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name example.com;
+
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    
+    # Modern configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256';
+    ssl_prefer_server_ciphers off;
+    
+    # HSTS
+    add_header Strict-Transport-Security "max-age=31536000" always;
+}
+
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name example.com;
+    return 301 https://$server_name$request_uri;
+}
+```
+
+**Apache:**
+```apache
+<VirtualHost *:443>
+    ServerName example.com
+    
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/example.com/cert.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/example.com/privkey.pem
+    SSLCertificateChainFile /etc/letsencrypt/live/example.com/chain.pem
+    
+    # Modern configuration
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256
+    
+    # HSTS
+    Header always set Strict-Transport-Security "max-age=31536000"
+</VirtualHost>
+```
+
+### 3. Automate Certificate Renewal
+
+```bash
+# Let's Encrypt certificates expire after 90 days
+# Set up automatic renewal with cron
+
+# Edit crontab
+crontab -e
+
+# Add renewal job (runs twice daily)
+0 0,12 * * * certbot renew --quiet
+```
+
+## Security Headers
+
+Enhance HTTPS security with additional headers:
+
+### 1. Strict-Transport-Security (HSTS)
+
+Forces browsers to always use HTTPS:
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+### 2. Content-Security-Policy
+
+Prevents mixed content and XSS:
+```
+Content-Security-Policy: default-src https: 'unsafe-inline' 'unsafe-eval'
+```
+
+### 3. X-Frame-Options
+
+Prevents clickjacking:
+```
+X-Frame-Options: DENY
+```
+
+### 4. X-Content-Type-Options
+
+Prevents MIME sniffing:
+```
+X-Content-Type-Options: nosniff
+```
+
+## Best Practices
+
+1. **Use TLS 1.3** - Latest, fastest, most secure
+2. **Disable old protocols** - No SSLv3, TLS 1.0, TLS 1.1
+3. **Use strong cipher suites** - Prefer ECDHE and AES-GCM
+4. **Enable HSTS** - Force HTTPS usage
+5. **Implement OCSP Stapling** - Faster certificate validation
+6. **Use HTTP/2** - Better performance with HTTPS
+7. **Automate certificate renewal** - Prevent expiration
+8. **Monitor certificate expiration** - Set up alerts
+9. **Use certificate transparency** - Detect misissued certificates
+10. **Test configuration** - Use SSL Labs to verify
+
+<Note>
+Test your HTTPS configuration at [SSL Labs](https://www.ssllabs.com/ssltest/) to identify potential issues.
+</Note>
+
+## Next Steps
+
+Explore related security topics:
+
+- [Encryption](/guides/security/encryption) - Deep dive into encryption techniques
+- [Authentication](/guides/security/authentication) - User authentication methods
+- [OAuth 2.0](/guides/security/oauth) - Secure authorization framework
+- [JWT](/guides/security/jwt) - Token-based authentication

@@ -1,0 +1,377 @@
+---
+title: 'REST API'
+description: 'Learn REST API principles, HTTP methods, design patterns, and best practices for building robust web services.'
+---
+
+## What is REST API?
+
+REST (Representational State Transfer) is an architectural style for designing networked applications. REST APIs use HTTP methods to perform CRUD operations and communicate between clients and servers in a stateless manner.
+
+<img src="https://assets.bytebytego.com/diagrams/0317-rest-api-authentication-methods.png" alt="REST API Authentication Methods" />
+
+## Core Principles of REST
+
+REST is built on six fundamental principles that ensure scalability and maintainability:
+
+<Steps>
+  <Step title="Client-Server Architecture">
+    Separation of concerns between the user interface (client) and data storage (server), allowing independent evolution of both components.
+  </Step>
+  
+  <Step title="Stateless Communication">
+    Each request from client to server must contain all information needed to understand and process the request. The server stores no client context between requests.
+  </Step>
+  
+  <Step title="Cacheability">
+    Responses must define themselves as cacheable or non-cacheable to improve performance and scalability.
+  </Step>
+  
+  <Step title="Uniform Interface">
+    Standardized way of communicating between client and server through resource identification, manipulation through representations, and self-descriptive messages.
+  </Step>
+  
+  <Step title="Layered System">
+    Architecture can be composed of hierarchical layers, with each component only interacting with its immediate layer.
+  </Step>
+  
+  <Step title="Code on Demand (Optional)">
+    Servers can extend client functionality by transferring executable code.
+  </Step>
+</Steps>
+
+## HTTP Methods
+
+<img src="https://assets.bytebytego.com/diagrams/0371-top-9-http-request-methods.png" alt="HTTP Request Methods" />
+
+REST APIs leverage standard HTTP methods for operations:
+
+<CodeGroup>
+```http GET
+GET /api/users/123
+Host: example.com
+
+# Retrieves a resource from the server
+# Idempotent - multiple identical requests return the same result
+```
+
+```http POST
+POST /api/users
+Host: example.com
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+
+# Creates a new resource
+# Not idempotent - duplicate requests create duplicate resources
+```
+
+```http PUT
+PUT /api/users/123
+Host: example.com
+Content-Type: application/json
+
+{
+  "name": "John Smith",
+  "email": "john.smith@example.com"
+}
+
+# Updates or creates a resource
+# Idempotent - multiple identical requests update the same resource
+```
+
+```http PATCH
+PATCH /api/users/123
+Host: example.com
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com"
+}
+
+# Applies partial modifications to a resource
+```
+
+```http DELETE
+DELETE /api/users/123
+Host: example.com
+
+# Deletes a resource
+# Idempotent - multiple identical requests delete the same resource
+```
+</CodeGroup>
+
+### Additional HTTP Methods
+
+- **HEAD**: Returns response headers without the body (useful for checking if a resource exists)
+- **OPTIONS**: Describes communication options for the target resource
+- **CONNECT**: Establishes a tunnel to the server
+- **TRACE**: Performs a message loop-back test
+
+## HTTP Status Codes
+
+<img src="https://assets.bytebytego.com/diagrams/0233-http-status-code.png" alt="HTTP Status Codes" />
+
+HTTP status codes are divided into five categories:
+
+| Category | Range | Description | Common Examples |
+|----------|-------|-------------|----------------|
+| **Informational** | 100-199 | Request received, continuing process | 100 Continue, 101 Switching Protocols |
+| **Success** | 200-299 | Request successfully received and processed | 200 OK, 201 Created, 204 No Content |
+| **Redirection** | 300-399 | Further action needed to complete request | 301 Moved Permanently, 302 Found, 304 Not Modified |
+| **Client Error** | 400-499 | Request contains errors or cannot be fulfilled | 400 Bad Request, 401 Unauthorized, 404 Not Found |
+| **Server Error** | 500-599 | Server failed to fulfill valid request | 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable |
+
+## REST API Design Best Practices
+
+<img src="https://assets.bytebytego.com/diagrams/0040-rest-api-cheatsheet.png" alt="REST API Cheatsheet" />
+
+### 8 Essential Tips for Efficient API Design
+
+<img src="https://assets.bytebytego.com/diagrams/0385-top-8-tips-for-restful-api-design.png" alt="Tips for RESTful API Design" />
+
+<Steps>
+  <Step title="Domain Model Driven">
+    Design your path structure based on your domain model for intuitive resource organization.
+    
+    ```
+    /api/users/{userId}/orders/{orderId}/items
+    ```
+  </Step>
+  
+  <Step title="Choose Proper HTTP Methods">
+    Use standard HTTP methods consistently. Avoid overcomplicating with methods like PATCH unless necessary.
+  </Step>
+  
+  <Step title="Implement Idempotence Properly">
+    GET, PUT, and DELETE are naturally idempotent. Design POST operations to be idempotent when possible for improved robustness.
+  </Step>
+  
+  <Step title="Use Appropriate Status Codes">
+    Define a limited, consistent set of HTTP status codes to simplify client development.
+  </Step>
+  
+  <Step title="API Versioning">
+    Plan versioning strategy from the start to handle future changes gracefully.
+    
+    ```
+    /api/v1/users
+    /api/v2/users
+    ```
+  </Step>
+  
+  <Step title="Semantic Paths">
+    Use clear, self-documenting paths that make APIs easy to understand.
+    
+    ```
+    Good: /api/users/123/orders
+    Bad:  /api/getUserOrders?id=123
+    ```
+  </Step>
+  
+  <Step title="Batch Processing">
+    Use keywords like `batch` or `bulk` at the end of paths for batch operations.
+    
+    ```
+    POST /api/users/batch
+    DELETE /api/orders/bulk
+    ```
+  </Step>
+  
+  <Step title="Query Language">
+    Design flexible query rules for pagination, sorting, and filtering.
+    
+    ```
+    GET /api/users?page=2&limit=20&sort=name&filter=active:true
+    ```
+  </Step>
+</Steps>
+
+## API Security
+
+<img src="https://assets.bytebytego.com/diagrams/0137-cheat-sheet-for-api-design.png" alt="API Design Security" />
+
+### Authentication Methods
+
+Common authentication approaches for REST APIs:
+
+- **API Keys**: Simple tokens passed in headers or query parameters
+- **OAuth 2.0**: Industry-standard protocol for authorization
+- **JWT (JSON Web Tokens)**: Stateless authentication with encoded user information
+- **Basic Auth**: Username and password encoded in Base64 (use only over HTTPS)
+
+### Security Best Practices
+
+<Note>
+  Always use HTTPS to encrypt data in transit and protect against man-in-the-middle attacks.
+</Note>
+
+- Include authentication credentials in every request
+- Add timestamps to prevent replay attacks
+- Use nonces (random strings) to ensure request uniqueness
+- Implement rate limiting to prevent abuse
+- Validate all input data
+- Never expose sensitive data in URLs
+
+## Performance Optimization
+
+<img src="https://assets.bytebytego.com/diagrams/0001-how-to-improve-api-performance.png" alt="API Performance Optimization" />
+
+### Top 5 Ways to Improve API Performance
+
+<Steps>
+  <Step title="Result Pagination">
+    Stream large result sets back to clients in manageable chunks.
+    
+    ```json
+    {
+      "data": [...],
+      "page": 1,
+      "totalPages": 10,
+      "totalItems": 200
+    }
+    ```
+  </Step>
+  
+  <Step title="Asynchronous Logging">
+    Send logs to lock-free buffers and flush periodically to reduce I/O overhead.
+  </Step>
+  
+  <Step title="Data Caching">
+    Cache frequently accessed data in memory (e.g., Redis) for faster retrieval.
+  </Step>
+  
+  <Step title="Payload Compression">
+    Compress requests and responses using gzip or brotli to reduce transmission time.
+  </Step>
+  
+  <Step title="Connection Pooling">
+    Maintain a pool of database connections to eliminate connection overhead.
+  </Step>
+</Steps>
+
+## REST vs GraphQL
+
+<img src="https://assets.bytebytego.com/diagrams/0036-rest-vs-graphql.png" alt="REST vs GraphQL" />
+
+### When to Use REST
+
+- Simple, uniform interfaces between services
+- Straightforward caching requirements
+- Well-defined resource structure
+- Public APIs with broad client types
+
+### When to Consider GraphQL
+
+- Complex frontend data requirements
+- Need to aggregate data from multiple sources
+- Rapidly evolving client needs
+- Mobile applications requiring precise data fetching
+
+<Info>
+  REST excels with simple, consistent contracts, while GraphQL shines with complex, frequently changing frontend requirements.
+</Info>
+
+## API Style Comparison
+
+<img src="https://assets.bytebytego.com/diagrams/0126-api-style-compare.jpg" alt="API Styles Comparison" />
+
+REST is one of several API architectural styles, each with specific use cases:
+
+- **SOAP**: Enterprise applications requiring strict contracts and transactions
+- **REST**: Web services, public APIs, microservices
+- **GraphQL**: Complex data requirements, mobile applications
+- **gRPC**: High-performance microservices, real-time communication
+
+## Practical Examples
+
+### Complete User Management API
+
+<CodeGroup>
+```http List Users
+GET /api/v1/users?page=1&limit=20&sort=createdAt:desc HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Accept: application/json
+
+Response: 200 OK
+{
+  "data": [
+    {
+      "id": "123",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "totalPages": 5,
+    "totalItems": 95
+  }
+}
+```
+
+```http Create User
+POST /api/v1/users HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "password": "securePassword123"
+}
+
+Response: 201 Created
+{
+  "id": "124",
+  "name": "Jane Smith",
+  "email": "jane@example.com",
+  "createdAt": "2024-02-28T14:20:00Z"
+}
+```
+
+```http Update User
+PATCH /api/v1/users/124 HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "name": "Jane Anderson"
+}
+
+Response: 200 OK
+{
+  "id": "124",
+  "name": "Jane Anderson",
+  "email": "jane@example.com",
+  "updatedAt": "2024-02-28T15:10:00Z"
+}
+```
+
+```http Delete User
+DELETE /api/v1/users/124 HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+Response: 204 No Content
+```
+</CodeGroup>
+
+## Key Takeaways
+
+<Note>
+  REST APIs remain the most popular choice for web services due to their simplicity, scalability, and compatibility with HTTP infrastructure.
+</Note>
+
+- REST uses standard HTTP methods and status codes for intuitive API design
+- Stateless architecture improves scalability and reliability
+- Proper design patterns and security practices are essential
+- Performance optimization through caching, compression, and pagination
+- Choose REST for straightforward, cacheable, resource-based APIs

@@ -1,0 +1,226 @@
+---
+title: "Software Architecture"
+description: "Master the fundamentals of software architecture patterns and design principles for building robust, scalable systems."
+---
+
+## Introduction to Software Architecture
+
+Software architecture is the blueprint for system design, detailing how components interact with each other to deliver specific functionality. A well-designed architecture provides solutions to common problems, saves time and effort, and leads to more robust and maintainable systems.
+
+Choosing the right software architecture pattern is essential for solving problems efficiently and building systems that can evolve over time.
+
+## Core Architectural Patterns
+
+<CardGroup cols={2}>
+  <Card title="Layered Architecture" icon="layer-group">
+    Each layer plays a distinct and clear role within the application context. Great for applications that need to be built quickly.
+  </Card>
+  <Card title="Microservices" icon="cubes">
+    Break down large systems into smaller, manageable components. Systems are fault tolerant with independent scaling.
+  </Card>
+  <Card title="Event-Driven" icon="bolt">
+    Services communicate by emitting events. Promotes loose coupling but testing becomes more challenging.
+  </Card>
+  <Card title="Client-Server" icon="network-wired">
+    Two main components - clients and servers communicating over a network. Great for real-time services.
+  </Card>
+</CardGroup>
+
+### 1. Layered Architecture
+
+![Layered Architecture](https://assets.bytebytego.com/diagrams/0008-6-software-architectural-patterns-you-must-know.png)
+
+Each layer plays a distinct and clear role within the application context.
+
+<Accordion title="Key Characteristics">
+- **Clear separation of concerns**: Each layer has a specific responsibility
+- **Quick development**: Great for applications that need to be built rapidly
+- **Structured organization**: Natural code organization by functionality
+
+**Trade-offs:**
+- Source code can become unorganized if proper rules aren't followed
+- Changes may ripple across multiple layers
+</Accordion>
+
+### 2. Microservices Architecture
+
+Break down a large system into smaller and more manageable components.
+
+<Note>
+Systems built with microservices architecture are fault tolerant. Each component can be scaled individually, but it might increase the complexity of the application.
+</Note>
+
+**Benefits:**
+- Fault tolerance built-in
+- Independent scaling of components
+- Technology flexibility per service
+- Team autonomy and ownership
+
+**Challenges:**
+- Increased system complexity
+- Distributed system challenges
+- Service discovery requirements
+- Data consistency concerns
+
+### 3. Event-Driven Architecture
+
+Services talk to each other by emitting events that other services may or may not consume.
+
+<Tip>
+This style promotes loose coupling between components, making systems more flexible and adaptable to change.
+</Tip>
+
+**When to Use:**
+- Real-time data processing
+- Asynchronous workflows
+- Systems requiring high scalability
+- Loosely coupled microservices
+
+**Considerations:**
+- Testing individual components becomes challenging
+- Event ordering and consistency
+- Debugging distributed flows
+
+### 4. Client-Server Architecture
+
+It comprises two main components - clients and servers communicating over a network.
+
+**Advantages:**
+- Great for real-time services
+- Centralized data management
+- Clear separation of concerns
+
+**Limitations:**
+- Servers can become a single point of failure
+- Network dependency
+- Scalability challenges
+
+### 5. Plugin-based Architecture
+
+This pattern consists of two types of components - a core system and plugins. The plugin modules are independent components providing specialized functionality.
+
+<Accordion title="Use Cases">
+**Ideal for:**
+- IDEs (Integrated Development Environments)
+- Content management systems
+- Applications that need to expand over time
+
+**Limitation:** Changing the core system is difficult once established.
+</Accordion>
+
+### 6. Hexagonal Architecture
+
+![Hexagonal Architecture](https://assets.bytebytego.com/diagrams/0339-software-architecture-styles.png)
+
+This pattern creates an abstraction layer that protects the core of an application and isolates it from external integrations for better modularity. Also known as **ports and adapters architecture**.
+
+**Benefits:**
+- Better modularity and testability
+- Core business logic isolation
+- Flexible external integrations
+
+**Trade-offs:**
+- Increased development time
+- Steeper learning curve
+- More initial complexity
+
+## Design Principles and Acronyms
+
+### SOLID Principles
+
+SOLID principle is essential in object-oriented programming. There are 5 components:
+
+<CardGroup cols={1}>
+  <Card title="SRP - Single Responsibility Principle">
+    Each unit of code should have one responsibility.
+  </Card>
+  <Card title="OCP - Open Close Principle">
+    Units of code should be open for extension but closed for modification.
+  </Card>
+  <Card title="LSP - Liskov Substitution Principle">
+    A subclass should be able to be substituted by its base class.
+  </Card>
+  <Card title="ISP - Interface Segregation Principle">
+    Expose multiple interfaces with specific responsibilities.
+  </Card>
+  <Card title="DIP - Dependency Inversion Principle">
+    Use abstractions to decouple dependencies in the system.
+  </Card>
+</CardGroup>
+
+### KISS Principle
+
+<Note>
+**"Keep it simple, stupid!"** is a design principle first noted by the U.S. Navy in 1960. It states that most systems work best if they are kept simple.
+</Note>
+
+## Data and Communication Flow Patterns
+
+![Communication Patterns](https://assets.bytebytego.com/diagrams/0387-top-9-system-integrations.png)
+
+### 1. Peer-to-Peer
+Direct communication between two components without the need for a central coordinator.
+
+### 2. API Gateway
+Acts as a single entry point for all client requests to the backend services of an application.
+
+### 3. Pub-Sub
+Decouples the producers of messages (publishers) from the consumers of messages (subscribers) through a message broker.
+
+### 4. Request-Response
+One of the most fundamental integration patterns, where a client sends a request to a server and waits for a response.
+
+### 5. Event Sourcing
+Involves storing the state changes of an application as a sequence of events.
+
+### 6. ETL (Extract, Transform, Load)
+A data integration pattern used to gather data from multiple sources, transform it into a structured format, and load it into a destination database.
+
+### 7. Batching
+Accumulating data over a period or until a certain threshold is met before processing it as a single group.
+
+### 8. Streaming Processing
+Allows for the continuous ingestion, processing, and analysis of data streams in real-time.
+
+### 9. Orchestration
+A central coordinator (orchestrator) manages the interactions between distributed components or services to achieve a workflow or business process.
+
+## Client Architecture Patterns
+
+![MVC Patterns](https://assets.bytebytego.com/diagrams/0143-client-arch-patterns.png)
+
+<Accordion title="MVC, MVP, MVVM, and VIPER">
+**Key Differences:**
+
+- **MVC** - The oldest pattern, dating back almost 50 years
+- Every pattern has a "view" (V) responsible for displaying content and receiving user input
+- Most patterns include a "model" (M) to manage business data
+- "Controller," "presenter," and "view-model" are translators that mediate between the view and the model
+- These translators can be complex to write, so various patterns have been proposed to make them more maintainable
+</Accordion>
+
+## Best Practices
+
+<Tip>
+**Key Takeaways:**
+
+1. Choose architecture patterns based on your specific requirements
+2. Consider scalability, maintainability, and team expertise
+3. Start simple and evolve as needed
+4. Document architectural decisions
+5. Review and refactor regularly
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Design Patterns" href="/architecture/design-patterns" icon="puzzle-piece">
+    Explore essential design patterns for software development
+  </Card>
+  <Card title="Microservices" href="/architecture/microservices" icon="cubes">
+    Deep dive into microservices best practices
+  </Card>
+  <Card title="Scalability" href="/architecture/scalability" icon="chart-line">
+    Learn strategies to scale your systems effectively
+  </Card>
+</CardGroup>

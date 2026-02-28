@@ -1,0 +1,362 @@
+---
+title: 'Security'
+description: 'Guides on security concepts and best practices for system design. Learn how to protect your system from unauthorized access, data breaches, and other security threats.'
+icon: 'shield-halved'
+---
+
+## Overview
+
+Security is a critical aspect of system design. It is essential to protect the system from unauthorized access, data breaches, and other security threats. In this guide, we'll explore key security concepts and best practices that you should consider when designing a system.
+
+## Encryption Fundamentals
+
+![Symmetric vs Asymmetric Encryption](https://assets.bytebytego.com/diagrams/0349-symmetric-encryption-vs-asymmetric-encryption.png)
+
+### Symmetric Encryption
+
+A single key is used for both encryption and decryption:
+
+**Characteristics:**
+- Same key encrypts and decrypts data
+- Much faster than asymmetric encryption
+- Suitable for bulk data encryption
+- Key distribution is challenging
+
+**Common Algorithms:**
+- AES (Advanced Encryption Standard) - most widely used
+- DES (Data Encryption Standard) - legacy, now considered insecure
+- 3DES (Triple DES) - more secure than DES
+- ChaCha20 - modern alternative to AES
+
+**Use Cases:**
+- Encrypting large amounts of data
+- Disk encryption
+- Database encryption
+- Encrypting PII (Personally Identifiable Information)
+
+### Asymmetric Encryption
+
+Uses a pair of keys: public key and private key:
+
+**Characteristics:**
+- Public key encrypts, private key decrypts
+- More secure - private key never shared
+- Slower due to complex mathematical operations
+- Solves key distribution problem
+
+**Common Algorithms:**
+- RSA - most widely used
+- ECC (Elliptic Curve Cryptography) - more efficient than RSA
+- DSA (Digital Signature Algorithm)
+- Diffie-Hellman - for key exchange
+
+**Use Cases:**
+- HTTPS/TLS handshake
+- Digital signatures
+- SSH authentication
+- Email encryption (PGP/GPG)
+
+<Tip>
+In practice, systems often combine both: asymmetric encryption for key exchange, then symmetric encryption for data transmission (e.g., HTTPS).
+</Tip>
+
+## Authentication and Authorization
+
+### Authentication Methods
+
+**1. Password-Based Authentication**
+- Most common but weakest form
+- Must use strong password policies
+- Always hash passwords (bcrypt, Argon2, scrypt)
+- Never store passwords in plain text
+
+**2. Multi-Factor Authentication (MFA)**
+- Something you know (password)
+- Something you have (phone, token)
+- Something you are (biometrics)
+- Dramatically increases security
+
+**3. Token-Based Authentication**
+- JWT (JSON Web Tokens)
+- OAuth tokens
+- Session tokens
+- API keys
+
+**4. Biometric Authentication**
+- Fingerprint
+- Face recognition
+- Voice recognition
+- Iris scan
+
+**5. Certificate-Based Authentication**
+- TLS client certificates
+- Mutual TLS (mTLS)
+- Used in service-to-service communication
+
+### Authorization Patterns
+
+**Role-Based Access Control (RBAC)**
+- Assign permissions to roles
+- Assign roles to users
+- Simple and widely used
+- Example: Admin, Editor, Viewer roles
+
+**Attribute-Based Access Control (ABAC)**
+- Permissions based on attributes
+- More flexible than RBAC
+- Can consider context (time, location, etc.)
+- More complex to implement
+
+**Access Control Lists (ACL)**
+- Specify permissions for each resource
+- Fine-grained control
+- Can become complex at scale
+
+## Session Management
+
+### Session vs JWT vs OAuth
+
+**Session-Based Authentication**
+```
+1. User logs in
+2. Server creates session, stores in database
+3. Returns session ID in cookie
+4. Client sends session ID with each request
+5. Server validates session in database
+```
+
+**Pros:** Easy to revoke, server has full control  
+**Cons:** Requires server-side storage, doesn't scale horizontally easily
+
+**JWT (JSON Web Token)**
+```
+1. User logs in
+2. Server creates signed JWT
+3. Client stores JWT (localStorage or cookie)
+4. Client sends JWT with each request
+5. Server validates JWT signature
+```
+
+**Pros:** Stateless, scales horizontally, works across domains  
+**Cons:** Cannot easily revoke, larger payload, token theft concerns
+
+**OAuth 2.0**
+- Industry standard for authorization
+- Allows third-party access without sharing credentials
+- Multiple grant types (authorization code, implicit, client credentials)
+- Used by Google, Facebook, GitHub for login
+
+<Warning>
+Store sensitive tokens securely. Use httpOnly cookies for web, secure storage for mobile.
+</Warning>
+
+## Common Security Threats
+
+### Injection Attacks
+
+**SQL Injection**
+- Attacker inserts malicious SQL code
+- Prevention: Use parameterized queries, ORMs
+- Example: `' OR '1'='1` to bypass authentication
+
+**NoSQL Injection**
+- Similar to SQL injection but for NoSQL databases
+- Prevention: Validate and sanitize input, use query builders
+
+**Command Injection**
+- Attacker executes system commands
+- Prevention: Avoid system calls with user input, use whitelisting
+
+### Cross-Site Scripting (XSS)
+
+**Types:**
+- Stored XSS: Malicious script stored in database
+- Reflected XSS: Script in URL parameters
+- DOM-based XSS: Script manipulates DOM directly
+
+**Prevention:**
+- Sanitize user input
+- Encode output
+- Use Content Security Policy (CSP) headers
+- Use frameworks with built-in XSS protection
+
+### Cross-Site Request Forgery (CSRF)
+
+- Attacker tricks user into performing unwanted actions
+- Prevention:
+  - CSRF tokens
+  - SameSite cookie attribute
+  - Verify Origin/Referer headers
+  - Re-authentication for sensitive operations
+
+### Distributed Denial of Service (DDoS)
+
+- Overwhelm system with traffic
+- Prevention:
+  - Rate limiting
+  - Web Application Firewall (WAF)
+  - CDN with DDoS protection
+  - Auto-scaling
+  - Geo-blocking
+
+### Man-in-the-Middle (MITM)
+
+- Attacker intercepts communication
+- Prevention:
+  - Use HTTPS everywhere
+  - Certificate pinning
+  - HSTS (HTTP Strict Transport Security)
+  - Validate SSL certificates
+
+## API Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use HTTPS" icon="lock">
+    Always encrypt data in transit with TLS/SSL
+  </Card>
+  
+  <Card title="Implement Rate Limiting" icon="gauge">
+    Prevent abuse and DDoS attacks
+  </Card>
+  
+  <Card title="Validate Input" icon="check">
+    Never trust user input, validate and sanitize
+  </Card>
+  
+  <Card title="Use API Keys" icon="key">
+    Authenticate API consumers
+  </Card>
+  
+  <Card title="Implement OAuth 2.0" icon="user-shield">
+    For third-party access delegation
+  </Card>
+  
+  <Card title="Log and Monitor" icon="chart-line">
+    Detect suspicious activity early
+  </Card>
+  
+  <Card title="Version Your APIs" icon="code-branch">
+    Deprecate insecure versions safely
+  </Card>
+  
+  <Card title="Use CORS Properly" icon="globe">
+    Control which domains can access your API
+  </Card>
+</CardGroup>
+
+## Data Protection
+
+### Data at Rest
+
+- **Encryption:** Encrypt sensitive data in databases
+- **Key Management:** Use dedicated key management services (AWS KMS, Azure Key Vault)
+- **Access Controls:** Restrict who can access data
+- **Backups:** Encrypt backups, test restore procedures
+
+### Data in Transit
+
+- **TLS/SSL:** Encrypt all network communication
+- **VPN:** Use VPNs for sensitive internal communication
+- **Certificate Management:** Keep certificates up to date
+- **Perfect Forward Secrecy:** Protect past communications if keys compromised
+
+### Data Masking and Tokenization
+
+**Data Masking**
+- Hide sensitive data in non-production environments
+- Replace real data with realistic fake data
+- Preserve data format and relationships
+
+**Tokenization**
+- Replace sensitive data with non-sensitive tokens
+- Store mapping in secure token vault
+- Commonly used for credit card numbers
+- More secure than encryption for some use cases
+
+## Security Headers
+
+Protect web applications with HTTP security headers:
+
+```http
+# Prevent XSS attacks
+Content-Security-Policy: default-src 'self'
+
+# Prevent clickjacking
+X-Frame-Options: DENY
+
+# Force HTTPS
+Strict-Transport-Security: max-age=31536000
+
+# Prevent MIME sniffing
+X-Content-Type-Options: nosniff
+
+# Control referrer information
+Referrer-Policy: strict-origin-when-cross-origin
+
+# Control browser features
+Permissions-Policy: geolocation=(), camera=()
+```
+
+## Secure Password Storage
+
+<Warning>
+Never store passwords in plain text. Always use proper hashing algorithms.
+</Warning>
+
+**Best Practices:**
+
+1. **Use Strong Hashing Algorithms:**
+   - bcrypt (recommended)
+   - Argon2 (newer, more secure)
+   - scrypt
+   - PBKDF2
+
+2. **Add Salt:**
+   - Unique salt for each password
+   - Prevents rainbow table attacks
+
+3. **Use Proper Work Factor:**
+   - Make hashing computationally expensive
+   - Slows down brute force attacks
+
+4. **Never Use:**
+   - MD5 or SHA1 for passwords
+   - Simple encryption (passwords should be hashed, not encrypted)
+   - No salt or global salt
+
+## Security Monitoring and Incident Response
+
+### Security Monitoring
+
+- Log all authentication attempts
+- Monitor for unusual patterns
+- Track API usage and anomalies
+- Use intrusion detection systems (IDS)
+- Implement Security Information and Event Management (SIEM)
+
+### Incident Response Plan
+
+1. **Preparation:** Have plan and tools ready
+2. **Detection:** Identify security incidents
+3. **Containment:** Limit damage
+4. **Eradication:** Remove threat
+5. **Recovery:** Restore normal operations
+6. **Lessons Learned:** Improve security posture
+
+## Related Guides
+
+Explore security topics in depth:
+
+- [How does HTTPS work?](/guides/how-does-https-work)
+- [Symmetric vs Asymmetric Encryption](/guides/symmetric-encryption-vs-asymmetric-encryption)
+- [OAuth 2.0 Explained](/guides/oauth-2-explained-with-siple-terms)
+- [JWT 101](/guides/jwt-101-key-to-stateless-authentication)
+- [Session vs Token vs JWT vs SSO](/guides/session-cookie-jwt-token-sso-and-oauth-2)
+- [How to Store Passwords in Database](/guides/how-to-store-passwords-in-the-database)
+- [Digital Signatures](/guides/how-digital-signatures-work)
+- [How to Design a Secure System](/guides/how-do-we-design-a-secure-system)
+- [Top 12 Tips for API Security](/guides/top-12-tips-for-api-security)
+
+<Note>
+Security is not a one-time effort but an ongoing process. Stay updated with latest threats and best practices. Always follow the principle of least privilege and defense in depth.
+</Note>

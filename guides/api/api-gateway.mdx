@@ -1,0 +1,510 @@
+---
+title: 'API Gateway'
+description: 'Learn about API Gateway patterns, key functions, use cases, and how they manage API traffic in microservices architectures.'
+---
+
+## What is an API Gateway?
+
+<img src="https://assets.bytebytego.com/diagrams/0074-api-gateway-101.png" alt="API Gateway" />
+
+An API gateway is a server that acts as an API front-end, receiving API requests, enforcing throttling and security policies, passing requests to the back-end service, and then returning the appropriate result to the client.
+
+<Info>
+  The API Gateway is essentially a middleman between the client and the server, managing and optimizing API traffic.
+</Info>
+
+## Key Functions of an API Gateway
+
+### Request Routing
+
+Directs incoming API requests to the appropriate backend service based on request path, headers, or other criteria.
+
+```
+GET /users/123     → User Service
+GET /orders/456    → Order Service
+GET /products/789  → Product Service
+```
+
+### Load Balancing
+
+Distributes requests across multiple server instances to ensure no single server is overwhelmed, improving reliability and performance.
+
+### Security
+
+Implements comprehensive security measures:
+
+- **Authentication**: Verifies user identity
+- **Authorization**: Validates user permissions
+- **Data Encryption**: Protects data in transit
+- **Threat Detection**: Identifies and blocks malicious requests
+
+### Rate Limiting and Throttling
+
+Controls the number of requests a client can make within a certain period to prevent abuse and ensure fair resource allocation.
+
+### API Composition
+
+Combines multiple backend API requests into a single frontend request to optimize performance and reduce client complexity.
+
+### Caching
+
+Stores responses temporarily to reduce the need for repeated processing, improving response times and reducing backend load.
+
+## How an API Gateway Works
+
+<img src="https://assets.bytebytego.com/diagrams/0072-what-does-api-gateway-do.png" alt="How API Gateway Works" />
+
+<Steps>
+  <Step title="Request Reception">
+    The client sends an HTTP request to the API gateway.
+  </Step>
+  
+  <Step title="Request Validation">
+    The API gateway parses and validates the attributes in the HTTP request.
+  </Step>
+  
+  <Step title="Access Control">
+    The gateway performs allow-list/deny-list checks to filter malicious requests.
+  </Step>
+  
+  <Step title="Authentication & Authorization">
+    The API gateway talks to an identity provider for authentication and authorization.
+    
+    - Validates tokens (JWT, OAuth)
+    - Checks user permissions
+    - Enforces access policies
+  </Step>
+  
+  <Step title="Rate Limiting">
+    Rate limiting rules are applied to the request. If over the limit, the request is rejected with a 429 (Too Many Requests) status.
+  </Step>
+  
+  <Step title="Service Discovery & Routing">
+    The gateway finds the relevant service to route to by path matching or service registry lookup.
+  </Step>
+  
+  <Step title="Protocol Transformation">
+    The API gateway transforms the request into the appropriate protocol and sends it to backend microservices.
+    
+    - REST to gRPC
+    - HTTP to WebSocket
+    - JSON to Protocol Buffers
+  </Step>
+  
+  <Step title="Response Handling">
+    The gateway processes responses, handles errors properly, and deals with faults:
+    
+    - Circuit breaking for resilience
+    - Logging and monitoring (ELK stack)
+    - Response caching
+    - Data aggregation
+  </Step>
+</Steps>
+
+## Top API Gateway Use Cases
+
+<img src="https://assets.bytebytego.com/diagrams/0073-top-3-api-gateway-use-cases.png" alt="API Gateway Use Cases" />
+
+### 1. Building an Ecosystem
+
+API gateways help create integrated ecosystems where multiple partners and services collaborate.
+
+<Note>
+  Users can leverage an API gateway to access a wider set of tools, while partners collaborate to provide better integrations.
+</Note>
+
+**Benefits:**
+- Unified access point for multiple services
+- Consistent authentication across partners
+- Centralized analytics and monitoring
+- Easier partner onboarding
+
+### 2. API Marketplace
+
+The API marketplace hosts fundamental functionalities for everyone, enabling developers and businesses to easily develop, innovate, and sell APIs.
+
+**Features:**
+- API discovery and documentation
+- Usage tracking and billing
+- Developer portal
+- API versioning and lifecycle management
+
+### 3. Multi-Platform Compatibility
+
+When dealing with multiple platforms (mobile, web, IoT), an API gateway helps work across complex architectures.
+
+**Platform-Specific Features:**
+- Mobile-optimized responses (reduced payload)
+- Web-specific formatting
+- IoT device protocol translation
+- Platform-specific rate limits
+
+## API Gateway vs Load Balancer
+
+<img src="https://assets.bytebytego.com/diagrams/0252-lb-api-gateway.png" alt="API Gateway vs Load Balancer" />
+
+### Network Load Balancer (NLB)
+
+- Operates at Layer 4 (Transport Layer)
+- Routes based on IP address and TCP/UDP ports
+- Does not parse HTTP requests
+- Simple traffic distribution
+- High performance, low latency
+
+### Application Load Balancer (ALB)
+
+- Operates at Layer 7 (Application Layer)
+- Routes based on HTTP headers, URLs, paths
+- Provides richer routing rules
+- Can inspect request content
+- Suitable for HTTP/HTTPS traffic
+
+### API Gateway
+
+- Application-level functionality
+- Authentication and authorization
+- Rate limiting and throttling
+- Request/response transformation
+- API composition and aggregation
+- Caching and analytics
+
+### Common Architectures
+
+<CodeGroup>
+```yaml Option A: ALB Only
+Client → ALB → Services
+
+Pros:
+  - More flexible routing
+  - Services handle their own auth, rate limiting
+  
+Cons:
+  - More work at service level
+  - Duplicated cross-cutting concerns
+```
+
+```yaml Option B: ALB + API Gateway
+Client → ALB → API Gateway → Services
+
+Pros:
+  - Centralized auth, rate limiting, caching
+  - Less work at service level
+  - Consistent policies
+  
+Cons:
+  - Additional hop (latency)
+  - Less flexible than service-level control
+```
+</CodeGroup>
+
+## API Gateway vs Reverse Proxy
+
+<img src="https://assets.bytebytego.com/diagrams/0320-reverse-gateway-lb.png" alt="Reverse Proxy vs API Gateway vs Load Balancer" />
+
+| Component | Primary Function | Best For |
+|-----------|-----------------|----------|
+| **Reverse Proxy** | Change identity, shield servers | Security, hiding server details |
+| **API Gateway** | Postman for services | Microservices, complex routing |
+| **Load Balancer** | Traffic cop | High traffic, even distribution |
+
+### When to Use Each
+
+- **Reverse Proxy**: For stealth and security, protecting sensitive servers
+- **API Gateway**: For organized service communication with rich features
+- **Load Balancer**: For traffic control and high availability
+
+<Info>
+  Often, it's wise to use all three together - they make a super team that keeps your digital infrastructure safe and efficient.
+</Info>
+
+## Common API Gateway Features
+
+### Authentication & Authorization
+
+<CodeGroup>
+```yaml JWT Validation
+API Gateway validates JWT tokens:
+  1. Extract token from Authorization header
+  2. Verify signature using public key
+  3. Check expiration time
+  4. Validate claims (audience, issuer)
+  5. Extract user identity and permissions
+```
+
+```yaml OAuth 2.0 Flow
+API Gateway handles OAuth:
+  1. Client requests authorization
+  2. Gateway redirects to OAuth provider
+  3. User authenticates and grants permission
+  4. Gateway receives authorization code
+  5. Exchanges code for access token
+  6. Token stored and validated for requests
+```
+</CodeGroup>
+
+### Rate Limiting Strategies
+
+```yaml
+# Token Bucket Algorithm
+user:123:
+  tokens: 100
+  capacity: 100
+  refill_rate: 10/second
+  
+# Leaky Bucket Algorithm  
+user:123:
+  queue_size: 50
+  processing_rate: 5/second
+  
+# Fixed Window
+user:123:minute:1234567890:
+  count: 45
+  limit: 100
+  
+# Sliding Window
+user:123:
+  requests: [timestamp1, timestamp2, ...]
+  limit: 100/minute
+```
+
+### Request Transformation
+
+<CodeGroup>
+```javascript REST to GraphQL
+// Incoming REST request
+GET /users/123/posts?limit=10
+
+// Transformed to GraphQL
+{
+  query: `
+    query {
+      user(id: "123") {
+        posts(limit: 10) {
+          id
+          title
+          createdAt
+        }
+      }
+    }
+  `
+}
+```
+
+```javascript JSON to Protocol Buffers
+// Incoming JSON
+{
+  "userId": "123",
+  "productId": "456",
+  "quantity": 2
+}
+
+// Transformed to protobuf
+message OrderRequest {
+  string user_id = 1;    // "123"
+  string product_id = 2; // "456"
+  int32 quantity = 3;    // 2
+}
+```
+</CodeGroup>
+
+### Circuit Breaking
+
+```yaml
+service_health:
+  order-service:
+    failure_threshold: 5
+    timeout: 30s
+    half_open_after: 60s
+    
+states:
+  - CLOSED: Normal operation, requests pass through
+  - OPEN: Too many failures, reject requests immediately
+  - HALF_OPEN: Testing if service recovered, allow limited requests
+```
+
+## Popular API Gateway Solutions
+
+### Cloud-Based
+
+- **AWS API Gateway**: Fully managed, integrates with AWS services
+- **Azure API Management**: Enterprise features, hybrid deployment
+- **Google Cloud API Gateway**: Serverless, integrated with GCP
+- **Kong**: Open-source, plugin architecture, cloud-native
+
+### Self-Hosted
+
+- **NGINX**: High performance, widely used reverse proxy
+- **Envoy**: Modern, cloud-native, service mesh integration
+- **Traefik**: Container-native, automatic service discovery
+- **Tyk**: Open-source, GraphQL support, analytics
+
+### Framework-Specific
+
+- **Spring Cloud Gateway**: Java/Spring ecosystem
+- **Express Gateway**: Node.js based, microservices focus
+- **Ocelot**: .NET Core, lightweight
+- **Zuul**: Netflix OSS, deprecated but still used
+
+## API Gateway Design Patterns
+
+### Backend for Frontend (BFF)
+
+```
+Mobile App  →  Mobile API Gateway  →  Backend Services
+Web App     →  Web API Gateway     →  Backend Services
+IoT Device  →  IoT API Gateway     →  Backend Services
+```
+
+**Benefits:**
+- Optimized for each client type
+- Different data formats and protocols
+- Client-specific caching strategies
+
+### API Aggregation
+
+```
+Client Request: Get User Profile
+  ↓
+API Gateway aggregates:
+  - User Service     → Basic info
+  - Order Service    → Recent orders
+  - Payment Service  → Payment methods
+  - Profile Service  → Preferences
+  ↓
+Single Response with all data
+```
+
+### Service Discovery
+
+```yaml
+Static Configuration:
+  services:
+    user-service: http://user-service:8080
+    order-service: http://order-service:8080
+
+Dynamic Discovery:
+  registry: consul
+  services:
+    user-service: discovered from Consul
+    order-service: discovered from Consul
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Implement Comprehensive Logging">
+    Log all requests with correlation IDs for distributed tracing.
+    
+    ```json
+    {
+      "correlationId": "abc-123",
+      "timestamp": "2024-02-28T10:30:00Z",
+      "method": "GET",
+      "path": "/api/users/123",
+      "statusCode": 200,
+      "duration": 45
+    }
+    ```
+  </Step>
+  
+  <Step title="Use Async Processing for Heavy Operations">
+    Return immediately for long-running tasks, provide status endpoints.
+  </Step>
+  
+  <Step title="Implement Health Checks">
+    Monitor backend service health and route traffic accordingly.
+  </Step>
+  
+  <Step title="Version Your APIs">
+    Support multiple API versions simultaneously for backward compatibility.
+  </Step>
+  
+  <Step title="Cache Intelligently">
+    Cache GET requests with appropriate TTLs, invalidate on mutations.
+  </Step>
+  
+  <Step title="Secure by Default">
+    Deny all traffic unless explicitly allowed, use allowlists over denylists.
+  </Step>
+</Steps>
+
+## Security Best Practices
+
+### API Key Management
+
+```yaml
+API Key Generation:
+  - Generate unique app ID per client
+  - Create separate key pairs for different permissions:
+    - Read-only: Public key A, Private key A
+    - Read-write: Public key B, Private key B
+    - Admin: Public key C, Private key C
+```
+
+### Request Signing
+
+```javascript
+// Generate signature
+const stringToSign = `${method}\n${path}\n${timestamp}\n${nonce}\n${body}`;
+const signature = HMAC_SHA256(stringToSign, secretKey);
+
+// Include in request
+headers: {
+  'X-API-Key': publicKey,
+  'X-Timestamp': timestamp,
+  'X-Nonce': nonce,
+  'X-Signature': signature
+}
+```
+
+### Input Validation
+
+- Validate request size limits
+- Sanitize input data
+- Check content types
+- Prevent SQL injection and XSS
+- Validate JSON schemas
+
+## Monitoring and Observability
+
+### Key Metrics to Track
+
+- **Request Rate**: Requests per second
+- **Error Rate**: 4xx and 5xx responses
+- **Latency**: P50, P95, P99 response times
+- **Availability**: Uptime percentage
+- **Cache Hit Ratio**: Cache effectiveness
+- **Backend Health**: Service availability
+
+### Alerting
+
+```yaml
+alerts:
+  - name: High Error Rate
+    condition: error_rate > 5%
+    duration: 5m
+    severity: critical
+    
+  - name: Slow Response Time
+    condition: p95_latency > 1000ms
+    duration: 10m
+    severity: warning
+    
+  - name: Rate Limit Exceeded
+    condition: rate_limit_rejections > 1000/min
+    duration: 5m
+    severity: info
+```
+
+## Key Takeaways
+
+<Info>
+  API Gateways are essential for managing microservices architectures, providing a single entry point with security, routing, and operational capabilities.
+</Info>
+
+- API Gateway acts as the front door for all API requests
+- Centralizes cross-cutting concerns like authentication, rate limiting, and logging
+- Enables API composition and protocol transformation
+- Different from load balancers (Layer 4/7) - operates at application level
+- Essential for microservices architectures and API management
+- Choose based on your needs: cloud-managed vs self-hosted solutions

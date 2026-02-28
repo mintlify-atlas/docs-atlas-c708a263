@@ -1,0 +1,489 @@
+---
+title: 'How to Ace System Design Interviews'
+description: 'Follow this proven 7-step process to excel in any system design interview and impress your interviewers.'
+icon: 'trophy'
+---
+
+## The 7-Step Framework
+
+System design interviews can feel overwhelming, but following a structured approach helps you stay organized and demonstrate your expertise. This 7-step process will guide you through any system design question.
+
+<Tip>
+Interviewers care more about your thought process than the final design. Talk through your reasoning and involve the interviewer in your decisions.
+</Tip>
+
+## Step 1: Requirements Clarification
+
+### Why This Matters
+
+System design questions are intentionally vague. Jumping straight into design without clarifying requirements is a common mistake that signals inexperience.
+
+### What to Ask
+
+<AccordionGroup>
+  <Accordion title="Functional Requirements">
+    Clarify the core features and user-facing functionality:
+    
+    - What are the main features users need?
+    - What actions should users be able to perform?
+    - What are the inputs and outputs?
+    - Are there any specific workflows to support?
+    
+    **Example**: For a chat application
+    - Should it support 1-on-1 messaging, group chats, or both?
+    - Do we need to support media sharing (images, videos)?
+    - Should messages be stored permanently or temporarily?
+    - Do we need read receipts and typing indicators?
+  </Accordion>
+
+  <Accordion title="Non-Functional Requirements">
+    Understand the scale, performance, and quality attributes:
+    
+    - How many users will the system support?
+    - What's the expected traffic volume (requests per second)?
+    - What are the latency requirements?
+    - What level of availability is needed (99.9%, 99.99%)?
+    - Are there specific geographic regions to support?
+    - What are the consistency requirements?
+    
+    **Example**: For a video streaming service
+    - How many concurrent viewers?
+    - What video quality levels to support?
+    - Global or regional audience?
+    - Acceptable buffering time?
+  </Accordion>
+
+  <Accordion title="Constraints and Assumptions">
+    Identify limitations and make reasonable assumptions:
+    
+    - Are there budget constraints?
+    - Can we use third-party services?
+    - Are there compliance requirements (GDPR, HIPAA)?
+    - What's the timeline for implementation?
+    
+    **Example**: For a payment system
+    - Can we use existing payment gateways?
+    - What compliance standards must we meet?
+    - Are there transaction volume limits?
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+Write down the requirements as you clarify them. This shows organization and gives you a reference throughout the interview.
+</Note>
+
+## Step 2: Capacity Estimation
+
+### Calculate System Scale
+
+Estimate the resources your system will need. This demonstrates your ability to think about real-world constraints.
+
+<Steps>
+  <Step title="Estimate User Numbers">
+    - Daily Active Users (DAU)
+    - Monthly Active Users (MAU)
+    - Peak concurrent users
+    - Growth projections
+  </Step>
+
+  <Step title="Calculate Traffic">
+    - Requests per second (average and peak)
+    - Read vs write ratio
+    - Request size and response size
+    - Network bandwidth requirements
+  </Step>
+
+  <Step title="Estimate Storage">
+    - Data size per user
+    - Total data storage needed
+    - Database size projections
+    - Backup and replication needs
+  </Step>
+
+  <Step title="Compute Requirements">
+    - CPU and memory per request
+    - Number of servers needed
+    - Cache memory requirements
+    - CDN storage if applicable
+  </Step>
+</Steps>
+
+### Example Calculation
+
+**Scenario**: Design Twitter
+
+```
+Assumptions:
+- 300M daily active users
+- Each user posts 2 tweets per day on average
+- Each user views 50 tweets per day
+
+Write Operations:
+- Tweets per day: 300M × 2 = 600M tweets
+- Tweets per second: 600M / 86400 ≈ 7,000 tweets/sec
+- Peak (3x average): ~21,000 tweets/sec
+
+Read Operations:
+- Views per day: 300M × 50 = 15B views
+- Views per second: 15B / 86400 ≈ 174,000 views/sec
+- Read to write ratio: ~25:1
+
+Storage (5 years):
+- Average tweet size: 280 chars × 2 bytes = ~560 bytes
+- Metadata + media links: ~500 bytes
+- Total per tweet: ~1KB
+- Daily storage: 600M × 1KB ≈ 600GB/day
+- 5-year storage: 600GB × 365 × 5 ≈ 1.1PB
+```
+
+<Tip>
+Don't worry about exact precision. Use round numbers and show your calculation process. Interviewers want to see how you approach estimation, not perfect arithmetic.
+</Tip>
+
+## Step 3: Create High-Level Design
+
+### Break Down the System
+
+Draw a simple block diagram showing major components and their interactions.
+
+### Key Components to Consider
+
+- **Client Applications** - Web, mobile, desktop
+- **Load Balancers** - Distribute traffic across servers
+- **Application Servers** - Handle business logic
+- **Databases** - Store persistent data
+- **Caches** - Improve read performance
+- **Message Queues** - Handle asynchronous processing
+- **CDN** - Serve static content globally
+- **Object Storage** - Store media files
+
+### Focus on Data Flow
+
+Show how data moves through the system:
+
+1. User request arrives at load balancer
+2. Request routed to application server
+3. Server checks cache for data
+4. If cache miss, query database
+5. Process and return response
+6. Update cache if needed
+
+<Warning>
+Keep your initial design simple. Don't jump into optimization too early. Start with a working design, then iterate based on the requirements.
+</Warning>
+
+## Step 4: Database Design
+
+### Choose the Right Database Type
+
+<AccordionGroup>
+  <Accordion title="SQL Databases">
+    **Best for**:
+    - Structured data with clear relationships
+    - ACID transactions required
+    - Complex queries with joins
+    - Strong consistency needs
+    
+    **Examples**: PostgreSQL, MySQL
+    
+    **Use cases**: 
+    - Financial systems
+    - E-commerce orders
+    - User authentication
+  </Accordion>
+
+  <Accordion title="NoSQL Databases">
+    **Best for**:
+    - Flexible schema requirements
+    - Horizontal scalability
+    - High write throughput
+    - Simple query patterns
+    
+    **Types**:
+    - Document: MongoDB, Couchbase
+    - Key-Value: Redis, DynamoDB
+    - Column-Family: Cassandra, HBase
+    - Graph: Neo4j
+    
+    **Use cases**:
+    - Social media feeds
+    - Real-time analytics
+    - Session storage
+    - Recommendation engines
+  </Accordion>
+</AccordionGroup>
+
+### Design the Schema
+
+Define your data model:
+
+- Identify entities and their attributes
+- Define relationships between entities
+- Choose primary and foreign keys
+- Consider indexes for common queries
+- Think about data partitioning strategy
+
+<Note>
+For interviews, you don't need to define every field. Focus on the main entities and their relationships. Mention that you'd refine the schema based on actual query patterns.
+</Note>
+
+## Step 5: Interface Design
+
+### Define APIs
+
+Specify how components communicate with each other.
+
+### API Design Best Practices
+
+**REST API Example**:
+```
+POST /api/v1/posts
+GET /api/v1/posts/{postId}
+GET /api/v1/users/{userId}/feed
+POST /api/v1/posts/{postId}/like
+DELETE /api/v1/posts/{postId}
+```
+
+### Choose Communication Protocol
+
+- **REST** - Simple, stateless, widely supported
+- **GraphQL** - Flexible queries, efficient data fetching
+- **gRPC** - High performance, binary protocol
+- **WebSockets** - Real-time bidirectional communication
+- **Message Queues** - Asynchronous, decoupled communication
+
+<Tip>
+Explain why you chose a particular protocol. For example: "I'm using WebSockets for the chat feature because we need real-time, bidirectional communication, but REST for the user profile API since it's simple CRUD operations."
+</Tip>
+
+## Step 6: Scalability and Performance
+
+### Address Scale Challenges
+
+Now optimize your design for the capacity estimates from Step 2.
+
+### Scalability Techniques
+
+<AccordionGroup>
+  <Accordion title="Vertical Scaling">
+    Adding more resources to existing servers:
+    - Increase CPU, RAM, disk
+    - Simpler to implement
+    - Has hardware limits
+    - Single point of failure
+  </Accordion>
+
+  <Accordion title="Horizontal Scaling">
+    Adding more servers to distribute load:
+    - Virtually unlimited scaling
+    - Better fault tolerance
+    - More complex to manage
+    - Requires load balancing
+  </Accordion>
+
+  <Accordion title="Caching">
+    Store frequently accessed data in memory:
+    - **Application cache**: Session data, user preferences
+    - **Database cache**: Query results
+    - **CDN cache**: Static assets, images, videos
+    
+    **Strategies**: Cache-aside, read-through, write-through
+  </Accordion>
+
+  <Accordion title="Database Optimization">
+    Improve database performance:
+    - **Indexing**: Speed up queries
+    - **Denormalization**: Reduce joins
+    - **Read Replicas**: Distribute read traffic
+    - **Sharding**: Partition data horizontally
+    - **Connection Pooling**: Reuse connections
+  </Accordion>
+
+  <Accordion title="Asynchronous Processing">
+    Handle time-consuming tasks in background:
+    - Use message queues (RabbitMQ, Kafka)
+    - Process tasks with workers
+    - Improves user experience
+    - Enables better resource utilization
+  </Accordion>
+</AccordionGroup>
+
+### Performance Optimization
+
+- **CDN**: Serve static content from edge locations
+- **Compression**: Reduce data transfer size
+- **Lazy Loading**: Load content on demand
+- **Pagination**: Limit result set sizes
+- **Rate Limiting**: Prevent abuse and overload
+
+## Step 7: Reliability and Resiliency
+
+### Ensure System Reliability
+
+Identify and mitigate potential failures.
+
+<Steps>
+  <Step title="Identify Single Points of Failure">
+    Find components where failure would break the system:
+    - Single database server
+    - Single application server
+    - No backup for critical services
+  </Step>
+
+  <Step title="Implement Redundancy">
+    Add backup components:
+    - Multiple availability zones
+    - Database replication (primary-replica)
+    - Service replication across regions
+  </Step>
+
+  <Step title="Add Failover Mechanisms">
+    Automatic recovery from failures:
+    - Health checks and monitoring
+    - Automatic failover to replicas
+    - Circuit breakers for failing services
+    - Retry logic with exponential backoff
+  </Step>
+
+  <Step title="Plan for Disaster Recovery">
+    Prepare for worst-case scenarios:
+    - Regular backups
+    - Backup restoration procedures
+    - Multi-region deployment
+    - Disaster recovery testing
+  </Step>
+</Steps>
+
+### Additional Reliability Patterns
+
+- **Rate Limiting**: Protect against traffic spikes and DoS
+- **Load Shedding**: Drop low-priority requests under high load
+- **Graceful Degradation**: Maintain core functionality when components fail
+- **Monitoring and Alerting**: Detect issues before they become critical
+
+<Warning>
+Don't design for 100% availability unless explicitly required. Explain the cost-benefit tradeoff between availability levels (99.9% vs 99.99% vs 99.999%).
+</Warning>
+
+## Interview Tips and Best Practices
+
+### Do's
+
+- **Ask clarifying questions** before designing
+- **Think out loud** and explain your reasoning
+- **Start simple** then add complexity
+- **Draw diagrams** to visualize your design
+- **Discuss tradeoffs** for major decisions
+- **Be open to feedback** and adapt your design
+- **Consider real-world constraints** (cost, time, team size)
+
+### Don'ts
+
+- **Don't jump into coding** unless asked
+- **Don't over-engineer** the solution
+- **Don't ignore the interviewer's hints**
+- **Don't get stuck on one approach**
+- **Don't forget about edge cases**
+- **Don't claim to know everything**
+
+<Tip>
+If you realize you made a mistake, acknowledge it and explain how you'd fix it. This shows maturity and adaptability—qualities interviewers value highly.
+</Tip>
+
+## Example Walkthrough: URL Shortener
+
+Let's apply the 7-step framework to a common question.
+
+### Step 1: Requirements
+
+**Functional**:
+- Shorten long URLs to short URLs
+- Redirect short URLs to original URLs
+- Custom aliases optional
+- Link expiration optional
+
+**Non-Functional**:
+- 100M URLs shortened per month
+- Read-heavy (100:1 read-to-write ratio)
+- Low latency (&lt;100ms)
+- High availability (99.9%)
+
+### Step 2: Capacity
+
+```
+Writes: 100M/month ≈ 40 URLs/sec
+Reads: 100:1 ratio ≈ 4000 redirects/sec
+Storage (10 years): 100M × 12 × 10 × 500 bytes ≈ 600GB
+Short URL length: 7 characters (62^7 ≈ 3.5 trillion URLs)
+```
+
+### Step 3: High-Level Design
+
+```
+Client → Load Balancer → API Servers → Cache
+                                    ↓
+                                Database
+```
+
+### Step 4: Database
+
+```sql
+Table: urls
+- id (primary key)
+- short_url (indexed, unique)
+- long_url
+- user_id
+- created_at
+- expires_at
+```
+
+### Step 5: Interface
+
+```
+POST /api/v1/shorten
+Body: { "long_url": "https://example.com/very/long/url" }
+
+GET /{short_url}
+Redirect to long URL
+```
+
+### Step 6: Scalability
+
+- Cache frequently accessed URLs (Redis)
+- Use base62 encoding for short URLs
+- Database read replicas for redirects
+- CDN for global low-latency access
+
+### Step 7: Reliability
+
+- Multiple API server instances
+- Database replication (primary + replicas)
+- Rate limiting to prevent abuse
+- Monitoring for broken links
+
+## Common Mistakes to Avoid
+
+### Technical Mistakes
+
+1. **Not considering scale early** - Design decisions change dramatically at scale
+2. **Choosing technologies you don't understand** - Stick with what you know
+3. **Ignoring data consistency** - Not all systems need strong consistency
+4. **Forgetting about monitoring** - You can't fix what you can't see
+
+### Communication Mistakes
+
+1. **Being too quiet** - Interviewers can't read your mind
+2. **Not asking questions** - Ambiguity is intentional
+3. **Being defensive** - Be open to suggestions
+4. **Going too deep too fast** - Breadth first, then depth
+
+<Note>
+Remember: The interview is a conversation, not a test. Collaborate with your interviewer to arrive at the best solution together.
+</Note>
+
+## Next Steps
+
+Now that you know the framework, practice with:
+
+- [Common System Design Questions](/interviews/common-questions) - Apply this process to popular problems
+- [Essential Algorithms](/interviews/algorithms) - Learn the algorithms behind the designs

@@ -1,0 +1,620 @@
+---
+title: 'HTTP Protocols'
+description: 'Explore the evolution of HTTP from HTTP/1 to HTTP/3, including features, performance improvements, and use cases.'
+---
+
+## Evolution of HTTP
+
+<img src="https://assets.bytebytego.com/diagrams/0101-http-1-http-2-http-3.png" alt="HTTP Evolution" />
+
+HTTP (Hypertext Transfer Protocol) has evolved significantly over the past three decades:
+
+- **1996**: HTTP/1.0 introduced
+- **1997**: HTTP/1.1 released (still widely used)
+- **2015**: HTTP/2 standardized
+- **2019**: HTTP/3 finalized
+
+With each iteration, the protocol has evolved with new features and optimizations to handle the growing demands of the modern web.
+
+## HTTP/1.x
+
+### HTTP/1.0 and HTTP/1.1 Features
+
+HTTP/1 introduced fundamental features that shaped the web:
+
+<Steps>
+  <Step title="Persistent Connections (HTTP/1.1)">
+    Reuse TCP connections for multiple requests instead of opening a new connection for each request.
+    
+    ```http
+    Connection: keep-alive
+    Keep-Alive: timeout=5, max=100
+    ```
+    
+    **Benefits:**
+    - Reduced latency
+    - Lower CPU and memory usage
+    - Fewer TCP handshakes
+  </Step>
+  
+  <Step title="Pipelining (HTTP/1.1)">
+    Send multiple requests without waiting for responses (though rarely implemented).
+    
+    ```
+    Client sends:
+    Request 1 →
+    Request 2 →
+    Request 3 →
+    
+    Server responds:
+    ← Response 1
+    ← Response 2
+    ← Response 3
+    ```
+    
+    **Limitation:** Head-of-line blocking
+  </Step>
+  
+  <Step title="Headers">
+    Metadata for requests and responses providing context and control.
+    
+    ```http
+    GET /api/users HTTP/1.1
+    Host: example.com
+    User-Agent: Mozilla/5.0
+    Accept: application/json
+    Authorization: Bearer token123
+    ```
+  </Step>
+  
+  <Step title="Methods">
+    Standard HTTP methods for different operations:
+    - GET, POST, PUT, DELETE, PATCH
+    - HEAD, OPTIONS, TRACE, CONNECT
+  </Step>
+</Steps>
+
+### HTTP/1.x Limitations
+
+<Note>
+  Despite being over 25 years old, HTTP/1.1 is still widely used, but it has significant performance limitations for modern web applications.
+</Note>
+
+**Key Problems:**
+
+- **Head-of-Line Blocking**: Requests must complete in order
+- **Multiple Connections**: Browsers open 6-8 connections per domain
+- **Uncompressed Headers**: Repeated header data wastes bandwidth
+- **No Server Push**: Server can't proactively send resources
+- **Text-Based Protocol**: Less efficient parsing
+
+### HTTP/1.1 Request Example
+
+<CodeGroup>
+```http Request
+GET /api/users/123 HTTP/1.1
+Host: api.example.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+Accept: application/json
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+```http Response
+HTTP/1.1 200 OK
+Date: Wed, 28 Feb 2024 10:30:00 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 145
+Connection: keep-alive
+Cache-Control: max-age=3600
+
+{
+  "id": "123",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "createdAt": "2024-01-15T10:30:00Z"
+}
+```
+</CodeGroup>
+
+## HTTP/2
+
+<img src="https://assets.bytebytego.com/diagrams/0421-why-http2-is-faster-than-http1.png" alt="Why HTTP/2 is Faster" />
+
+HTTP/2 brought revolutionary improvements while maintaining backward compatibility with HTTP/1.1.
+
+### Key Features of HTTP/2
+
+<Steps>
+  <Step title="Binary Framing Layer">
+    HTTP/2 encodes messages into binary format instead of text.
+    
+    ```
+    HTTP/1.1: Plain text
+    GET /index.html HTTP/1.1\r\nHost: example.com\r\n...
+    
+    HTTP/2: Binary frames
+    [HEADERS Frame] [DATA Frame] [HEADERS Frame] ...
+    ```
+    
+    **Benefits:**
+    - More efficient processing
+    - Smaller message size
+    - Less error-prone parsing
+    - Enables multiplexing
+  </Step>
+  
+  <Step title="Multiplexing">
+    The binary framing allows full request and response multiplexing over a single TCP connection.
+    
+    ```
+    Single Connection:
+    ┌─────────────────────────────┐
+    │ Stream 1: index.html        │
+    │ Stream 2: style.css         │
+    │ Stream 3: script.js         │
+    │ Stream 4: image.png         │
+    └─────────────────────────────┘
+    
+    Frames interleaved:
+    [S1-HEADERS][S2-HEADERS][S1-DATA][S3-HEADERS]
+    [S2-DATA][S4-HEADERS][S3-DATA][S1-DATA]...
+    ```
+    
+    **Benefits:**
+    - Eliminates head-of-line blocking at application layer
+    - No need for multiple connections
+    - Better utilization of single connection
+    - Reduced latency
+  </Step>
+  
+  <Step title="Stream Prioritization">
+    Developers can customize the relative weight of requests to optimize loading.
+    
+    ```yaml
+    Stream Dependencies:
+      index.html (Priority: 256)
+        ├─ style.css (Priority: 220)
+        ├─ script.js (Priority: 220)
+        └─ image.png (Priority: 100)
+    
+    Server sends more frames for higher-priority streams
+    ```
+    
+    **Use Cases:**
+    - Load critical CSS before images
+    - Prioritize above-the-fold content
+    - Optimize perceived performance
+  </Step>
+  
+  <Step title="Server Push">
+    Server can send additional resources along with the requested page.
+    
+    ```
+    Client requests: GET /index.html
+    
+    Server pushes:
+      - index.html (requested)
+      - style.css (pushed)
+      - script.js (pushed)
+      - logo.png (pushed)
+    
+    Client receives all resources without additional requests
+    ```
+    
+    **Benefits:**
+    - Reduced round trips
+    - Faster page loads
+    - Better resource utilization
+    
+    <Note>
+      Server push was removed in HTTP/3 due to complexity and limited adoption.
+    </Note>
+  </Step>
+  
+  <Step title="HPACK Header Compression">
+    HTTP/2 uses a special compression algorithm to make headers smaller.
+    
+    ```yaml
+    First Request Headers (full):
+      :method: GET
+      :path: /api/users
+      :scheme: https
+      :authority: api.example.com
+      user-agent: Mozilla/5.0...
+      accept: application/json
+    
+    Subsequent Request (compressed):
+      :path: /api/orders  # Only changed header
+      # Other headers referenced from table
+    ```
+    
+    **Compression Savings:**
+    - Typical reduction: 85-90%
+    - Static table for common headers
+    - Dynamic table for custom headers
+  </Step>
+</Steps>
+
+### HTTP/2 Performance Gains
+
+HTTP/2 delivers significant performance improvements:
+
+- **Faster Page Loads**: 30-50% improvement in typical scenarios
+- **Better Mobile Performance**: Fewer connections reduce battery drain
+- **Improved Bandwidth Utilization**: Header compression and multiplexing
+- **Reduced Latency**: Fewer round trips required
+
+### HTTP/2 Still Uses TCP
+
+<Note>
+  While HTTP/2 solved application-level head-of-line blocking, it still suffers from TCP-level head-of-line blocking.
+</Note>
+
+If one TCP packet is lost, all streams are blocked until retransmission completes.
+
+## HTTP/3
+
+HTTP/3 represents a fundamental shift by moving away from TCP to UDP-based QUIC protocol.
+
+### QUIC Protocol
+
+**QUIC (Quick UDP Internet Connections)** is Google's protocol built on top of UDP.
+
+```
+HTTP/1.1 and HTTP/2:    HTTP/3:
+┌──────────────┐        ┌──────────────┐
+│     HTTP     │        │     HTTP     │
+├──────────────┤        ├──────────────┤
+│     TLS      │        │     QUIC     │
+├──────────────┤        │  (includes   │
+│     TCP      │        │   TLS 1.3)   │
+├──────────────┤        ├──────────────┤
+│      IP      │        │     UDP      │
+└──────────────┘        ├──────────────┤
+                        │      IP      │
+                        └──────────────┘
+```
+
+### Key Advantages of HTTP/3
+
+<Steps>
+  <Step title="Eliminates Head-of-Line Blocking">
+    QUIC streams are independent at the transport layer.
+    
+    ```yaml
+    TCP (HTTP/2):
+      Packet loss blocks ALL streams
+      Stream 1 ████░░ (blocked)
+      Stream 2 ████░░ (blocked)
+      Stream 3 ████░░ (blocked)
+    
+    QUIC (HTTP/3):
+      Packet loss blocks only affected stream
+      Stream 1 ██████ (continues)
+      Stream 2 ████░░ (blocked)
+      Stream 3 ██████ (continues)
+    ```
+  </Step>
+  
+  <Step title="Faster Connection Establishment">
+    QUIC combines handshake with TLS, reducing round trips.
+    
+    ```yaml
+    HTTP/2 (TCP + TLS):
+      Round Trip 1: TCP SYN/ACK
+      Round Trip 2: TLS handshake
+      Round Trip 3: Data transmission
+      Total: 3 RTT
+    
+    HTTP/3 (QUIC):
+      Round Trip 1: QUIC handshake + TLS + Data
+      Total: 1 RTT (0-RTT for resumed connections)
+    ```
+  </Step>
+  
+  <Step title="Improved Connection Migration">
+    Connections survive network changes (WiFi to cellular).
+    
+    ```yaml
+    TCP:
+      Connection tied to: IP + Port
+      Network change = New connection
+    
+    QUIC:
+      Connection tied to: Connection ID
+      Network change = Same connection
+      No reconnection needed
+    ```
+  </Step>
+  
+  <Step title="Built-in Encryption">
+    QUIC includes TLS 1.3 by default - encryption is mandatory.
+  </Step>
+  
+  <Step title="Better Loss Recovery">
+    More sophisticated packet recovery mechanisms than TCP.
+  </Step>
+</Steps>
+
+### HTTP/3 Adoption
+
+HTTP/3 is being rapidly adopted:
+
+- **Google**: All services use HTTP/3
+- **Facebook**: Enabled for most traffic
+- **Cloudflare**: Default for all customers
+- **Major CDNs**: Widespread support
+
+**Browser Support:**
+- Chrome/Edge: Full support
+- Firefox: Full support
+- Safari: Full support
+
+## Protocol Comparison
+
+| Feature | HTTP/1.1 | HTTP/2 | HTTP/3 |
+|---------|----------|--------|--------|
+| **Transport** | TCP | TCP | UDP (QUIC) |
+| **Encryption** | Optional | Optional | Mandatory |
+| **Multiplexing** | No | Yes | Yes |
+| **Header Compression** | No | HPACK | QPACK |
+| **Server Push** | No | Yes | No |
+| **HOL Blocking** | Yes (App) | No (App), Yes (TCP) | No |
+| **Connection Setup** | 3 RTT | 3 RTT | 1 RTT (0-RTT) |
+| **Stream Priority** | No | Yes | Yes |
+| **Format** | Text | Binary | Binary |
+| **Connection Migration** | No | No | Yes |
+
+## HTTP Request Methods
+
+<img src="https://assets.bytebytego.com/diagrams/0371-top-9-http-request-methods.png" alt="HTTP Request Methods" />
+
+HTTP methods are consistent across all versions:
+
+<CodeGroup>
+```http GET
+GET /api/users/123 HTTP/2
+Host: api.example.com
+
+# Retrieves a resource
+# Idempotent and safe
+# Should not modify server state
+```
+
+```http POST
+POST /api/users HTTP/2
+Host: api.example.com
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+
+# Creates a new resource
+# Not idempotent
+# Modifies server state
+```
+
+```http PUT
+PUT /api/users/123 HTTP/2
+Host: api.example.com
+Content-Type: application/json
+
+{
+  "name": "John Smith",
+  "email": "john.smith@example.com"
+}
+
+# Updates or creates a resource
+# Idempotent
+# Full resource replacement
+```
+
+```http PATCH
+PATCH /api/users/123 HTTP/2
+Host: api.example.com
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com"
+}
+
+# Partial resource modification
+# May or may not be idempotent
+```
+
+```http DELETE
+DELETE /api/users/123 HTTP/2
+Host: api.example.com
+
+# Deletes a resource
+# Idempotent
+```
+</CodeGroup>
+
+### Additional Methods
+
+- **HEAD**: Like GET but returns only headers
+- **OPTIONS**: Describes communication options
+- **CONNECT**: Establishes tunnel (for proxies)
+- **TRACE**: Performs message loop-back test
+
+## HTTP Status Codes
+
+<img src="https://assets.bytebytego.com/diagrams/0233-http-status-code.png" alt="HTTP Status Codes" />
+
+HTTP status codes indicate request results:
+
+### 1xx Informational
+- **100 Continue**: Client should continue request
+- **101 Switching Protocols**: Server switching protocols
+
+### 2xx Success
+- **200 OK**: Request succeeded
+- **201 Created**: Resource created successfully
+- **204 No Content**: Success with no response body
+
+### 3xx Redirection
+- **301 Moved Permanently**: Resource permanently moved
+- **302 Found**: Temporary redirect
+- **304 Not Modified**: Cached version still valid
+
+### 4xx Client Error
+- **400 Bad Request**: Invalid request syntax
+- **401 Unauthorized**: Authentication required
+- **403 Forbidden**: No permission
+- **404 Not Found**: Resource doesn't exist
+- **429 Too Many Requests**: Rate limit exceeded
+
+### 5xx Server Error
+- **500 Internal Server Error**: Generic server error
+- **502 Bad Gateway**: Invalid response from upstream
+- **503 Service Unavailable**: Server temporarily unavailable
+- **504 Gateway Timeout**: Upstream timeout
+
+## HTTPS and Security
+
+<img src="https://assets.bytebytego.com/diagrams/0220-how-does-https-work.png" alt="How HTTPS Works" />
+
+HTTPS (HTTP Secure) uses TLS to encrypt data transmission.
+
+### TLS Handshake Process
+
+<Steps>
+  <Step title="TCP Connection">
+    Client and server establish a TCP connection (3-way handshake).
+  </Step>
+  
+  <Step title="Client Hello">
+    Client sends:
+    - Supported cipher suites
+    - Maximum TLS version
+    - Random number
+    
+    Server responds with:
+    - Chosen cipher suite
+    - TLS version
+    - SSL certificate (with public key)
+  </Step>
+  
+  <Step title="Certificate Validation">
+    Client validates the SSL certificate:
+    - Check certificate authority (CA)
+    - Verify hostname matches
+    - Check expiration date
+    - Validate certificate chain
+  </Step>
+  
+  <Step title="Key Exchange">
+    - Client generates session key
+    - Encrypts session key with server's public key
+    - Server decrypts with private key
+    - Both now share the same session key
+  </Step>
+  
+  <Step title="Secure Communication">
+    All data transmitted using symmetric encryption with the session key.
+  </Step>
+</Steps>
+
+### Why Symmetric Encryption for Data?
+
+<Note>
+  HTTPS uses asymmetric encryption (public/private keys) for the handshake, then switches to symmetric encryption for data transmission.
+</Note>
+
+**Reasons:**
+
+1. **Security**: Asymmetric encryption is one-way; symmetric encryption provides bidirectional security
+2. **Performance**: Symmetric encryption is much faster with less computational overhead
+
+## When to Use Each HTTP Version
+
+### HTTP/1.1
+
+**Use when:**
+- Legacy system compatibility required
+- Simple, low-traffic applications
+- Client doesn't support HTTP/2+
+
+### HTTP/2
+
+**Use when:**
+- Modern web applications
+- Multiple resources per page
+- Need multiplexing benefits
+- Browser-based applications
+- Wide client compatibility needed
+
+### HTTP/3
+
+**Use when:**
+- Mobile applications (connection migration)
+- High-latency networks
+- Video streaming
+- Real-time applications
+- Modern infrastructure
+- Best possible performance needed
+
+<Info>
+  Most modern servers support protocol negotiation, allowing clients to use the best version they support.
+</Info>
+
+## Migration Considerations
+
+### Upgrading to HTTP/2
+
+<Steps>
+  <Step title="Enable TLS">
+    HTTP/2 requires HTTPS in browsers.
+  </Step>
+  
+  <Step title="Update Server Software">
+    Nginx 1.9.5+, Apache 2.4.17+, or cloud load balancers.
+  </Step>
+  
+  <Step title="Review Resource Bundling">
+    HTTP/2 multiplexing may make bundling unnecessary.
+  </Step>
+  
+  <Step title="Test Thoroughly">
+    Verify performance improvements and compatibility.
+  </Step>
+</Steps>
+
+### Adopting HTTP/3
+
+<Steps>
+  <Step title="CDN Support">
+    Use CDN with HTTP/3 support (Cloudflare, Fastly).
+  </Step>
+  
+  <Step title="Server Configuration">
+    Enable QUIC support in your servers.
+  </Step>
+  
+  <Step title="Fallback Strategy">
+    Maintain HTTP/2 support for compatibility.
+  </Step>
+  
+  <Step title="Monitor Performance">
+    Track metrics to validate improvements.
+  </Step>
+</Steps>
+
+## Key Takeaways
+
+<Info>
+  HTTP continues to evolve, with each version bringing significant performance and security improvements while maintaining backward compatibility.
+</Info>
+
+- HTTP/1.1 pioneered persistent connections and is still widely used (25+ years)
+- HTTP/2 introduced multiplexing, header compression, and binary framing
+- HTTP/3 moves to UDP/QUIC, eliminating transport-layer head-of-line blocking
+- Each version maintains the same HTTP semantics (methods, status codes)
+- HTTPS encryption is mandatory in HTTP/3, optional in earlier versions
+- Modern applications should use HTTP/2 minimum, HTTP/3 when possible
+- Protocol negotiation allows clients to use the best supported version

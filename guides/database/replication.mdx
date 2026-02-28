@@ -1,0 +1,588 @@
+---
+title: 'Database Replication'
+description: 'Learn about database replication patterns, strategies, and best practices for scaling reads and ensuring high availability'
+---
+
+![Read Replica Pattern](https://assets.bytebytego.com/diagrams/0312-read-replica-pattern.png)
+
+## What is Database Replication?
+
+Database replication is the process of creating and maintaining multiple copies of a database across different servers. It's a fundamental technique for:
+
+<CardGroup cols={3}>
+  <Card title="Scaling Reads" icon="gauge-high">
+    Distribute read traffic across multiple database servers
+  </Card>
+  <Card title="High Availability" icon="shield-check">
+    Maintain service even if the primary database fails
+  </Card>
+  <Card title="Geographic Distribution" icon="earth-americas">
+    Place data closer to users for lower latency
+  </Card>
+</CardGroup>
+
+## The Read Replica Pattern
+
+The most common replication setup is the **read replica pattern**, where:
+- All write operations (INSERT, UPDATE, DELETE) go to the **primary database**
+- Read operations (SELECT) are distributed across **read replicas**
+
+### How It Works
+
+The diagram above illustrates a typical read replica setup:
+
+<Steps>
+  <Step title="Write to Primary">
+    When Alice places an order on Amazon, the Order Service creates a record in the primary database.
+  </Step>
+  <Step title="Replication">
+    Data is automatically replicated from the primary to two replica databases.
+  </Step>
+  <Step title="Read from Replicas">
+    When Alice views order details or history, the data is served from a replica, not the primary.
+  </Step>
+</Steps>
+
+```
+┌─────────────┐
+│ Application │
+└──────┬──────┘
+       │
+       ├─────── Writes ────────┐
+       │                       ▼
+       │              ┌──────────────┐
+       │              │   Primary    │
+       │              │   Database   │
+       │              └───────┬──────┘
+       │                      │
+       │              ┌───────┴───────┐
+       │              │  Replication  │
+       │              └───────┬───────┘
+       │                      │
+       │              ┌───────┴────────┐
+       │              ▼                ▼
+       │         ┌─────────┐      ┌─────────┐
+       └─Reads──▶│Replica 1│      │Replica 2│
+                 └─────────┘      └─────────┘
+```
+
+## Replication Strategies
+
+### Master-Slave (Primary-Replica) Replication
+
+The most common pattern with one primary and multiple replicas.
+
+<Accordion title="Characteristics">
+  **Write Path**:
+  - All writes go to primary (master)
+  - Primary applies changes locally
+  - Changes are propagated to replicas
+  
+  **Read Path**:
+  - Reads can be served from any replica
+  - Load balanced across replicas
+  - Primary can also serve reads
+  
+  **Advantages**:
+  - Simple to understand and implement
+  - Excellent for read-heavy workloads
+  - Clear data source of truth (primary)
+  
+  **Disadvantages**:
+  - Single point of failure for writes
+  - Replication lag can cause consistency issues
+  - Manual failover often required
+</Accordion>
+
+**Use cases**:
+- E-commerce platforms (many product views, fewer purchases)
+- Content management systems
+- Analytics dashboards
+- Any read-heavy application
+
+### Master-Master (Multi-Master) Replication
+
+Multiple databases can accept writes simultaneously.
+
+<Accordion title="Characteristics">
+  **Write Path**:
+  - Writes can go to any master
+  - Changes propagate to other masters
+  - Conflict resolution required
+  
+  **Read Path**:
+  - Reads from any master
+  - Typically lower latency
+  
+  **Advantages**:
+  - No single point of failure for writes
+  - Better write performance and availability
+  - Geographic distribution of writes
+  
+  **Disadvantages**:
+  - Complex conflict resolution
+  - Risk of data inconsistency
+  - Harder to reason about
+  - Network partitions are challenging
+</Accordion>
+
+<Warning>
+  Master-master replication introduces complexity in conflict resolution. What happens if two users update the same record on different masters simultaneously?
+</Warning>
+
+**Use cases**:
+- Multi-region applications requiring local writes
+- High-availability systems that can't tolerate write downtime
+- Collaborative applications with offline support
+
+### Chain Replication
+
+Replicas form a chain where each replicates from the previous one.
+
+```
+Primary → Replica 1 → Replica 2 → Replica 3
+```
+
+**Advantages**:
+- Reduces load on primary
+- Better for many replicas
+
+**Disadvantages**:
+- Higher latency to final replica
+- Failure in chain disrupts replication
+
+## Implementation Approaches
+
+### Application-Level Routing
+
+The application code decides which database to use for each query.
+
+```python
+class DatabaseRouter:
+    def write_query(self, sql, params):
+        return self.primary_db.execute(sql, params)
+    
+    def read_query(self, sql, params):
+        replica = self.select_replica()  # Load balancing
+        return replica.execute(sql, params)
+```
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Full control over routing logic
+  - Can implement custom strategies
+  - No additional infrastructure
+  
+  **Disadvantages**:
+  - Complexity in application code
+  - Every service must implement routing
+  - Harder to change strategy
+  - Potential for bugs in routing logic
+</Accordion>
+
+### Database Middleware
+
+![Database Middleware](https://assets.bytebytego.com/diagrams/0162-database-middleware.png)
+
+A middleware layer sits between the application and databases, handling routing transparently.
+
+**How it works**:
+
+<Steps>
+  <Step title="Application Connects to Middleware">
+    The application connects to the middleware as if it's a regular database.
+  </Step>
+  <Step title="Middleware Routes Queries">
+    The middleware analyzes each query and routes it appropriately:
+    - Writes → Primary database
+    - Reads → Replica databases (load balanced)
+  </Step>
+  <Step title="Results Returned">
+    The middleware returns results to the application transparently.
+  </Step>
+</Steps>
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Simplified application code
+  - Centralized routing logic
+  - Better compatibility (uses standard MySQL protocol)
+  - Easier database migration
+  - Can implement sophisticated routing rules
+  
+  **Disadvantages**:
+  - Additional network hop increases latency
+  - Requires high availability setup (can be single point of failure)
+  - Complex middleware system to maintain
+  - Must handle connection pooling, authentication, etc.
+</Accordion>
+
+**Popular middleware solutions**:
+- ProxySQL (MySQL/MariaDB)
+- PgBouncer (PostgreSQL)
+- HAProxy with MySQL
+- MaxScale (MariaDB)
+- Vitess (MySQL)
+
+<Info>
+  The middleware uses standard database protocols (e.g., MySQL network protocol), so any compatible client can connect without modification.
+</Info>
+
+## Replication Mechanisms
+
+### Synchronous Replication
+
+Writes are confirmed only after replicas acknowledge receipt.
+
+```
+Client → Primary → [Wait for Replica ACK] → Response to Client
+         ↓
+       Replica
+```
+
+**Characteristics**:
+- Strong consistency
+- Higher latency (wait for replicas)
+- Guaranteed data durability
+- Lower throughput
+
+**Best for**: Financial transactions, critical data where consistency is paramount
+
+### Asynchronous Replication
+
+Writes are confirmed immediately; replication happens in the background.
+
+```
+Client → Primary → Response to Client
+         ↓
+       Replica (eventually)
+```
+
+**Characteristics**:
+- Lower latency
+- Higher throughput
+- Risk of data loss if primary fails
+- Eventual consistency
+
+**Best for**: Social media posts, analytics, content management
+
+### Semi-Synchronous Replication
+
+A hybrid approach where at least one replica acknowledges before confirming the write.
+
+```
+Client → Primary → [Wait for 1+ Replica ACK] → Response
+         ↓
+     Multiple Replicas
+```
+
+**Characteristics**:
+- Balanced latency and durability
+- Reduced data loss risk
+- Good compromise for most applications
+
+## The Replication Lag Problem
+
+<Warning>
+  **Replication lag** occurs when replicas fall behind the primary. Data in replicas might be seconds or even minutes behind under certain circumstances (network delay, server overload, etc.).
+</Warning>
+
+### The Problem Illustrated
+
+Consider Alice's order from the earlier example:
+
+1. Alice places an order → Writes to primary ✓
+2. Data begins replicating to replicas...
+3. Alice immediately checks order status → Reads from replica
+4. **Replica hasn't received the update yet** → Order not found! ❌
+
+Alice is confused. Where did her order go?
+
+### Read-After-Write Consistency
+
+This scenario requires **read-after-write consistency**: users should always see their own writes immediately.
+
+## Solutions to Replication Lag
+
+### 1. Route to Primary for Latency-Sensitive Reads
+
+```python
+def get_user_orders(user_id, include_recent=False):
+    if include_recent:
+        # User just placed order; read from primary
+        return primary_db.query(
+            "SELECT * FROM orders WHERE user_id = ?", 
+            user_id
+        )
+    else:
+        # Older data; replica is fine
+        return replica_db.query(
+            "SELECT * FROM orders WHERE user_id = ?", 
+            user_id
+        )
+```
+
+<Tip>
+  Route reads that immediately follow writes to the primary database.
+</Tip>
+
+### 2. Time-Based Routing
+
+```python
+from datetime import datetime, timedelta
+
+def route_read(user_id, last_write_time):
+    if datetime.now() - last_write_time < timedelta(seconds=5):
+        # Recent write; use primary
+        return primary_db
+    else:
+        # Old enough; use replica
+        return replica_db
+```
+
+Track when users last wrote data and route accordingly.
+
+### 3. Check Replication Status
+
+Many databases provide ways to check if a replica is caught up:
+
+```sql
+-- MySQL: Check seconds behind master
+SHOW SLAVE STATUS;
+-- Look at Seconds_Behind_Master
+
+-- PostgreSQL: Check replication lag
+SELECT EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp()));
+```
+
+```python
+def smart_read(query, params):
+    replica = select_replica()
+    lag = replica.check_replication_lag()
+    
+    if lag < 1.0:  # Less than 1 second lag
+        return replica.query(query, params)
+    else:
+        # Replica too far behind; use primary
+        return primary_db.query(query, params)
+```
+
+### 4. Session Affinity (Sticky Sessions)
+
+Route all requests from a session to the same database:
+
+```python
+def route_query(session_id, query_type):
+    if query_type == 'write':
+        # Track that this session wrote data
+        redis.setex(f"session:{session_id}:wrote", 60, "1")
+        return primary_db
+    
+    # Check if session recently wrote
+    if redis.exists(f"session:{session_id}:wrote"):
+        return primary_db  # Keep using primary
+    
+    return replica_db
+```
+
+### 5. Monotonic Reads
+
+Ensure users don't see data "go backwards in time":
+
+```python
+# Store last seen timestamp per user
+last_seen = redis.get(f"user:{user_id}:last_seen")
+
+query = """
+    SELECT * FROM orders 
+    WHERE user_id = ? 
+    AND updated_at > ?
+"""
+results = replica_db.query(query, [user_id, last_seen])
+```
+
+## Scaling Database Strategies
+
+![Database Scaling Cheatsheet](https://assets.bytebytego.com/diagrams/0161-database-scaling-cheatsheet.png)
+
+Replication is one of several scaling strategies:
+
+<Steps>
+  <Step title="Indexing">
+    Create the right indexes based on query patterns
+  </Step>
+  <Step title="Caching">
+    Use Redis/Memcached for frequently accessed data
+  </Step>
+  <Step title="Vertical Scaling">
+    Add more CPU, RAM, or faster storage to the database server
+  </Step>
+  <Step title="Replication">
+    Create read replicas to scale read traffic
+  </Step>
+  <Step title="Sharding">
+    Split data across multiple databases for write scaling
+  </Step>
+</Steps>
+
+<Info>
+  **Replication scales reads**. For write-heavy workloads, consider sharding or caching strategies.
+</Info>
+
+## Best Practices
+
+### 1. Monitor Replication Lag
+
+```python
+# Alert if replication lag exceeds threshold
+if replication_lag > 5:  # seconds
+    alert("High replication lag detected")
+```
+
+Set up monitoring and alerts for:
+- Replication lag (seconds behind)
+- Replication throughput
+- Failed replication attempts
+- Replica health checks
+
+### 2. Plan for Failover
+
+What happens when the primary fails?
+
+<Steps>
+  <Step title="Detection">
+    Monitor primary health with heartbeats
+  </Step>
+  <Step title="Promotion">
+    Automatically promote a replica to primary
+  </Step>
+  <Step title="Repoint">
+    Update application/middleware to new primary
+  </Step>
+  <Step title="Rebuild">
+    Create new replicas from the new primary
+  </Step>
+</Steps>
+
+**Automation options**:
+- MySQL: MHA (Master High Availability), Orchestrator
+- PostgreSQL: Patroni, repmgr
+- Cloud: AWS RDS Multi-AZ, Google Cloud SQL HA
+
+### 3. Load Balance Replicas
+
+Distribute read traffic evenly:
+
+```python
+import random
+
+def select_replica():
+    return random.choice(replica_connections)
+    
+# Better: Weighted round-robin considering replica load
+def select_replica_smart():
+    # Choose least loaded replica
+    return min(replicas, key=lambda r: r.get_connection_count())
+```
+
+### 4. Geographic Distribution
+
+Place replicas near users:
+
+```
+┌────────────┐     ┌────────────┐     ┌────────────┐
+│   US-East  │     │   US-West  │     │  EU-West   │
+│  (Primary) │ ──▶ │  (Replica) │     │ (Replica)  │
+└────────────┘     └────────────┘     └────────────┘
+                          ▲                  ▲
+                          │                  │
+                    US West Users      European Users
+```
+
+### 5. Consider Read-Only Replicas
+
+Enforce read-only mode on replicas:
+
+```sql
+-- MySQL
+SET GLOBAL read_only = ON;
+SET GLOBAL super_read_only = ON;
+
+-- PostgreSQL
+ALTER SYSTEM SET default_transaction_read_only = on;
+```
+
+This prevents accidental writes to replicas.
+
+## Common Pitfalls
+
+<Warning>
+  **Pitfall #1**: Not handling replication lag
+  
+  Users see stale data or their own writes disappear. Always implement read-after-write consistency for user-facing features.
+</Warning>
+
+<Warning>
+  **Pitfall #2**: Over-relying on replicas
+  
+  If all replicas fail, can your application still serve reads from primary? Design for graceful degradation.
+</Warning>
+
+<Warning>
+  **Pitfall #3**: No monitoring
+  
+  You don't know replicas are lagging until users complain. Set up comprehensive monitoring and alerting.
+</Warning>
+
+<Warning>
+  **Pitfall #4**: No failover plan
+  
+  Primary fails, and you're manually promoting replicas in a panic. Automate failover or have a tested runbook.
+</Warning>
+
+## When to Use Replication
+
+Implement replication when:
+
+<Check>Read traffic significantly exceeds write traffic</Check>
+<Check>You need high availability for reads</Check>
+<Check>Users are geographically distributed</Check>
+<Check>Analytics queries are impacting production performance</Check>
+<Check>You need to perform backups without impacting primary</Check>
+
+**Before implementing replication, consider**:
+- Can caching solve your problem more simply?
+- Is your database properly indexed?
+- Can you optimize expensive queries?
+- Do you have connection pooling configured?
+
+## Conclusion
+
+Database replication is a proven strategy for scaling read traffic and improving availability. The key to success is:
+
+1. **Choose the right replication strategy** for your consistency needs
+2. **Handle replication lag** appropriately in your application
+3. **Monitor continuously** and set up alerts
+4. **Plan for failover** before you need it
+5. **Test regularly** to ensure your replication setup works as expected
+
+<Tip>
+  Start with a simple primary-replica setup and add complexity only as needed. Most applications do well with asynchronous replication and smart routing logic.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Sharding" icon="layer-group" href="/guides/database/sharding">
+    Scale writes with horizontal partitioning
+  </Card>
+  <Card title="CAP Theorem" icon="triangle-exclamation" href="/guides/database/cap-theorem">
+    Understand consistency vs availability trade-offs
+  </Card>
+  <Card title="High Availability" icon="shield-check">
+    Design systems that stay up during failures
+  </Card>
+  <Card title="Caching Strategies" icon="bolt" href="/guides/caching/strategies">
+    Reduce database load with effective caching
+  </Card>
+</CardGroup>

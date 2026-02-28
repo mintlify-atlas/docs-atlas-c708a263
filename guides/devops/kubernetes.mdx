@@ -1,0 +1,434 @@
+---
+title: 'Kubernetes (K8s)'
+description: 'Master Kubernetes container orchestration - from core concepts to deployment patterns and service types.'
+---
+
+## What is Kubernetes?
+
+Kubernetes (k8s) is a container orchestration system used for container deployment and management. Its design is greatly impacted by Google's internal system Borg.
+
+![Kubernetes Architecture](https://assets.bytebytego.com/diagrams/0245-k8s.png)
+
+A Kubernetes cluster consists of a set of worker machines, called nodes, that run containerized applications. Every cluster has at least one worker node. In production environments, the control plane usually runs across multiple computers and a cluster usually runs multiple nodes, providing fault tolerance and high availability.
+
+<Note>
+Kubernetes is now maintained by CNCF (Cloud Native Computing Foundation) and has become the de facto standard for container orchestration.
+</Note>
+
+## Kubernetes Architecture
+
+### Control Plane Components
+
+The control plane manages the worker nodes and the Pods in the cluster.
+
+**API Server**
+
+The API server talks to all the components in the Kubernetes cluster. All operations on pods are executed by talking to the API server. It's the front-end for the Kubernetes control plane.
+
+**Scheduler**
+
+The scheduler watches the workloads on pods and assigns loads on newly created pods. It selects optimal nodes for pods based on resource requirements and constraints.
+
+**Controller Manager**
+
+The controller manager runs the controllers, including:
+- Node Controller - monitors node health
+- Job Controller - manages batch jobs
+- EndpointSlice Controller - manages endpoints
+- ServiceAccount Controller - manages service accounts
+
+**etcd**
+
+etcd is a key-value store used as Kubernetes' backing store for all cluster data. It's a consistent and highly-available distributed database.
+
+### Node Components
+
+**Pods**
+
+A pod is a group of containers and is the smallest unit that Kubernetes administers. Pods have a single IP address applied to every container within the pod.
+
+**Kubelet**
+
+An agent that runs on each node in the cluster. It ensures containers are running in a Pod and communicates with the API server.
+
+**Kube Proxy**
+
+kube-proxy is a network proxy that runs on each node in your cluster. It routes traffic coming into a node from the service and forwards requests for work to the correct containers.
+
+## Kubernetes Service Types
+
+![Kubernetes Service Types](https://assets.bytebytego.com/diagrams/0005-4-k8s-service-types.png)
+
+In Kubernetes, a Service is a method for exposing a network application in the cluster. There are 4 types of Kubernetes services:
+
+### ClusterIP
+
+ClusterIP is the default and most common service type.
+
+<CodeGroup>
+```yaml Service Definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: ClusterIP
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+```
+
+```text Characteristics
+- Default service type
+- Cluster-internal IP address
+- Only reachable within cluster
+- Use for internal microservices
+```
+</CodeGroup>
+
+Kubernetes assigns a cluster-internal IP address to ClusterIP service. This makes the service only reachable within the cluster.
+
+### NodePort
+
+<CodeGroup>
+```yaml Service Definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30007
+```
+
+```text Characteristics
+- Exposes service outside cluster
+- Adds cluster-wide port on ClusterIP
+- Access via NodeIP:NodePort
+- Port range: 30000-32767
+```
+</CodeGroup>
+
+This exposes the service outside of the cluster by adding a cluster-wide port on top of ClusterIP. You can request the service by `NodeIP:NodePort`.
+
+### LoadBalancer
+
+<CodeGroup>
+```yaml Service Definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-app
+  ports:
+    - port: 80
+      targetPort: 8080
+```
+
+```text Characteristics
+- Cloud provider load balancer
+- External IP address
+- Production-ready exposure
+- Integrates with cloud LB
+```
+</CodeGroup>
+
+This exposes the Service externally using a cloud provider's load balancer. Perfect for production workloads.
+
+### ExternalName
+
+<CodeGroup>
+```yaml Service Definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: ExternalName
+  externalName: external-db.example.com
+```
+
+```text Characteristics
+- Maps to domain name
+- No proxying or port mapping
+- CNAME record in DNS
+- Used for external services
+```
+</CodeGroup>
+
+This maps a Service to a domain name. Commonly used to create a service within Kubernetes to represent an external database.
+
+## Kubernetes Design Patterns
+
+![Kubernetes Design Patterns](https://assets.bytebytego.com/diagrams/0372-top-10-k8s-design-patterns.png)
+
+### Foundational Patterns
+
+These patterns are the fundamental principles for applications to be automated on Kubernetes.
+
+**Health Probe Pattern**
+
+Every container must implement observable APIs for the platform to manage the application.
+
+<CodeGroup>
+```yaml Liveness Probe
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 3
+  periodSeconds: 3
+```
+
+```yaml Readiness Probe
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+</CodeGroup>
+
+**Predictable Demands Pattern**
+
+Declare application requirements and runtime dependencies. Every container should declare its resource profile.
+
+<CodeGroup>
+```yaml Resource Requests
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "250m"
+  limits:
+    memory: "128Mi"
+    cpu: "500m"
+```
+</CodeGroup>
+
+**Automated Placement Pattern**
+
+Describes the principles of Kubernetes' scheduling algorithm for optimal pod placement.
+
+### Structural Patterns
+
+These patterns focus on structuring and organizing containers in a Pod.
+
+**Init Container Pattern**
+
+Has a separate life cycle for initialization-related tasks.
+
+<CodeGroup>
+```yaml Init Container
+initContainers:
+- name: init-myservice
+  image: busybox:1.28
+  command: ['sh', '-c', 'until nslookup myservice; do echo waiting; sleep 2; done;']
+```
+</CodeGroup>
+
+**Sidecar Pattern**
+
+Extends a container's functionalities without changing it.
+
+<CodeGroup>
+```yaml Sidecar Example
+containers:
+- name: main-app
+  image: my-app:1.0
+- name: log-forwarder
+  image: fluentd:latest
+  volumeMounts:
+  - name: logs
+    mountPath: /var/log
+```
+</CodeGroup>
+
+### Behavioral Patterns
+
+These patterns describe the life cycle management of a Pod.
+
+**Batch Job Pattern**
+
+Used to manage isolated atomic units of work.
+
+**Stateful Service Pattern**
+
+Creates distributed stateful applications using StatefulSets.
+
+**Service Discovery Pattern**
+
+Describes how clients discover services in the cluster.
+
+### Higher-Level Patterns
+
+**Controller Pattern**
+
+Monitors the current state and reconciles with the declared target state.
+
+**Operator Pattern**
+
+Defines operational knowledge in an algorithmic and automated form.
+
+## Kubernetes Tools Ecosystem
+
+![Kubernetes Tools](https://assets.bytebytego.com/diagrams/0109-kubernetes-tools-ecosystem.png)
+
+Kubernetes boasts a vast ecosystem covering:
+
+- **Security**: RBAC, Pod Security, Network Policies
+- **Networking**: CNI plugins, Service Mesh (Istio, Linkerd)
+- **Container Runtime**: containerd, CRI-O, Docker
+- **Cluster Management**: kubectl, Helm, Kustomize
+- **Monitoring**: Prometheus, Grafana, ELK Stack
+- **Infrastructure Orchestration**: Terraform, Pulumi
+
+## Essential Kubernetes Commands
+
+![Kubernetes Commands](https://assets.bytebytego.com/diagrams/0248-kubernetes-command-cheatsheet.png)
+
+### Cluster Management
+
+<CodeGroup>
+```bash Get Cluster Info
+kubectl cluster-info
+kubectl get nodes
+kubectl describe node <node-name>
+```
+
+```bash Context Management
+kubectl config get-contexts
+kubectl config use-context <context-name>
+kubectl config current-context
+```
+</CodeGroup>
+
+### Pod Management
+
+<CodeGroup>
+```bash View Pods
+kubectl get pods
+kubectl get pods -n <namespace>
+kubectl describe pod <pod-name>
+```
+
+```bash Pod Logs
+kubectl logs <pod-name>
+kubectl logs -f <pod-name>
+kubectl logs <pod-name> -c <container-name>
+```
+
+```bash Execute Commands
+kubectl exec -it <pod-name> -- /bin/bash
+kubectl exec <pod-name> -- ls /app
+```
+</CodeGroup>
+
+### Deployment Management
+
+<CodeGroup>
+```bash Create & Update
+kubectl apply -f deployment.yaml
+kubectl create deployment nginx --image=nginx
+kubectl set image deployment/nginx nginx=nginx:1.19
+```
+
+```bash Scale & Status
+kubectl scale deployment nginx --replicas=5
+kubectl rollout status deployment/nginx
+kubectl rollout history deployment/nginx
+```
+
+```bash Rollback
+kubectl rollout undo deployment/nginx
+kubectl rollout undo deployment/nginx --to-revision=2
+```
+</CodeGroup>
+
+### Service Management
+
+<CodeGroup>
+```bash Services
+kubectl get services
+kubectl describe service <service-name>
+kubectl expose deployment nginx --port=80 --type=LoadBalancer
+```
+
+```bash Port Forwarding
+kubectl port-forward service/nginx 8080:80
+kubectl port-forward pod/nginx 8080:80
+```
+</CodeGroup>
+
+### Troubleshooting
+
+<CodeGroup>
+```bash Debug Pods
+kubectl describe pod <pod-name>
+kubectl logs <pod-name> --previous
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+```bash Resource Usage
+kubectl top nodes
+kubectl top pods
+kubectl top pods -n <namespace>
+```
+</CodeGroup>
+
+## Best Practices
+
+### 1. Resource Management
+
+- Always define resource requests and limits
+- Use namespaces for resource isolation
+- Implement resource quotas
+
+### 2. High Availability
+
+<Steps>
+  <Step title="Run Multiple Replicas">
+    Use ReplicaSets or Deployments with replicas > 1
+  </Step>
+  
+  <Step title="Pod Disruption Budgets">
+    Define PDBs to maintain availability during updates
+  </Step>
+  
+  <Step title="Node Affinity">
+    Spread pods across availability zones
+  </Step>
+  
+  <Step title="Health Checks">
+    Implement liveness and readiness probes
+  </Step>
+</Steps>
+
+### 3. Security
+
+- Use RBAC for access control
+- Run containers as non-root users
+- Enable Pod Security Standards
+- Use network policies to restrict traffic
+- Scan images for vulnerabilities
+
+### 4. Monitoring and Logging
+
+- Implement centralized logging
+- Use Prometheus for metrics
+- Set up alerting for critical issues
+- Monitor resource usage
+
+<Note>
+Kubernetes is a powerful platform that requires understanding of its core concepts. Start with simple deployments and gradually adopt more advanced patterns as your needs grow.
+</Note>

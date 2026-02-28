@@ -1,0 +1,672 @@
+---
+title: 'Monitoring & Logging'
+description: 'Master system observability through logging, tracing, and metrics'
+icon: 'chart-line'
+---
+
+## The Three Pillars of Observability
+
+Logging, tracing, and metrics are the three pillars of system observability. Understanding these concepts is crucial for maintaining reliable, performant systems.
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0264-logging-tracing-metrics.png" alt="Logging, Tracing, and Metrics" />
+</Frame>
+
+<CardGroup cols={3}>
+  <Card title="Logging" icon="file-lines">
+    Records discrete events in the system
+  </Card>
+  <Card title="Tracing" icon="route">
+    Tracks requests across distributed services
+  </Card>
+  <Card title="Metrics" icon="chart-simple">
+    Aggregates system performance data
+  </Card>
+</CardGroup>
+
+## Logging
+
+<Card title="What is Logging?" icon="file-lines">
+  Logging records discrete events in the system. For example, we can record an incoming request or a visit to databases as events.
+</Card>
+
+### Characteristics
+
+- **Highest Volume**: Logs generate the most data among the three pillars
+- **Event-Based**: Captures specific occurrences and state changes
+- **Searchable**: Enables keyword-based investigation of issues
+- **Structured Format**: JSON or key-value pairs for easier parsing
+
+### Typical Logging Architecture
+
+<Steps>
+  <Step title="Collection">
+    Applications write logs to files or stdout using logging libraries
+  </Step>
+  
+  <Step title="Aggregation">
+    Log shippers (Filebeat, Fluentd) collect and forward logs
+  </Step>
+  
+  <Step title="Processing">
+    Logstash processes, filters, and enriches log data
+  </Step>
+  
+  <Step title="Storage">
+    Elasticsearch stores logs for indexing and searching
+  </Step>
+  
+  <Step title="Visualization">
+    Kibana provides search, analysis, and visualization interface
+  </Step>
+</Steps>
+
+<Note>
+**ELK Stack** (Elastic-Logstash-Kibana) is often used to build a log analysis platform. We often define a standardized logging format for different teams to implement, so that we can leverage keywords when searching among massive amounts of logs.
+</Note>
+
+### Logging Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Structured Logging" icon="list">
+    Use JSON or structured formats instead of plain text for easier parsing and querying
+    
+    ```json
+    {
+      "timestamp": "2024-03-15T10:30:00Z",
+      "level": "ERROR",
+      "service": "api-gateway",
+      "user_id": "12345",
+      "message": "Authentication failed",
+      "error_code": "AUTH_001"
+    }
+    ```
+  </Card>
+  
+  <Card title="Define Log Levels" icon="layer-group">
+    Use appropriate log levels to filter and prioritize:
+    - **DEBUG**: Detailed information for diagnosing problems
+    - **INFO**: General informational messages
+    - **WARN**: Warning messages for potentially harmful situations
+    - **ERROR**: Error events that might still allow the application to continue
+    - **FATAL**: Severe errors that cause premature termination
+  </Card>
+  
+  <Card title="Include Context" icon="info-circle">
+    Add relevant context like user IDs, request IDs, session IDs for correlation
+  </Card>
+  
+  <Card title="Centralize Logs" icon="database">
+    Aggregate logs from all services in a central location for easier analysis
+  </Card>
+  
+  <Card title="Set Retention Policies" icon="clock">
+    Define how long to keep logs based on compliance and storage costs
+  </Card>
+  
+  <Card title="Sanitize Sensitive Data" icon="user-shield">
+    Never log passwords, API keys, credit card numbers, or PII
+  </Card>
+</CardGroup>
+
+## Tracing
+
+<Card title="What is Tracing?" icon="route">
+  Tracing is usually request-scoped. For example, a user request goes through the API gateway, load balancer, service A, service B, and database, which can be visualized in the tracing systems.
+</Card>
+
+### Why Tracing Matters
+
+Tracing is useful when we are trying to:
+- Identify bottlenecks in the system
+- Understand request flow across services
+- Debug performance issues in distributed systems
+- Calculate end-to-end latency
+- Visualize service dependencies
+
+### Distributed Tracing Architecture
+
+<Steps>
+  <Step title="Instrumentation">
+    Applications generate trace data using OpenTelemetry SDK
+  </Step>
+  
+  <Step title="Propagation">
+    Trace context is passed between services via HTTP headers
+  </Step>
+  
+  <Step title="Collection">
+    OpenTelemetry Collector receives and processes trace data
+  </Step>
+  
+  <Step title="Storage">
+    Traces are stored in specialized backends (Jaeger, Tempo, Zipkin)
+  </Step>
+  
+  <Step title="Analysis">
+    Visualization tools show trace spans and service dependencies
+  </Step>
+</Steps>
+
+<Note>
+We use **OpenTelemetry** to showcase the typical architecture, which unifies the 3 pillars in a single framework.
+</Note>
+
+### Key Tracing Concepts
+
+<AccordionGroup>
+  <Accordion title="Trace" icon="timeline">
+    A trace represents the entire journey of a request through your system. It's composed of one or more spans.
+    
+    **Example:** User login request from browser to database and back
+  </Accordion>
+  
+  <Accordion title="Span" icon="arrows-left-right">
+    A span represents a single operation within a trace. Each span has:
+    - Start time and duration
+    - Operation name
+    - Parent span ID (except root span)
+    - Tags and logs
+    
+    **Example:** "GET /api/users" or "SELECT FROM users"
+  </Accordion>
+  
+  <Accordion title="Trace Context" icon="link">
+    Information propagated between services to correlate spans:
+    - Trace ID (unique identifier for the entire trace)
+    - Span ID (unique identifier for current operation)
+    - Trace flags (sampling decisions)
+  </Accordion>
+  
+  <Accordion title="Sampling" icon="filter">
+    Recording only a percentage of traces to reduce overhead:
+    - **Head-based sampling**: Decide at the start of trace
+    - **Tail-based sampling**: Decide after seeing complete trace
+    - Common rates: 1%, 5%, 10% for high-traffic systems
+  </Accordion>
+</AccordionGroup>
+
+### Tracing Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Instrument Critical Paths" icon="route">
+    Focus on instrumenting business-critical operations and external calls
+  </Card>
+  
+  <Card title="Use Semantic Conventions" icon="book">
+    Follow OpenTelemetry semantic conventions for consistent naming
+  </Card>
+  
+  <Card title="Add Custom Attributes" icon="tags">
+    Include business context like user ID, tenant ID, feature flags
+  </Card>
+  
+  <Card title="Implement Sampling" icon="percentage">
+    Use sampling to reduce costs while maintaining visibility
+  </Card>
+</CardGroup>
+
+## Metrics
+
+<Card title="What are Metrics?" icon="chart-simple">
+  Metrics are usually aggregatable information from the system. For example, service QPS, API responsiveness, service latency, etc.
+</Card>
+
+### Metrics Architecture
+
+<Steps>
+  <Step title="Instrumentation">
+    Applications expose metrics endpoints (Prometheus format)
+  </Step>
+  
+  <Step title="Collection">
+    Prometheus scrapes metrics from targets at regular intervals
+  </Step>
+  
+  <Step title="Storage">
+    Metrics stored in time-series databases (InfluxDB, Prometheus TSDB)
+  </Step>
+  
+  <Step title="Transformation">
+    Prometheus transforms data based on pre-defined alerting rules
+  </Step>
+  
+  <Step title="Visualization">
+    Grafana displays metrics in dashboards
+  </Step>
+  
+  <Step title="Alerting">
+    Alert manager sends notifications (email, SMS, Slack) when thresholds are breached
+  </Step>
+</Steps>
+
+### Types of Metrics
+
+<AccordionGroup>
+  <Accordion title="Counter" icon="arrow-up">
+    A cumulative metric that only increases or resets to zero.
+    
+    **Examples:**
+    - Total HTTP requests
+    - Number of errors
+    - Items processed
+    
+    ```promql
+    # Rate of requests per second
+    rate(http_requests_total[5m])
+    ```
+  </Accordion>
+  
+  <Accordion title="Gauge" icon="gauge">
+    A metric that can go up or down.
+    
+    **Examples:**
+    - Current memory usage
+    - Number of active connections
+    - Queue size
+    - Temperature
+    
+    ```promql
+    # Current memory usage
+    process_memory_bytes
+    ```
+  </Accordion>
+  
+  <Accordion title="Histogram" icon="chart-bar">
+    Samples observations and counts them in configurable buckets.
+    
+    **Examples:**
+    - Request duration
+    - Response sizes
+    
+    ```promql
+    # 95th percentile latency
+    histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+    ```
+  </Accordion>
+  
+  <Accordion title="Summary" icon="chart-area">
+    Similar to histogram but calculates quantiles on the client side.
+    
+    **Examples:**
+    - Request duration with pre-calculated percentiles
+    - Processing time summaries
+  </Accordion>
+</AccordionGroup>
+
+### Essential Metrics to Monitor
+
+<Tabs>
+  <Tab title="Application Metrics">
+    <CardGroup cols={2}>
+      <Card title="Request Rate" icon="gauge">
+        Number of requests per second (QPS/RPS)
+      </Card>
+      <Card title="Error Rate" icon="circle-exclamation">
+        Percentage or count of failed requests
+      </Card>
+      <Card title="Latency" icon="clock">
+        Response time (p50, p95, p99)
+      </Card>
+      <Card title="Saturation" icon="fill">
+        Resource utilization (CPU, memory, disk)
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="Infrastructure Metrics">
+    <CardGroup cols={2}>
+      <Card title="CPU Usage" icon="microchip">
+        Percentage of CPU utilized
+      </Card>
+      <Card title="Memory Usage" icon="memory">
+        RAM utilization and available memory
+      </Card>
+      <Card title="Disk I/O" icon="hard-drive">
+        Read/write operations and throughput
+      </Card>
+      <Card title="Network" icon="network-wired">
+        Bandwidth usage, packet loss, latency
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="Business Metrics">
+    <CardGroup cols={2}>
+      <Card title="User Signups" icon="user-plus">
+        New user registrations over time
+      </Card>
+      <Card title="Conversion Rate" icon="percent">
+        Percentage of users completing key actions
+      </Card>
+      <Card title="Revenue" icon="dollar-sign">
+        Transaction volume and value
+      </Card>
+      <Card title="Active Users" icon="users">
+        Daily/monthly active users
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
+
+### The RED Method
+
+A methodology for monitoring microservices:
+
+<CardGroup cols={3}>
+  <Card title="Rate" icon="gauge">
+    The number of requests per second
+  </Card>
+  <Card title="Errors" icon="triangle-exclamation">
+    The number of failed requests
+  </Card>
+  <Card title="Duration" icon="stopwatch">
+    The time taken to serve requests
+  </Card>
+</CardGroup>
+
+### The USE Method
+
+A methodology for monitoring resources:
+
+<CardGroup cols={3}>
+  <Card title="Utilization" icon="chart-line">
+    Percentage of time resource is busy
+  </Card>
+  <Card title="Saturation" icon="fill">
+    Amount of work resource cannot service (queue)
+  </Card>
+  <Card title="Errors" icon="circle-xmark">
+    Count of error events
+  </Card>
+</CardGroup>
+
+## Cloud Monitoring Cheat Sheet
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0095-cloud-monitoring-cheat-sheet.png" alt="Cloud Monitoring Cheat Sheet" />
+</Frame>
+
+This cheat sheet offers a concise yet comprehensive comparison of key monitoring elements across the three major cloud providers and open-source / 3rd party tools.
+
+### Essential Monitoring Aspects
+
+<AccordionGroup>
+  <Accordion title="Data Collection" icon="database">
+    Gather information from diverse sources to enhance decision-making.
+    
+    **Tools:**
+    - AWS: CloudWatch Agent
+    - Azure: Azure Monitor Agent
+    - GCP: Cloud Monitoring Agent
+    - Open Source: Telegraf, Prometheus exporters
+  </Accordion>
+  
+  <Accordion title="Data Storage" icon="hard-drive">
+    Safely store and manage data for future analysis and reference.
+    
+    **Solutions:**
+    - Time-series databases (InfluxDB, Prometheus TSDB)
+    - Cloud-native storage (CloudWatch, Azure Monitor)
+    - Long-term storage (S3, Azure Blob, GCS)
+  </Accordion>
+  
+  <Accordion title="Data Analysis" icon="magnifying-glass-chart">
+    Extract valuable insights from data to drive informed actions.
+    
+    **Capabilities:**
+    - Query languages (PromQL, KQL)
+    - Anomaly detection
+    - Trend analysis
+    - Correlation across metrics
+  </Accordion>
+  
+  <Accordion title="Alerting" icon="bell">
+    Receive real-time notifications about critical events or anomalies.
+    
+    **Features:**
+    - Threshold-based alerts
+    - Anomaly detection alerts
+    - Multi-channel notifications
+    - Alert routing and escalation
+  </Accordion>
+  
+  <Accordion title="Visualization" icon="chart-mixed">
+    Present data in a visually comprehensible format for better understanding.
+    
+    **Tools:**
+    - Grafana (open source)
+    - AWS CloudWatch Dashboards
+    - Azure Workbooks
+    - GCP Cloud Monitoring Dashboards
+  </Accordion>
+  
+  <Accordion title="Reporting and Compliance" icon="file-contract">
+    Generate reports and ensure adherence to regulatory standards.
+    
+    **Requirements:**
+    - Audit trails
+    - Compliance reports (HIPAA, SOC 2, GDPR)
+    - SLA reporting
+    - Capacity planning reports
+  </Accordion>
+  
+  <Accordion title="Automation" icon="robot">
+    Streamline processes and tasks through automated workflows.
+    
+    **Examples:**
+    - Auto-scaling based on metrics
+    - Automated remediation
+    - Self-healing systems
+    - Infrastructure as Code integration
+  </Accordion>
+  
+  <Accordion title="Integration" icon="puzzle-piece">
+    Seamlessly connect and exchange data between different systems or tools.
+    
+    **Integration Points:**
+    - CI/CD pipelines
+    - Incident management (PagerDuty, Opsgenie)
+    - ChatOps (Slack, Teams)
+    - ITSM tools (ServiceNow, Jira)
+  </Accordion>
+  
+  <Accordion title="Feedback Loops" icon="arrows-rotate">
+    Continuously refine strategies based on feedback and performance analysis.
+    
+    **Practices:**
+    - Post-incident reviews
+    - Performance optimization
+    - Capacity planning
+    - SLO/SLI refinement
+  </Accordion>
+</AccordionGroup>
+
+## Real-World Example: Amazon Prime Video
+
+<Frame>
+  <img src="https://assets.bytebytego.com/diagrams/0328-serverless-to-monolithic.jpeg" alt="Amazon Prime Video Monitoring" />
+</Frame>
+
+### The Challenge
+
+Amazon Prime Video needed to monitor the quality of thousands of live streams. The monitoring tool automatically analyzes streams in real time and identifies quality issues like:
+- Block corruption
+- Video freeze
+- Sync problems
+
+This is an important process for customer satisfaction.
+
+### Architecture Evolution
+
+<Tabs>
+  <Tab title="Old Architecture (Serverless)">
+    **Components:**
+    - AWS Lambda for processing
+    - AWS Step Functions for orchestration
+    - Amazon S3 for intermediate data storage
+    
+    **Problems:**
+    1. **High orchestration costs**: Step Functions charge by state transitions (multiple per second)
+    2. **Data transfer costs**: Intermediate data stored in S3 between stages
+    3. **Not cost-effective at scale**
+  </Tab>
+  
+  <Tab title="New Architecture (Monolithic)">
+    **Solution:**
+    - Media converter and defect detector deployed in same process
+    - Eliminates network data transfer costs
+    - Simpler architecture
+    
+    **Results:**
+    - **90% cost savings**
+    - Same functionality
+    - Better performance
+  </Tab>
+</Tabs>
+
+<Note>
+This is an interesting case study because microservices have become a go-to choice in the tech industry. It's good to see honest discussions about architecture trade-offs. Decomposing components into distributed microservices comes with a cost.
+</Note>
+
+### Key Insights from Amazon Leaders
+
+<CardGroup cols={2}>
+  <Card title="Werner Vogels (Amazon CTO)" icon="quote-left">
+    "Building **evolvable software systems** is a strategy, not a religion. And revisiting your architectures with an open mind is a must."
+  </Card>
+  
+  <Card title="Adrian Cockcroft (Ex Amazon VP)" icon="quote-left">
+    "The Prime Video team had followed a path I call **Serverless First**…I don't advocate **Serverless Only**"
+  </Card>
+</CardGroup>
+
+## Observability Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start with SLOs" icon="bullseye">
+    Define Service Level Objectives based on customer experience:
+    - Availability: 99.9% uptime
+    - Latency: p95 < 200ms
+    - Error rate: < 0.1%
+  </Card>
+  
+  <Card title="Implement All Three Pillars" icon="cubes">
+    Use logging, tracing, and metrics together for complete observability
+  </Card>
+  
+  <Card title="Correlate with Context" icon="link">
+    Use trace IDs and correlation IDs to connect logs, traces, and metrics
+  </Card>
+  
+  <Card title="Alert on Symptoms, Not Causes" icon="bell">
+    Alert on customer-facing issues (high latency) rather than internal metrics (high CPU)
+  </Card>
+  
+  <Card title="Reduce Alert Fatigue" icon="volume-xmark">
+    Only alert on actionable issues that require immediate attention
+  </Card>
+  
+  <Card title="Build Dashboards for Context" icon="chart-line">
+    Create role-specific dashboards (developer, SRE, business stakeholders)
+  </Card>
+  
+  <Card title="Automate Remediation" icon="wand-magic-sparkles">
+    Use runbooks and automated responses for common issues
+  </Card>
+  
+  <Card title="Practice Chaos Engineering" icon="vial">
+    Regularly test monitoring and alerting by injecting failures
+  </Card>
+  
+  <Card title="Monitor the Monitors" icon="binoculars">
+    Ensure monitoring systems themselves are reliable and monitored
+  </Card>
+  
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Use sampling, retention policies, and aggregation to control costs
+  </Card>
+</CardGroup>
+
+## Setting Up a Complete Observability Stack
+
+<Steps>
+  <Step title="Choose Your Tools">
+    Select tools based on your requirements:
+    - **Open Source**: Prometheus + Grafana + Loki + Tempo
+    - **Cloud Native**: CloudWatch / Azure Monitor / Google Cloud Operations
+    - **Commercial**: Datadog, New Relic, Dynatrace
+  </Step>
+  
+  <Step title="Instrument Your Applications">
+    Add observability libraries:
+    - OpenTelemetry SDK for traces and metrics
+    - Structured logging libraries
+    - Application performance monitoring (APM) agents
+  </Step>
+  
+  <Step title="Collect and Store Data">
+    Set up collection and storage:
+    - Deploy collectors/agents
+    - Configure scraping/shipping
+    - Set retention policies
+  </Step>
+  
+  <Step title="Create Dashboards">
+    Build meaningful visualizations:
+    - Service health dashboards
+    - Infrastructure dashboards
+    - Business metrics dashboards
+  </Step>
+  
+  <Step title="Configure Alerts">
+    Define alerting rules:
+    - SLO-based alerts
+    - Anomaly detection
+    - Alert routing and escalation
+  </Step>
+  
+  <Step title="Document and Train">
+    Ensure team preparedness:
+    - Runbooks for common issues
+    - Dashboard documentation
+    - On-call training
+  </Step>
+</Steps>
+
+## Key Takeaways
+
+<Check>
+  **Three Pillars**: Logging, tracing, and metrics provide complete system observability
+</Check>
+
+<Check>
+  **Logging**: Records discrete events; highest volume; uses ELK stack for analysis
+</Check>
+
+<Check>
+  **Tracing**: Request-scoped tracking across services; identifies bottlenecks; uses OpenTelemetry
+</Check>
+
+<Check>
+  **Metrics**: Aggregatable performance data; uses Prometheus and Grafana; enables alerting
+</Check>
+
+<Check>
+  **Cloud Monitoring**: Major providers offer comprehensive monitoring solutions with various trade-offs
+</Check>
+
+<Check>
+  **Architecture Matters**: As Amazon Prime Video showed, the right architecture can save 90% in costs
+</Check>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="DevOps & CI/CD" icon="rocket" href="./devops-cicd">
+    Learn about DevOps practices and CI/CD pipelines
+  </Card>
+  <Card title="Kubernetes & Docker" icon="dharmachakra" href="./kubernetes-docker">
+    Explore containerization and orchestration
+  </Card>
+</CardGroup>

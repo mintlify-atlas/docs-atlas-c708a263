@@ -1,0 +1,651 @@
+---
+title: "Caching Strategies"
+description: "Master caching patterns and learn when to use cache-aside, read-through, write-through, write-around, and write-back strategies"
+---
+
+## Overview
+
+When we introduce a cache into the architecture, synchronization between the cache and the database becomes inevitable. Choosing the right caching strategy is crucial for maintaining data consistency while optimizing performance.
+
+![Caching Strategies](https://assets.bytebytego.com/diagrams/0374-top-5-caching-strategies.png)
+
+<Info>
+  Caching strategies are often used in combination. For example, write-around is frequently paired with cache-aside to ensure cache freshness.
+</Info>
+
+## Read Strategies
+
+Read strategies determine how your application retrieves data from the cache and database.
+
+### Cache-Aside (Lazy Loading)
+
+<Accordion title="How Cache-Aside Works" icon="layer-group" defaultOpen>
+  
+The application is responsible for managing the cache:
+
+1. Application checks cache for data
+2. If **cache hit**: Return data from cache
+3. If **cache miss**: 
+   - Query database
+   - Write data to cache
+   - Return data to application
+
+</Accordion>
+
+**Implementation Example:**
+
+<CodeGroup>
+```python Python
+def get_user(user_id):
+    cache_key = f"user:{user_id}"
+    
+    # Try to get from cache
+    user = cache.get(cache_key)
+    
+    if user is not None:
+        # Cache hit
+        return user
+    
+    # Cache miss - query database
+    user = database.query("SELECT * FROM users WHERE id = ?", user_id)
+    
+    if user:
+        # Store in cache for future requests
+        cache.set(cache_key, user, ttl=3600)  # 1 hour TTL
+    
+    return user
+```
+
+```javascript Node.js
+async function getUser(userId) {
+  const cacheKey = `user:${userId}`;
+  
+  // Try cache first
+  let user = await cache.get(cacheKey);
+  
+  if (user) {
+    // Cache hit
+    return JSON.parse(user);
+  }
+  
+  // Cache miss - query database
+  user = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
+  
+  if (user) {
+    // Store in cache
+    await cache.setex(cacheKey, 3600, JSON.stringify(user));
+  }
+  
+  return user;
+}
+```
+
+```java Java
+public User getUser(String userId) {
+    String cacheKey = "user:" + userId;
+    
+    // Try cache first
+    User user = cache.get(cacheKey);
+    
+    if (user != null) {
+        // Cache hit
+        return user;
+    }
+    
+    // Cache miss - query database
+    user = database.findUserById(userId);
+    
+    if (user != null) {
+        // Store in cache
+        cache.set(cacheKey, user, Duration.ofHours(1));
+    }
+    
+    return user;
+}
+```
+</CodeGroup>
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Cache only what you need
+    - Resilient to cache failures
+    - Simple to implement
+    - Works with any database
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Initial request penalty (cache miss)
+    - Potential for stale data
+    - Application manages cache logic
+    - Thundering herd problem
+  </Card>
+</CardGroup>
+
+**Best for:**
+- Read-heavy workloads
+- Data that's accessed unpredictably
+- When you want full control over caching logic
+
+---
+
+### Read-Through
+
+<Accordion title="How Read-Through Works" icon="layer-group">
+  
+The cache sits between the application and database, handling all data retrieval:
+
+1. Application requests data from cache
+2. If **cache hit**: Cache returns data
+3. If **cache miss**: 
+   - Cache automatically queries database
+   - Cache stores the data
+   - Cache returns data to application
+
+</Accordion>
+
+**Implementation Example:**
+
+```python
+class ReadThroughCache:
+    def __init__(self, cache, database):
+        self.cache = cache
+        self.database = database
+    
+    def get(self, key):
+        # Check cache
+        value = self.cache.get(key)
+        
+        if value is None:
+            # Cache miss - fetch from database
+            value = self.database.fetch(key)
+            
+            if value is not None:
+                # Store in cache
+                self.cache.set(key, value)
+        
+        return value
+
+# Usage
+cache = ReadThroughCache(redis_client, database)
+user = cache.get(f"user:{user_id}")  # Cache handles everything
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Simplified application code
+    - Consistent caching logic
+    - Cache manages data loading
+    - Always returns data if available
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Requires cache library support
+    - Initial request penalty
+    - Tight coupling to cache
+    - Less flexibility
+  </Card>
+</CardGroup>
+
+**Best for:**
+- Applications with consistent read patterns
+- When you want to abstract cache logic
+- Microservices with shared cache infrastructure
+
+<Tip>
+  Read-through is similar to cache-aside, but the cache manages the database interaction instead of the application.
+</Tip>
+
+## Write Strategies
+
+Write strategies determine how updates are synchronized between cache and database.
+
+### Write-Through
+
+<Accordion title="How Write-Through Works" icon="layer-group" defaultOpen>
+  
+Data is written to both cache and database synchronously:
+
+1. Application writes data to cache
+2. Cache immediately writes to database
+3. Both operations complete before returning success
+4. Read requests always hit fresh data
+
+</Accordion>
+
+**Implementation Example:**
+
+<CodeGroup>
+```python Python
+def update_user(user_id, user_data):
+    cache_key = f"user:{user_id}"
+    
+    # Write to cache first
+    cache.set(cache_key, user_data, ttl=3600)
+    
+    # Immediately write to database
+    database.update("users", user_id, user_data)
+    
+    return True
+```
+
+```javascript Node.js
+async function updateUser(userId, userData) {
+  const cacheKey = `user:${userId}`;
+  
+  // Write to cache
+  await cache.set(cacheKey, JSON.stringify(userData));
+  
+  // Immediately write to database
+  await db.query(
+    'UPDATE users SET data = ? WHERE id = ?',
+    [userData, userId]
+  );
+  
+  return true;
+}
+```
+</CodeGroup>
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Cache always consistent
+    - No stale data
+    - Simple consistency model
+    - Data durability
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Higher write latency
+    - Wasted cache space (infrequently read data)
+    - Database and cache must both succeed
+    - More write load
+  </Card>
+</CardGroup>
+
+**Best for:**
+- Applications requiring strong consistency
+- Critical data that can't be lost
+- Read-after-write consistency needed
+
+---
+
+### Write-Around
+
+<Accordion title="How Write-Around Works" icon="layer-group">
+  
+Writes bypass the cache and go directly to the database:
+
+1. Application writes directly to database
+2. Cache is not updated
+3. On next read, cache miss occurs
+4. Data is loaded into cache (cache-aside pattern)
+
+</Accordion>
+
+**Implementation Example:**
+
+```python
+def update_user(user_id, user_data):
+    cache_key = f"user:{user_id}"
+    
+    # Write directly to database
+    database.update("users", user_id, user_data)
+    
+    # Invalidate cache (optional)
+    cache.delete(cache_key)
+    
+    return True
+
+def get_user(user_id):
+    # Use cache-aside for reads
+    cache_key = f"user:{user_id}"
+    user = cache.get(cache_key)
+    
+    if user is None:
+        user = database.query("SELECT * FROM users WHERE id = ?", user_id)
+        cache.set(cache_key, user, ttl=3600)
+    
+    return user
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - No cache pollution from write-once data
+    - Faster write operations
+    - Cache stores only read data
+    - Simple to implement
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Cache miss on first read after write
+    - Temporary inconsistency
+    - Read-after-write penalty
+    - Need cache invalidation
+  </Card>
+</CardGroup>
+
+**Best for:**
+- Write-heavy workloads
+- Data that's written but rarely read
+- Applications that can tolerate eventual consistency
+
+<Warning>
+  Often paired with cache-aside. Remember to invalidate cache entries on writes to prevent stale data.
+</Warning>
+
+---
+
+### Write-Back (Write-Behind)
+
+<Accordion title="How Write-Back Works" icon="layer-group">
+  
+Writes are batched and asynchronously written to the database:
+
+1. Application writes to cache
+2. Write acknowledged immediately
+3. Cache asynchronously writes to database (batched or delayed)
+4. Database eventually consistent
+
+</Accordion>
+
+**Implementation Example:**
+
+```python
+import asyncio
+from collections import deque
+
+class WriteBackCache:
+    def __init__(self, cache, database):
+        self.cache = cache
+        self.database = database
+        self.write_queue = deque()
+        self.batch_size = 100
+        self.flush_interval = 5  # seconds
+        
+    def write(self, key, value):
+        # Immediate cache update
+        self.cache.set(key, value)
+        
+        # Queue for async database write
+        self.write_queue.append((key, value))
+        
+        # Check if we should flush
+        if len(self.write_queue) >= self.batch_size:
+            self.flush()
+        
+        return True
+    
+    async def flush(self):
+        """Batch write to database"""
+        if not self.write_queue:
+            return
+        
+        # Get batch of writes
+        batch = []
+        while self.write_queue and len(batch) < self.batch_size:
+            batch.append(self.write_queue.popleft())
+        
+        # Write batch to database
+        await self.database.batch_update(batch)
+    
+    async def start_flush_timer(self):
+        """Periodically flush writes"""
+        while True:
+            await asyncio.sleep(self.flush_interval)
+            await self.flush()
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Very fast writes
+    - Reduced database load
+    - Batch optimizations possible
+    - Better throughput
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Risk of data loss (cache failure)
+    - Complex implementation
+    - Eventual consistency
+    - Requires persistence mechanism
+  </Card>
+</CardGroup>
+
+**Best for:**
+- High-throughput write systems
+- Applications that can tolerate some data loss
+- Time-series data or logging
+- Analytics and metrics collection
+
+<Warning>
+  Write-back caching risks data loss if cache fails before database write. Implement persistence or replication for critical data.
+</Warning>
+
+## Strategy Comparison
+
+<Tabs>
+  <Tab title="Performance">
+    | Strategy | Read Latency | Write Latency | Consistency |
+    |----------|-------------|---------------|-------------|
+    | Cache-Aside | Low (hit) / High (miss) | Low | Eventual |
+    | Read-Through | Low (hit) / High (miss) | N/A | Eventual |
+    | Write-Through | Low | High | Strong |
+    | Write-Around | Variable | Low | Eventual |
+    | Write-Back | Low | Very Low | Eventual |
+  </Tab>
+  
+  <Tab title="Use Cases">
+    | Strategy | Best For | Avoid When |
+    |----------|----------|------------|
+    | Cache-Aside | Read-heavy, flexible | Need automatic loading |
+    | Read-Through | Consistent reads | Need write control |
+    | Write-Through | Strong consistency | High write volume |
+    | Write-Around | Write-heavy | Need read-after-write |
+    | Write-Back | High throughput | Cannot tolerate loss |
+  </Tab>
+  
+  <Tab title="Complexity">
+    | Strategy | Implementation | Maintenance | Risk |
+    |----------|----------------|-------------|------|
+    | Cache-Aside | Simple | Low | Low |
+    | Read-Through | Medium | Medium | Low |
+    | Write-Through | Simple | Low | Low |
+    | Write-Around | Simple | Low | Medium |
+    | Write-Back | Complex | High | High |
+  </Tab>
+</Tabs>
+
+## Combined Strategies
+
+<Note>
+  Real-world systems often combine multiple strategies for optimal performance.
+</Note>
+
+### Cache-Aside + Write-Around
+
+```python
+class CombinedCache:
+    def read(self, key):
+        # Cache-aside for reads
+        value = cache.get(key)
+        if value is None:
+            value = database.fetch(key)
+            cache.set(key, value, ttl=3600)
+        return value
+    
+    def write(self, key, value):
+        # Write-around for writes
+        database.update(key, value)
+        cache.delete(key)  # Invalidate
+```
+
+**Benefits:**
+- Fast writes (no cache update)
+- Efficient cache usage (only cached when read)
+- Simple consistency model
+
+### Read-Through + Write-Through
+
+```python
+class ReadWriteThroughCache:
+    def read(self, key):
+        # Cache handles read-through
+        return cache.get_or_fetch(key)
+    
+    def write(self, key, value):
+        # Synchronous write to both
+        cache.set(key, value)
+        database.update(key, value)
+```
+
+**Benefits:**
+- Consistent reads and writes
+- Abstracted caching logic
+- Strong consistency guarantees
+
+## Netflix Caching Example
+
+![Netflix Caching](https://assets.bytebytego.com/diagrams/0007-4-ways-netflix-uses-caching.png)
+
+Netflix uses EVCache (a distributed key-value store) in multiple ways:
+
+<AccordionGroup>
+  <Accordion title="Lookaside Cache" icon="1">
+    **Pattern:** Cache-Aside
+    
+    Application tries EVCache first, falls back to Cassandra on miss, then updates cache for future requests.
+  </Accordion>
+  
+  <Accordion title="Transient Data Store" icon="2">
+    **Pattern:** Write-Through
+    
+    Playback session data written to cache with eventual persistence, ensuring session continuity across services.
+  </Accordion>
+  
+  <Accordion title="Primary Store" icon="3">
+    **Pattern:** Write-Back
+    
+    Pre-computed homepage data written in batch overnight, read by online services with high availability.
+  </Accordion>
+  
+  <Accordion title="High Volume Data" icon="4">
+    **Pattern:** Read-Through
+    
+    UI strings and translations computed asynchronously and published to EVCache for low-latency reads.
+  </Accordion>
+</AccordionGroup>
+
+## Cache Invalidation
+
+<Warning>
+  "There are only two hard things in Computer Science: cache invalidation and naming things." - Phil Karlton
+</Warning>
+
+Strategies for keeping cache fresh:
+
+<Tabs>
+  <Tab title="TTL-Based">
+    ```python
+    # Set expiration time
+    cache.setex(key, ttl=3600, value=data)  # 1 hour
+    
+    # Pros: Simple, automatic cleanup
+    # Cons: Stale data until expiration
+    ```
+  </Tab>
+  
+  <Tab title="Event-Based">
+    ```python
+    def on_user_update(user_id, new_data):
+        # Update database
+        database.update(user_id, new_data)
+        
+        # Invalidate cache
+        cache.delete(f"user:{user_id}")
+        
+        # Optionally warm cache
+        cache.set(f"user:{user_id}", new_data)
+    
+    # Pros: Always fresh
+    # Cons: Must track all dependencies
+    ```
+  </Tab>
+  
+  <Tab title="Version-Based">
+    ```python
+    def get_user(user_id, version):
+        key = f"user:{user_id}:v{version}"
+        return cache.get(key)
+    
+    def update_user(user_id, data):
+        version = increment_version(user_id)
+        key = f"user:{user_id}:v{version}"
+        cache.set(key, data)
+    
+    # Pros: No invalidation needed
+    # Cons: More cache storage
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<Steps>
+  <Step title="Choose the right strategy">
+    Match strategy to your workload:
+    - **Read-heavy**: Cache-Aside or Read-Through
+    - **Write-heavy**: Write-Around or Write-Back
+    - **Consistency-critical**: Write-Through
+  </Step>
+  
+  <Step title="Set appropriate TTLs">
+    Balance freshness vs. cache efficiency:
+    ```python
+    # Frequently changing data
+    cache.setex("stock_price", 60, price)  # 1 minute
+    
+    # Rarely changing data
+    cache.setex("user_profile", 86400, profile)  # 24 hours
+    ```
+  </Step>
+  
+  <Step title="Handle cache failures gracefully">
+    ```python
+    try:
+        data = cache.get(key)
+    except CacheException:
+        # Fallback to database
+        data = database.fetch(key)
+    ```
+  </Step>
+  
+  <Step title="Monitor cache metrics">
+    - Hit rate
+    - Miss rate
+    - Eviction rate
+    - Latency (p50, p95, p99)
+  </Step>
+  
+  <Step title="Implement cache warming">
+    ```python
+    def warm_cache(user_ids):
+        for user_id in user_ids:
+            user = database.fetch(user_id)
+            cache.set(f"user:{user_id}", user)
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Redis Caching" icon="database" href="/guides/caching/redis">
+    Deep dive into Redis implementation
+  </Card>
+  <Card title="Cache Eviction" icon="trash" href="/guides/caching/cache-eviction">
+    Learn about eviction policies
+  </Card>
+  <Card title="CDN Caching" icon="globe" href="/guides/caching/cdn">
+    Explore edge caching strategies
+  </Card>
+</CardGroup>

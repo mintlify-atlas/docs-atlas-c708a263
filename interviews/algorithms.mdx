@@ -1,0 +1,725 @@
+---
+title: 'Essential Algorithms for System Design'
+description: 'Master the key algorithms you need to know before taking system design interviews.'
+icon: 'function'
+---
+
+## Why Algorithms Matter in System Design
+
+While system design interviews focus on architecture rather than coding, understanding key algorithms is crucial. These algorithms form the foundation of the systems you'll design.
+
+<Note>
+In system design interviews, understanding **how algorithms are used in real-world systems** is more important than implementation details. Focus on when and why to use each algorithm.
+</Note>
+
+## Algorithm Importance Ratings
+
+Algorithms are rated by importance for system design interviews:
+
+- **⭐⭐⭐⭐⭐ Five Stars**: Critical - Must understand how it works and why
+- **⭐⭐⭐ Three Stars**: Important - Should know use cases and tradeoffs
+- **⭐ One Star**: Advanced - Good to know for senior positions
+
+<Tip>
+This ranking is subjective and varies by company and role. Focus on five-star algorithms first, then expand to others based on your target companies.
+</Tip>
+
+## Data Structure Algorithms
+
+### Hash Tables ⭐⭐⭐⭐⭐
+
+**What it is**: Key-value data structure with O(1) average lookup time.
+
+**Real-world uses**:
+- **Database indexing**: Fast record lookups
+- **Caching**: Redis, Memcached use hash tables
+- **Session storage**: Quick user session retrieval
+- **Deduplication**: Check for duplicate entries
+- **Rate limiting**: Track request counts per user
+
+**System design applications**:
+```
+URL Shortener: Map short codes to long URLs
+Chat App: Store active user sessions
+Load Balancer: Consistent hashing for server selection
+```
+
+**Tradeoffs**:
+- Fast lookups but no ordering
+- Potential hash collisions
+- Memory overhead for hash function
+
+### Bloom Filters ⭐⭐⭐
+
+**What it is**: Probabilistic data structure for membership testing.
+
+**Real-world uses**:
+- **Web crawlers**: Check if URL already visited
+- **Databases**: Avoid expensive disk lookups
+- **CDN**: Quick check if content is cached
+- **Email spam filters**: Fast spam detection
+
+**System design applications**:
+```
+Google Search: Avoid crawling duplicate URLs
+Medium: "You've already read this article"
+Chrome: Check against malicious URL database
+```
+
+**Key characteristics**:
+- Can have false positives (might say "yes" when answer is "no")
+- Never false negatives (if it says "no", definitely "no")
+- Space efficient compared to hash sets
+- Cannot delete elements (use counting Bloom filter variant)
+
+### Trees (B-Trees, B+ Trees, LSM Trees) ⭐⭐⭐⭐⭐
+
+**What they are**: Hierarchical data structures optimized for disk-based storage.
+
+**B-Trees & B+ Trees**:
+- Used in databases and file systems
+- Keep data sorted for efficient range queries
+- Minimize disk reads through high branching factor
+
+**LSM Trees (Log-Structured Merge Trees)**:
+- Optimized for write-heavy workloads
+- Used in Cassandra, RocksDB, LevelDB
+- Trade read performance for write throughput
+
+**Real-world uses**:
+```
+PostgreSQL/MySQL: B+ Trees for indexes
+Cassandra: LSM trees for high write throughput
+File Systems: B-trees for directory structures
+```
+
+**System design applications**:
+- Choose B+ trees for read-heavy systems
+- Choose LSM trees for write-heavy systems
+- Consider for time-series data storage
+
+## Geospatial Algorithms
+
+### Geohash ⭐⭐⭐⭐⭐
+
+**What it is**: Geocoding system that encodes geographic coordinates into short strings.
+
+**How it works**:
+1. Divide world into grid
+2. Each subdivision adds a character to the hash
+3. Nearby locations share common prefixes
+4. Longer hash = more precise location
+
+**Real-world uses**:
+- **Uber/Lyft**: Match riders with nearby drivers
+- **Yelp**: Find restaurants near you
+- **Google Maps**: Spatial indexing
+- **Pokemon Go**: Track player locations
+
+**System design applications**:
+```
+Ride-sharing: Find drivers within 1 mile
+Food delivery: Find nearby restaurants
+Social apps: "Friends nearby" feature
+```
+
+**Example**:
+```
+San Francisco: 9q8yy (5 characters)
+Precision: ~5km
+
+9q8yy9r (7 characters)
+Precision: ~150m
+```
+
+**Advantages**:
+- Simple string comparison for proximity
+- Easy to store in databases
+- Hierarchical (prefix matching)
+
+### Quadtree ⭐⭐⭐⭐
+
+**What it is**: Tree structure that recursively divides 2D space into quadrants.
+
+**Real-world uses**:
+- **Image processing**: Compression and collision detection
+- **Map rendering**: Decide which detail level to show
+- **Spatial databases**: Efficiently query nearby points
+
+**System design applications**:
+```
+Google Maps: Tile rendering at different zoom levels
+Game engines: Collision detection
+Yelp: Spatial indexing of businesses
+```
+
+**How it works**:
+1. Start with bounding box of entire area
+2. If too many points, divide into 4 quadrants
+3. Recursively subdivide until threshold met
+4. Query by traversing relevant quadrants only
+
+### R-Tree ⭐⭐⭐
+
+**What it is**: Tree structure for indexing multi-dimensional spatial data.
+
+**Real-world uses**:
+- **GIS systems**: Store polygons, routes, boundaries
+- **CAD software**: Spatial queries on designs
+- **Databases**: PostGIS spatial extension
+
+**System design applications**:
+```
+Google Maps: Store and query map features
+Real estate apps: Find properties in polygon
+Delivery routing: Optimize delivery zones
+```
+
+## String & Search Algorithms
+
+### Trie (Prefix Tree) ⭐⭐⭐⭐⭐
+
+**What it is**: Tree structure for storing strings with common prefixes.
+
+**Real-world uses**:
+- **Autocomplete**: Search suggestions as you type
+- **Spell checkers**: Dictionary lookup
+- **IP routing**: Longest prefix matching
+- **Search engines**: Query suggestions
+
+**System design applications**:
+```
+Google Search: Autocomplete suggestions
+IDE: Code completion
+DNS: Domain name resolution
+```
+
+**Characteristics**:
+- O(k) lookup time where k = string length
+- Space-intensive but very fast
+- Efficient for prefix queries
+
+**Example - Autocomplete**:
+```
+User types: "sys"
+Trie returns: ["system", "systematic", "syntax"]
+```
+
+### Suffix Tree/Array ⭐⭐
+
+**What it is**: Data structure for string pattern matching.
+
+**Real-world uses**:
+- **DNA sequencing**: Pattern matching in genomics
+- **Text editors**: Find/replace operations
+- **Plagiarism detection**: Compare documents
+
+**System design applications**:
+- Full-text search in documents
+- Code search in large codebases
+- Log analysis and pattern detection
+
+## Graph Algorithms
+
+### Dijkstra's Algorithm ⭐⭐⭐⭐⭐
+
+**What it is**: Finds shortest path between nodes in weighted graph.
+
+**Real-world uses**:
+- **Google Maps**: Route navigation
+- **Network routing**: BGP, OSPF protocols
+- **Social networks**: Connection suggestions
+
+**System design applications**:
+```
+Map Navigation: Shortest route from A to B
+Network optimization: Least-cost packet routing
+Game AI: Pathfinding for NPCs
+```
+
+**Time complexity**: O((V + E) log V) with min-heap
+
+**Limitations**:
+- Cannot handle negative edge weights
+- For negative weights, use Bellman-Ford
+
+### A* (A-Star) Algorithm ⭐⭐⭐⭐
+
+**What it is**: Optimized pathfinding using heuristics.
+
+**Real-world uses**:
+- **Google Maps**: Faster routing than Dijkstra's
+- **Game development**: Character movement
+- **Robotics**: Navigation planning
+
+**System design applications**:
+```
+Navigation: Faster route calculation
+Games: NPC pathfinding with obstacles
+Delivery optimization: Multi-stop routing
+```
+
+**Advantage over Dijkstra's**:
+- Uses heuristic to guide search
+- Explores fewer nodes
+- Faster in practice for specific goal
+
+### PageRank ⭐⭐⭐
+
+**What it is**: Algorithm to rank nodes in a graph based on connections.
+
+**Real-world uses**:
+- **Google Search**: Rank web pages
+- **Social networks**: Identify influencers
+- **Recommendation systems**: Find important items
+
+**System design applications**:
+```
+Search engines: Rank search results
+Twitter: "Who to follow" suggestions
+LinkedIn: Relevant connection recommendations
+```
+
+**Key concept**: Importance is determined by:
+1. Number of incoming links
+2. Importance of linking pages
+
+## Distributed Systems Algorithms
+
+### Consistent Hashing ⭐⭐⭐⭐⭐
+
+**What it is**: Distribute data across nodes with minimal reorganization on changes.
+
+**Real-world uses**:
+- **Load balancers**: Distribute requests to servers
+- **Distributed caches**: Partition cache across nodes
+- **Distributed databases**: Data sharding
+
+**System design applications**:
+```
+CDN: Map content to cache servers
+Cassandra: Distribute data across nodes
+DynamoDB: Partition key distribution
+```
+
+**How it works**:
+1. Hash servers and keys to points on a circle (ring)
+2. Key belongs to first server clockwise from it
+3. Adding/removing server only affects immediate neighbors
+
+**Advantages**:
+- Minimal data movement when scaling
+- Handles node failures gracefully
+- Even load distribution with virtual nodes
+
+**Without consistent hashing**: Adding server requires rehashing all keys
+**With consistent hashing**: Only K/N keys need movement (K=keys, N=servers)
+
+### Raft/Paxos Consensus ⭐⭐⭐
+
+**What they are**: Algorithms for achieving consensus in distributed systems.
+
+**Real-world uses**:
+- **etcd**: Uses Raft for distributed configuration
+- **Consul**: Service discovery with Raft
+- **Google Chubby**: Uses Paxos for lock service
+
+**System design applications**:
+```
+Leader election: Choose primary database node
+Distributed locks: Coordinate access to resources
+Configuration management: Ensure consistent config
+```
+
+**Key concepts**:
+- Ensures all nodes agree on a value
+- Tolerates node failures (f < n/2)
+- Maintains consistency in distributed systems
+
+**Raft** is easier to understand than Paxos, thus more commonly used in modern systems.
+
+### Merkle Tree ⭐⭐⭐
+
+**What it is**: Hash tree for efficient verification and synchronization.
+
+**Real-world uses**:
+- **Git**: Verify repository integrity
+- **Bitcoin**: Verify transactions in blocks
+- **Cassandra/DynamoDB**: Anti-entropy for data sync
+- **IPFS**: Content addressing
+
+**System design applications**:
+```
+Distributed databases: Detect inconsistencies
+Backup systems: Incremental backup verification
+P2P file sharing: Verify data chunks
+```
+
+**How it works**:
+1. Leaf nodes contain data hashes
+2. Parent nodes contain hash of children
+3. Root hash represents entire dataset
+4. Compare roots to detect differences
+5. Traverse tree to find exact differences
+
+**Advantages**:
+- Efficient inconsistency detection
+- Logarithmic verification time
+- Minimal data transfer for sync
+
+## Ranking & Recommendation Algorithms
+
+### Collaborative Filtering ⭐⭐⭐⭐
+
+**What it is**: Predict preferences based on similar users or items.
+
+**Real-world uses**:
+- **Netflix**: Movie recommendations
+- **Amazon**: Product suggestions
+- **Spotify**: Music recommendations
+- **YouTube**: Video suggestions
+
+**System design applications**:
+```
+E-commerce: "Customers who bought X also bought Y"
+Content platforms: Personalized feeds
+Social media: Friend suggestions
+```
+
+**Types**:
+- **User-based**: Find similar users, recommend what they liked
+- **Item-based**: Find similar items to what user liked
+
+**Challenges**:
+- Cold start problem (new users/items)
+- Scalability with millions of users
+- Sparsity of rating matrix
+
+### TF-IDF ⭐⭐⭐
+
+**What it is**: Statistical measure for document relevance in search.
+
+**Real-world uses**:
+- **Search engines**: Rank documents
+- **Document similarity**: Find related articles
+- **Keyword extraction**: Identify important terms
+
+**System design applications**:
+```
+Search feature: Rank relevant results
+Stack Overflow: Find similar questions
+News aggregator: Group related articles
+```
+
+**How it works**:
+- **TF** (Term Frequency): How often term appears in document
+- **IDF** (Inverse Document Frequency): How rare term is across all documents
+- **TF-IDF** = TF × IDF (important if frequent in doc but rare overall)
+
+## Caching Algorithms
+
+### LRU (Least Recently Used) ⭐⭐⭐⭐⭐
+
+**What it is**: Eviction policy that removes least recently accessed items.
+
+**Real-world uses**:
+- **Redis**: Cache eviction policy
+- **Browser cache**: Memory management
+- **CPU cache**: L1/L2/L3 cache management
+- **Database buffer pool**: Page replacement
+
+**System design applications**:
+```
+CDN: Evict old content to make room
+API cache: Remove stale responses
+Session store: Clean up inactive sessions
+```
+
+**Implementation**:
+- Hash map for O(1) lookup
+- Doubly linked list for O(1) eviction
+- Move accessed item to front
+- Remove from tail when full
+
+### LFU (Least Frequently Used) ⭐⭐⭐
+
+**What it is**: Eviction policy based on access frequency.
+
+**Real-world uses**:
+- **CDN**: Keep popular content
+- **Content delivery**: Prioritize viral content
+
+**Comparison with LRU**:
+- **LRU**: Good for temporal locality (recently used likely to be used again)
+- **LFU**: Good for frequency-based popularity (frequently used likely to be used again)
+
+### Other Eviction Policies ⭐⭐
+
+- **FIFO**: First In First Out - Simple but not optimal
+- **Random**: Random eviction - Surprisingly effective sometimes
+- **LRU-K**: Track last K accesses - Better than simple LRU
+- **2Q**: Two queues for hot and cold data
+- **ARC**: Adaptive replacement cache - Self-tuning
+
+## Rate Limiting Algorithms
+
+### Token Bucket ⭐⭐⭐⭐⭐
+
+**What it is**: Allow requests based on available tokens.
+
+**Real-world uses**:
+- **API rate limiting**: Stripe, Twitter, GitHub APIs
+- **Traffic shaping**: Network bandwidth control
+- **DDoS protection**: Limit request rates
+
+**System design applications**:
+```
+API Gateway: Prevent abuse
+Microservices: Protect downstream services
+Public APIs: Enforce rate limits per user
+```
+
+**How it works**:
+1. Bucket holds N tokens (capacity)
+2. Tokens added at rate R per second
+3. Each request consumes one token
+4. Request rejected if bucket empty
+5. Allows bursts up to bucket capacity
+
+**Advantages**:
+- Handles burst traffic
+- Memory efficient
+- Easy to implement
+
+### Leaky Bucket ⭐⭐⭐
+
+**What it is**: Process requests at constant rate.
+
+**Difference from Token Bucket**:
+- Token bucket allows bursts
+- Leaky bucket enforces smooth rate
+
+**Real-world uses**:
+- **Network traffic shaping**: Smooth packet flow
+- **Video streaming**: Constant bitrate
+
+### Fixed Window Counter ⭐⭐⭐
+
+**What it is**: Count requests per fixed time window.
+
+**How it works**:
+1. Reset counter every window (e.g., per minute)
+2. Increment counter for each request
+3. Reject if counter exceeds limit
+
+**Problem**: Burst at window edges
+```
+Window 1 (00:00-01:00): 100 requests at 00:59
+Window 2 (01:00-02:00): 100 requests at 01:01
+Result: 200 requests in 2 seconds (violates intent)
+```
+
+### Sliding Window Log/Counter ⭐⭐⭐
+
+**What it is**: Solve fixed window problem with sliding window.
+
+**Sliding Window Log**:
+- Store timestamp of each request
+- Remove old timestamps outside window
+- Count remaining timestamps
+
+**Sliding Window Counter**:
+- Combine current and previous window
+- Weighted average based on overlap
+
+**More accurate but more memory-intensive**
+
+## String Matching Algorithms
+
+### KMP (Knuth-Morris-Pratt) ⭐⭐
+
+**What it is**: Efficient string pattern matching.
+
+**Real-world uses**:
+- **Text editors**: Find functionality
+- **Log analysis**: Pattern detection
+- **Bioinformatics**: DNA sequence matching
+
+**System design applications**:
+- Search in large log files
+- Pattern detection in streams
+- Plagiarism detection
+
+### Rabin-Karp ⭐⭐
+
+**What it is**: Pattern matching using rolling hash.
+
+**Real-world uses**:
+- **Plagiarism detection**: Multiple pattern search
+- **Document comparison**: Find duplicates
+
+**Advantage**: Can search for multiple patterns simultaneously
+
+## Compression Algorithms
+
+### Huffman Coding ⭐⭐⭐
+
+**What it is**: Lossless data compression using variable-length codes.
+
+**Real-world uses**:
+- **ZIP/GZIP**: File compression
+- **JPEG**: Part of compression pipeline
+- **Network protocols**: Reduce bandwidth
+
+**System design applications**:
+```
+File storage: Compress before storing
+API responses: GZIP compression
+Image storage: Reduce storage costs
+```
+
+### LZ77/LZ78 ⭐⭐
+
+**What they are**: Dictionary-based compression algorithms.
+
+**Real-world uses**:
+- **GZIP**: Based on LZ77
+- **PNG**: Uses DEFLATE (LZ77 + Huffman)
+
+## Machine Learning Algorithms (High Level)
+
+### Recommendation Systems ⭐⭐⭐⭐
+
+**Algorithms**:
+- Collaborative filtering
+- Content-based filtering
+- Matrix factorization
+- Deep learning (embeddings)
+
+**Real-world uses**:
+- Netflix, YouTube, Amazon recommendations
+- Spotify playlists
+- Twitter/Facebook feeds
+
+### Classification/Ranking ⭐⭐⭐
+
+**Algorithms**:
+- Logistic regression
+- Decision trees/Random forests
+- Gradient boosting (XGBoost)
+- Neural networks
+
+**Real-world uses**:
+- Spam detection
+- Fraud detection
+- Search result ranking
+- Content moderation
+
+<Note>
+For system design interviews, you don't need to implement ML algorithms. Focus on:
+- When to use ML vs. rule-based systems
+- Training pipeline architecture
+- Online vs. offline learning
+- Model serving at scale
+- A/B testing for model evaluation
+</Note>
+
+## How to Study Algorithms for System Design
+
+<Steps>
+  <Step title="Understand the Use Case">
+    Don't memorize implementations. Instead, learn:
+    - What problem does it solve?
+    - When should you use it?
+    - What are the tradeoffs?
+  </Step>
+
+  <Step title="Know Real-World Examples">
+    For each algorithm, remember 2-3 real systems that use it:
+    - "Google Maps uses Dijkstra's for routing"
+    - "Redis uses LRU for cache eviction"
+    - "Cassandra uses consistent hashing for data distribution"
+  </Step>
+
+  <Step title="Understand Tradeoffs">
+    Be able to compare alternatives:
+    - LRU vs LFU for caching
+    - B-trees vs LSM trees for databases
+    - Token bucket vs leaky bucket for rate limiting
+  </Step>
+
+  <Step title="Practice Application">
+    When studying a system design question, identify which algorithms apply:
+    - URL Shortener → Hash function, base62 encoding
+    - Google Maps → Geohash, Dijkstra's, quadtree
+    - Chat app → Consistent hashing, Bloom filters
+  </Step>
+</Steps>
+
+## Quick Reference: Algorithms by System Type
+
+### Search/Discovery Systems
+- Trie (autocomplete)
+- TF-IDF (ranking)
+- PageRank (web search)
+- Inverted index
+
+### Location-Based Systems
+- Geohash
+- Quadtree
+- R-tree
+- Dijkstra's/A*
+
+### Social Networks
+- Graph algorithms (BFS for friend suggestions)
+- Collaborative filtering (recommendations)
+- PageRank (influence)
+
+### Distributed Systems
+- Consistent hashing (load distribution)
+- Raft/Paxos (consensus)
+- Merkle trees (sync verification)
+
+### High-Traffic Systems
+- Token bucket (rate limiting)
+- LRU cache
+- Bloom filters (reduce lookups)
+
+### Storage Systems
+- B+ trees (relational databases)
+- LSM trees (write-heavy databases)
+- Consistent hashing (distributed storage)
+
+<Tip>
+Create flashcards with:
+- Front: Algorithm name + problem it solves
+- Back: Real-world example + when to use it
+
+Review regularly to build intuition for which algorithms fit which scenarios.
+</Tip>
+
+## Common Interview Questions
+
+**"How would you implement autocomplete?"**
+→ Trie for prefix matching, cache popular queries
+
+**"How do you find nearby drivers in Uber?"**
+→ Geohash for spatial indexing, quadtree for dynamic updates
+
+**"How does consistent hashing work?"**
+→ Explain ring, virtual nodes, minimal data movement on scaling
+
+**"What caching strategy would you use?"**
+→ Depends on access pattern - LRU for general, LFU for hot content
+
+**"How do you prevent API abuse?"**
+→ Token bucket for rate limiting, allows bursts while enforcing limits
+
+## Next Steps
+
+You now understand the essential algorithms for system design. Practice applying them:
+
+- [Common System Design Questions](/interviews/common-questions) - See algorithms in action
+- [How to Ace Interviews](/interviews/how-to-ace) - Put it all together
+
+Remember: In interviews, focus on explaining **why** you'd use an algorithm and **what tradeoffs** it involves, not on implementing it from scratch.

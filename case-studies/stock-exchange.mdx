@@ -1,0 +1,508 @@
+---
+title: "Designing a Stock Exchange"
+description: "Explore the architecture of a low-latency stock exchange system and how it achieves microsecond performance."
+icon: "chart-line"
+---
+
+<img
+  src="https://assets.bytebytego.com/diagrams/0344-stock-exchange.png"
+  alt="Stock Exchange System Architecture"
+/>
+
+## Overview
+
+A modern stock exchange must process millions of orders per second with **microsecond latency**. This case study explores the architectural decisions that enable such extreme performance, focusing on what must happen fast (the critical path) and what can happen later.
+
+<Info>
+  In trading systems, **every microsecond matters**. High-frequency trading firms compete on nanoseconds, making architectural efficiency critical.
+</Info>
+
+## The Critical Path
+
+The critical path is the sequence of operations that must complete as fast as possible:
+
+```
+START: Order enters order manager
+  ↓
+Risk checks
+  ↓
+Order matching
+  ↓
+Execution generated
+  ↓
+END: Execution exits order manager
+```
+
+<Warning>
+  Everything on the critical path must be optimized for speed. Everything else should be moved off the critical path.
+</Warning>
+
+## Order Lifecycle: Trading Flow
+
+Let's trace an order through the system:
+
+<Steps>
+  <Step title="Step 1: Client Places Order">
+    A client (trader, institution, or algorithm) places an order through their broker's web or mobile application.
+    
+    **Order Details:**
+    - Symbol (e.g., AAPL, TSLA)
+    - Side (buy or sell)
+    - Quantity (number of shares)
+    - Order type (market, limit, stop)
+    - Price (for limit orders)
+  </Step>
+  
+  <Step title="Step 2: Broker Sends to Exchange">
+    The broker forwards the order to the exchange through a dedicated network connection (typically using FIX protocol or proprietary binary protocols).
+  </Step>
+  
+  <Step title="Step 3: Client Gateway Processing">
+    The order enters the exchange through the **client gateway**.
+    
+    **Gateway Functions**:
+    - Input validation (correct format, required fields)
+    - Rate limiting (prevent order spam)
+    - Authentication (verify broker identity)
+    - Normalization (convert to internal format)
+    
+    After validation, the gateway forwards the order to the **order manager**.
+  </Step>
+  
+  <Step title="Step 4-5: Risk Checks">
+    The **order manager** performs mandatory risk checks based on rules set by the **risk manager**.
+    
+    **Risk Checks Include**:
+    - Pre-trade risk limits
+    - Position limits (max shares held)
+    - Order size limits (max order size)
+    - Price collar checks (price within acceptable range)
+    - Duplicate order detection
+  </Step>
+  
+  <Step title="Step 6: Wallet Verification">
+    After passing risk checks, the order manager verifies **sufficient funds** in the wallet for the order.
+    
+    **For Buy Orders:**
+    - Check buyer has enough cash to purchase shares
+    - Reserve the required amount
+    
+    **For Sell Orders:**
+    - Check seller owns the shares
+    - Reserve shares for sale
+  </Step>
+  
+  <Step title="Step 7-9: Order Matching">
+    The order is sent to the **matching engine**, the heart of the exchange.
+    
+    **Matching Process:**
+    1. Order enters matching engine queue
+    2. Engine attempts to match with existing orders in the order book
+    3. When a match is found, engine generates **two executions**:
+       - One for the buy side
+       - One for the sell side
+    
+    **Sequencing**: Both orders and executions are assigned sequence numbers to guarantee **deterministic replay** for disaster recovery.
+  </Step>
+  
+  <Step title="Step 10-14: Return Executions">
+    Executions are returned to the client through the same path:
+    
+    **Return Path:**
+    1. Matching engine → Order manager
+    2. Order manager → Client gateway
+    3. Client gateway → Broker
+    4. Broker → Client application
+    
+    The client receives confirmation that their order was filled, including:
+    - Execution price
+    - Quantity filled
+    - Execution timestamp
+    - Execution ID
+  </Step>
+</Steps>
+
+## Non-Critical Flows
+
+<Note>
+  **Market data flow** and **reporting flow** are NOT on the critical path. They have different (more relaxed) latency requirements.
+</Note>
+
+### Market Data Flow
+- Publishes order book updates to market data consumers
+- Broadcasts trade executions
+- Updates indices and statistics
+- **Latency requirement**: Milliseconds (1000x slower than trading flow)
+
+### Reporting Flow
+- Regulatory reporting
+- Audit logging
+- End-of-day settlement
+- **Latency requirement**: Seconds to minutes
+
+## Achieving Microsecond Latency
+
+<img
+  src="https://assets.bytebytego.com/diagrams/0265-low-latency-stock-exchange.jpg"
+  alt="Low Latency Stock Exchange Architecture"
+/>
+
+How does a modern stock exchange achieve **microsecond latency**?
+
+### Core Principle: Do Less on the Critical Path
+
+<CardGroup cols={2}>
+  <Card title="Fewer Tasks" icon="list-check">
+    Remove all non-essential operations from the critical path
+  </Card>
+  <Card title="Less Time Per Task" icon="stopwatch">
+    Optimize each operation to nanoseconds
+  </Card>
+  <Card title="Fewer Network Hops" icon="network-wired">
+    Minimize inter-service communication
+  </Card>
+  <Card title="Less Disk Usage" icon="hard-drive">
+    Avoid disk I/O on critical path (use memory)
+  </Card>
+</CardGroup>
+
+## Low-Latency Architecture Design
+
+### 1. Single Giant Server (No Containers)
+
+**Decision**: Deploy all critical components on a **single physical server**
+
+**Rationale**:
+- No network latency between components
+- No containerization overhead
+- Direct memory access
+- Predictable performance
+
+**Hardware Specs** (typical):
+- 256+ GB RAM
+- Multiple CPUs (32+ cores)
+- 10-25 GbE network cards
+- NVMe SSDs for non-critical storage
+
+### 2. Shared Memory Event Bus
+
+**Decision**: Use **shared memory** for inter-component communication
+
+**Benefits**:
+- No network overhead
+- No serialization/deserialization
+- No disk I/O
+- Nanosecond latency
+
+**Implementation**:
+```
+┌─────────────────────────────────────┐
+│      Shared Memory Region           │
+│                                     │
+│  [Order Manager]  →  [Ring Buffer]  │
+│  [Matching Engine] → [Ring Buffer]  │
+│  [Risk Manager]    → [Ring Buffer]  │
+└─────────────────────────────────────┘
+```
+
+**Technology**: Lock-free ring buffers (like LMAX Disruptor)
+
+### 3. Single-Threaded Components
+
+**Decision**: Key components (Order Manager, Matching Engine) are **single-threaded** on the critical path
+
+**Why Single-Threaded?**
+
+<AccordionGroup>
+  <Accordion title="No Context Switching">
+    **Multi-threaded**:
+    - OS context switches between threads
+    - Context switch takes ~1-10 microseconds
+    - Unpredictable scheduling
+    
+    **Single-threaded**:
+    - Thread never context switches
+    - Predictable execution
+    - Deterministic performance
+  </Accordion>
+  
+  <Accordion title="No Locks">
+    **Multi-threaded**:
+    - Requires mutexes/locks for shared state
+    - Lock contention causes delays
+    - Risk of deadlocks
+    
+    **Single-threaded**:
+    - No shared state to protect
+    - No locks needed
+    - No contention
+  </Accordion>
+  
+  <Accordion title="CPU Pinning">
+    Each single-threaded component is **pinned to a dedicated CPU core**:
+    
+    ```
+    CPU 0: Order Manager
+    CPU 1: Matching Engine
+    CPU 2: Risk Manager
+    CPU 3: Wallet Service
+    CPU 4-31: Market Data, Reporting, etc.
+    ```
+    
+    **Benefits**:
+    - No context switches
+    - Better CPU cache utilization
+    - Predictable performance
+  </Accordion>
+</AccordionGroup>
+
+### 4. Event Loop Architecture
+
+**Single-threaded application loop** executes tasks sequentially:
+
+```cpp
+while (true) {
+    Event event = eventBus.poll();
+    
+    switch (event.type) {
+        case NEW_ORDER:
+            processNewOrder(event.order);
+            break;
+        case CANCEL_ORDER:
+            processCancelOrder(event.orderId);
+            break;
+        case MODIFY_ORDER:
+            processModifyOrder(event.orderId, event.newQuantity);
+            break;
+    }
+}
+```
+
+**Characteristics**:
+- Sequential execution (no race conditions)
+- Deterministic (same inputs → same outputs)
+- Can be replayed for disaster recovery
+
+### 5. Other Components as Listeners
+
+**Decision**: Non-critical components listen on the event bus and react accordingly
+
+**Examples**:
+- **Market Data Publisher**: Listens for executions, publishes to market data feed
+- **Risk Monitor**: Listens for fills, updates position tracking
+- **Audit Logger**: Listens for all events, writes to disk asynchronously
+- **Settlement**: Listens for end-of-day, initiates clearing process
+
+## The Matching Engine
+
+The **matching engine** is the most performance-critical component.
+
+### Order Book Data Structure
+
+**Requirements**:
+- Fast insertion: O(log n) or better
+- Fast deletion: O(log n) or better
+- Fast matching: O(1) to find best bid/ask
+
+**Implementation**: Hash table + sorted linked lists
+
+```
+BUY ORDERS (bids - descending price):
+Price $100.05 → [Order1, Order2, Order3]
+Price $100.04 → [Order4, Order5]
+Price $100.03 → [Order6]
+
+SELL ORDERS (asks - ascending price):
+Price $100.06 → [Order7, Order8]
+Price $100.07 → [Order9]
+Price $100.08 → [Order10, Order11]
+```
+
+**Data Structures**:
+- **Hash map**: Price level → Order list
+- **Sorted list**: Price levels in order
+- **Linked list**: Orders at each price level (FIFO)
+
+### Matching Algorithm
+
+**For Market Orders** (buy at any price):
+```
+1. Take best ask price from order book
+2. Match against sell orders at that price (FIFO)
+3. If order not fully filled, move to next ask price
+4. Repeat until order filled or no more asks
+```
+
+**For Limit Orders** (buy at specific price or better):
+```
+1. Check if any sell orders at or below limit price
+2. If yes, match (same as market order)
+3. If no, add to buy side of order book at limit price
+```
+
+### Matching Priorities
+
+1. **Price**: Better prices matched first
+2. **Time**: At same price, earlier orders matched first (FIFO)
+3. **(Optional) Size**: Some exchanges give priority to larger orders
+
+## Design Tradeoffs
+
+<AccordionGroup>
+  <Accordion title="Single Server vs. Distributed">
+    **Single Server (Chosen)**:
+    - ✅ Ultra-low latency (microseconds)
+    - ✅ No network overhead
+    - ✅ Simpler architecture
+    - ❌ Single point of failure
+    - ❌ Limited by single machine capacity
+    
+    **Distributed**:
+    - ✅ Higher availability
+    - ✅ Better scalability
+    - ❌ Network latency (milliseconds)
+    - ❌ Coordination overhead
+    
+    **Mitigation**: Use hot standby for failover
+  </Accordion>
+  
+  <Accordion title="Single-Threaded vs. Multi-Threaded">
+    **Single-Threaded (Chosen)**:
+    - ✅ No locks, no contention
+    - ✅ Deterministic execution
+    - ✅ Easier to reason about
+    - ❌ Can't utilize multiple cores for same task
+    
+    **Multi-Threaded**:
+    - ✅ Better CPU utilization
+    - ✅ Higher theoretical throughput
+    - ❌ Lock contention
+    - ❌ Context switching overhead
+    - ❌ Non-deterministic
+    
+    **Decision**: Single-threaded for critical path, multi-threaded for non-critical components
+  </Accordion>
+  
+  <Accordion title="Memory vs. Disk">
+    **Memory-Only (Chosen for critical path)**:
+    - ✅ Nanosecond access times
+    - ✅ No I/O wait
+    - ❌ Data loss on crash
+    
+    **Solution**: 
+    - Use event sourcing (append-only log)
+    - Asynchronously replicate to disk
+    - Replay from log on recovery
+    - Maintain hot standby
+  </Accordion>
+  
+  <Accordion title="Consistency vs. Speed">
+    **Challenge**: Ensure fairness without sacrificing speed
+    
+    **Solution**: Sequencing
+    - Assign sequence numbers to all orders
+    - Assign sequence numbers to all executions
+    - Process in strict sequence number order
+    - Enables deterministic replay
+    - Proves regulatory compliance
+  </Accordion>
+</AccordionGroup>
+
+## Disaster Recovery
+
+### Event Sourcing
+
+**Approach**: Store every event (order, cancel, execution) in an append-only log
+
+**Benefits**:
+- Complete audit trail
+- Can replay to reconstruct state
+- Regulatory compliance
+- Debug production issues
+
+### Hot Standby
+
+**Architecture**:
+```
+┌─────────────────┐         ┌─────────────────┐
+│  Primary Server │ ──────→ │ Standby Server  │
+│                 │  Events │                 │
+│ Order Manager   │         │ Order Manager   │
+│ Matching Engine │         │ Matching Engine │
+└─────────────────┘         └─────────────────┘
+```
+
+**Process**:
+1. All events written to event log
+2. Events replicated to standby server
+3. Standby replays events in real-time
+4. On primary failure, standby takes over
+
+**Failover Time**: Seconds (vs. minutes for cold start)
+
+## Performance Metrics
+
+### Latency Targets
+
+- **Order validation**: < 10 microseconds
+- **Risk checks**: < 20 microseconds
+- **Order matching**: < 50 microseconds
+- **End-to-end**: < 100 microseconds (order in → execution out)
+
+### Throughput
+
+- **Orders per second**: 1-10 million
+- **Messages per second**: 10-100 million (including market data)
+- **Peak burst**: 100+ million messages/second
+
+### Availability
+
+- **Uptime**: 99.99% during trading hours
+- **Planned downtime**: Outside trading hours only
+- **Failover**: < 10 seconds
+
+## Key Technologies
+
+<CardGroup cols={2}>
+  <Card title="Shared Memory" icon="memory">
+    Lock-free ring buffers (LMAX Disruptor pattern)
+  </Card>
+  <Card title="Event Sourcing" icon="database">
+    Append-only event log for recovery and audit
+  </Card>
+  <Card title="CPU Pinning" icon="microchip">
+    Dedicate CPU cores to critical components
+  </Card>
+  <Card title="FIX Protocol" icon="code">
+    Financial Information eXchange protocol for order communication
+  </Card>
+</CardGroup>
+
+## Summary
+
+Designing a stock exchange for microsecond latency requires:
+
+<Steps>
+  <Step title="Identify Critical Path">
+    Clearly separate what must be fast (trading) from what can be slower (reporting)
+  </Step>
+  <Step title="Minimize Overhead">
+    - Single server (no network)
+    - Shared memory (no serialization)
+    - Single-threaded (no locks)
+    - CPU pinning (no context switches)
+  </Step>
+  <Step title="Optimize Data Structures">
+    Use appropriate data structures for O(1) or O(log n) operations
+  </Step>
+  <Step title="Event Sourcing">
+    Store all events for deterministic replay and regulatory compliance
+  </Step>
+  <Step title="Hot Standby">
+    Maintain real-time replica for fast failover
+  </Step>
+</Steps>
+
+<Note>
+  Stock exchanges sacrifice some traditional distributed systems benefits (high availability, horizontal scalability) to achieve extreme low latency. The tradeoff is acceptable because trading only happens during market hours, and hot standby provides sufficient redundancy.
+</Note>

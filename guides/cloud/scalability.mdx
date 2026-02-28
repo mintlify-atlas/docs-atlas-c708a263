@@ -1,0 +1,383 @@
+---
+title: 'Scalability Strategies'
+description: 'Essential strategies and techniques for building scalable systems'
+---
+
+## Introduction
+
+Scalability is the ability of a system to handle an increased workload without losing performance. However, we can also look at scalability in terms of the scaling strategy - the system's ability to handle an increased workload by repeatedly applying a cost-effective strategy.
+
+What do Amazon, Netflix, and Uber have in common? They are extremely good at scaling their system whenever needed.
+
+<img src="https://assets.bytebytego.com/diagrams/0013-8-must-know-strategies-to-scale-your-system.png" alt="8 Must-Know Scalability Strategies" />
+
+## Bottlenecks to Scalability
+
+Three main bottlenecks prevent systems from scaling effectively:
+
+<CardGroup cols={3}>
+  <Card title="Centralized Components" icon="circle-dot">
+    Can become a single point of failure and limit horizontal scaling
+  </Card>
+  
+  <Card title="High Latency Components" icon="clock">
+    Components that perform time-consuming operations slow down the entire system
+  </Card>
+  
+  <Card title="Tight Coupling" icon="link">
+    Makes components difficult to scale independently
+  </Card>
+</CardGroup>
+
+<Tip>
+To build a scalable system, follow the principles of **statelessness**, **loose coupling**, and **asynchronous processing**.
+</Tip>
+
+## 8 Must-Know Scalability Strategies
+
+### 1. Stateless Services
+
+Design stateless services because they don't rely on server-specific data and are easier to scale.
+
+**Benefits:**
+- Any server can handle any request
+- Easy to add or remove servers
+- Simplified load balancing
+- Better fault tolerance
+
+**Implementation:**
+- Store session data in external cache (Redis, Memcached)
+- Use JWT tokens for authentication
+- Design APIs to be stateless
+
+### 2. Horizontal Scaling
+
+Add more servers so that the workload can be shared across multiple machines.
+
+**Advantages:**
+- No theoretical limit to scaling
+- Better fault tolerance
+- More cost-effective at scale
+- Easier to implement auto-scaling
+
+**vs. Vertical Scaling:**
+- Vertical: Add more resources (CPU, RAM) to existing server
+- Horizontal: Add more servers to distribute load
+
+### 3. Load Balancing
+
+Use a load balancer to distribute incoming requests evenly across multiple servers.
+
+<img src="https://assets.bytebytego.com/diagrams/0293-a-crash-course-on-architectural-scalability.png" alt="Architectural Scalability" />
+
+**Load Balancing Algorithms:**
+- **Round Robin**: Distribute requests sequentially
+- **Least Connections**: Send to server with fewest active connections
+- **IP Hash**: Route based on client IP address
+- **Weighted Round Robin**: Assign weights based on server capacity
+
+### 4. Auto Scaling
+
+Implement auto-scaling policies to adjust resources based on real-time traffic.
+
+**Key Components:**
+- **Scaling Policies**: Define when to scale up/down
+- **Health Checks**: Monitor instance health
+- **Metrics**: CPU, memory, request count, custom metrics
+- **Cooldown Periods**: Prevent rapid scaling fluctuations
+
+**Example Triggers:**
+- CPU utilization > 70%: Add servers
+- Request queue length > 1000: Scale up
+- Average response time > 500ms: Increase capacity
+
+### 5. Caching
+
+Use caching to reduce the load on the database and handle repetitive requests at scale.
+
+**Caching Layers:**
+- **CDN**: Cache static content at edge locations
+- **Application Cache**: Cache application-level data (Redis, Memcached)
+- **Database Cache**: Query result caching
+- **Browser Cache**: Client-side caching
+
+**Common Strategies:**
+- **Cache-Aside**: Application loads data into cache
+- **Write-Through**: Write to cache and database simultaneously
+- **Write-Behind**: Write to cache first, sync to database later
+- **Refresh-Ahead**: Proactively refresh cache before expiration
+
+### 6. Database Replication
+
+Replicate data across multiple nodes to scale read operations while improving redundancy.
+
+**Replication Types:**
+
+<Tabs>
+  <Tab title="Primary-Replica">
+    - Primary handles writes
+    - Replicas handle reads
+    - Asynchronous or synchronous replication
+    - Easy to implement
+  </Tab>
+  
+  <Tab title="Primary-Primary">
+    - Multiple primaries handle writes
+    - Bidirectional replication
+    - Higher complexity
+    - Better write throughput
+  </Tab>
+  
+  <Tab title="Multi-Region">
+    - Replicas in different geographic regions
+    - Reduces latency for global users
+    - Disaster recovery
+    - Higher cost
+  </Tab>
+</Tabs>
+
+### 7. Database Sharding
+
+Distribute data across multiple instances to scale both writes and reads.
+
+<img src="https://assets.bytebytego.com/diagrams/0161-database-scaling-cheatsheet.png" alt="Database Scaling Strategies" />
+
+**Sharding Strategies:**
+
+<AccordionGroup>
+  <Accordion title="Range-Based Sharding">
+    Partition data based on ranges (e.g., user IDs 1-1000, 1001-2000)
+    
+    **Pros**: Simple to implement, easy to add new ranges
+    
+    **Cons**: Can lead to uneven distribution (hot shards)
+  </Accordion>
+  
+  <Accordion title="Hash-Based Sharding">
+    Use hash function on key to determine shard
+    
+    **Pros**: Even distribution of data
+    
+    **Cons**: Difficult to add/remove shards, range queries are complex
+  </Accordion>
+  
+  <Accordion title="Geo-Based Sharding">
+    Partition data by geographic location
+    
+    **Pros**: Low latency for regional users, data locality
+    
+    **Cons**: Uneven distribution if regions have different user bases
+  </Accordion>
+  
+  <Accordion title="Directory-Based Sharding">
+    Maintain a lookup service to determine shard location
+    
+    **Pros**: Flexible, easy to rebalance
+    
+    **Cons**: Lookup service becomes bottleneck, additional complexity
+  </Accordion>
+</AccordionGroup>
+
+### 8. Async Processing
+
+Move time-consuming and resource-intensive tasks to background workers using async processing to scale out new requests.
+
+**Use Cases:**
+- Email sending
+- Image/video processing
+- Report generation
+- Data import/export
+- Batch operations
+
+**Implementation Patterns:**
+- **Message Queues**: RabbitMQ, AWS SQS
+- **Event Streaming**: Kafka, AWS Kinesis
+- **Task Queues**: Celery, Bull
+- **Serverless**: AWS Lambda, Azure Functions
+
+## Scaling to Millions of Users
+
+<img src="https://assets.bytebytego.com/diagrams/0322-scale-to-million.jpg" alt="Scaling to Millions of Users" />
+
+The diagram above illustrates the evolution of a simplified eCommerce website from a monolithic design on one single server to a service-oriented/microservice architecture.
+
+### Evolution Steps
+
+<Steps>
+  <Step title="Separate Web and Database">
+    With growth, one single application server cannot handle the traffic. Put the application server and database server on separate machines.
+  </Step>
+  
+  <Step title="Deploy Server Cluster">
+    The business continues to grow, and a single application server is no longer enough. Deploy a cluster of application servers.
+  </Step>
+  
+  <Step title="Add Load Balancer">
+    Now incoming requests need to be routed to multiple application servers. A load balancer ensures each server gets an even load.
+  </Step>
+  
+  <Step title="Implement Read Replicas">
+    With continued growth, the database might become the bottleneck. Separate reads and writes - frequent read queries go to read replicas.
+  </Step>
+  
+  <Step title="Scale Database">
+    One single database cannot handle the load. Options:
+    - **Vertical partition**: Add more power (CPU, RAM)
+    - **Horizontal partition**: Add more database servers
+    - **Caching layer**: Offload read requests
+  </Step>
+  
+  <Step title="Microservices Architecture">
+    Modularize functions into different services. The architecture becomes service-oriented/microservice-based.
+  </Step>
+</Steps>
+
+## Database Scaling Strategies
+
+Beyond replication and sharding, there are several other strategies to scale your database:
+
+### 1. Indexing
+
+Check the query patterns of your application and create the right indexes.
+
+**Best Practices:**
+- Index columns used in WHERE clauses
+- Index columns used in JOIN operations
+- Consider composite indexes for multiple columns
+- Monitor index usage and remove unused indexes
+
+### 2. Materialized Views
+
+Pre-compute complex query results and store them for faster access.
+
+**When to Use:**
+- Complex aggregations
+- Frequently accessed reports
+- Data that doesn't change often
+- Acceptable data staleness
+
+### 3. Denormalization
+
+Reduce complex joins to improve query performance by storing redundant data.
+
+**Trade-offs:**
+- ✅ Faster reads
+- ✅ Simpler queries
+- ❌ More storage space
+- ❌ Data consistency challenges
+- ❌ More complex writes
+
+### 4. Connection Pooling
+
+Reuse database connections to reduce overhead of creating new connections.
+
+### 5. Query Optimization
+
+- Avoid SELECT *
+- Use LIMIT for pagination
+- Optimize JOIN operations
+- Use EXPLAIN to analyze queries
+
+### 6. Vertical Scaling
+
+Boost your database server by adding more CPU, RAM, or storage.
+
+**Advantages:**
+- Simple to implement
+- No application changes needed
+- Maintains data consistency
+
+**Limitations:**
+- Hardware limits
+- Expensive at high scale
+- Single point of failure
+- Downtime during upgrades
+
+## Common Scalability Techniques
+
+<CardGroup cols={2}>
+  <Card title="Load Balancing" icon="scale-balanced">
+    Spread requests across multiple servers to prevent a single server from becoming a bottleneck
+  </Card>
+  
+  <Card title="Caching" icon="database">
+    Store the most commonly requested information in memory for faster access
+  </Card>
+  
+  <Card title="Event-Driven Processing" icon="bolt">
+    Use an async processing approach to handle long-running tasks without blocking
+  </Card>
+  
+  <Card title="Sharding" icon="table-cells">
+    Split a large dataset into smaller subsets (shards) for horizontal scalability
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Warning>
+**Design for failure** - Assume components will fail and build redundancy into your system.
+</Warning>
+
+<Tip>
+**Monitor everything** - Track metrics for CPU, memory, disk I/O, network, and application-specific metrics.
+</Tip>
+
+**Key Principles:**
+
+1. **Start simple, scale when needed**
+   - Don't over-engineer early
+   - Measure before optimizing
+   - Scale based on actual metrics
+
+2. **Design stateless components**
+   - Makes scaling easier
+   - Improves fault tolerance
+   - Simplifies deployment
+
+3. **Use managed services**
+   - Reduce operational overhead
+   - Built-in scalability
+   - Focus on business logic
+
+4. **Implement graceful degradation**
+   - Degrade non-critical features under load
+   - Maintain core functionality
+   - Better user experience
+
+5. **Test at scale**
+   - Load testing
+   - Chaos engineering
+   - Performance benchmarking
+
+## Measuring Scalability
+
+**Key Metrics:**
+
+- **Throughput**: Requests per second
+- **Latency**: Response time (p50, p95, p99)
+- **Error Rate**: Failed requests percentage
+- **Resource Utilization**: CPU, memory, disk, network
+- **Cost per Request**: Efficiency metric
+
+**Scalability Goals:**
+
+- Linear scalability: 2x resources = 2x throughput
+- Sub-linear scalability: 2x resources = 1.5-2x throughput
+- Super-linear scalability: 2x resources = >2x throughput (rare)
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="AWS Services" icon="aws" href="/guides/cloud/aws-services">
+    Learn about AWS services for scalable applications
+  </Card>
+  
+  <Card title="Distributed Patterns" icon="network-wired" href="/guides/cloud/distributed-patterns">
+    Explore distributed system design patterns
+  </Card>
+  
+  <Card title="Resilience" icon="shield" href="/guides/cloud/resilience">
+    Build resilient and fault-tolerant systems
+  </Card>
+</CardGroup>

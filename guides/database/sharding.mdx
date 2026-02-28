@@ -1,0 +1,397 @@
+---
+title: 'Database Sharding'
+description: 'A comprehensive guide to database sharding concepts, techniques, and implementation strategies'
+---
+
+![Database Sharding](https://assets.bytebytego.com/diagrams/0065-a-crash-course-on-database-sharding.png)
+
+## What is Database Sharding?
+
+Database sharding is a type of database partitioning that separates very large databases into smaller, faster, more easily managed parts called **data shards**. The word "shard" means a small piece of something bigger.
+
+<Info>
+  Sharding is also known as **horizontal partitioning**. Each shard contains a portion of the data, and all shards together contain all of the data.
+</Info>
+
+## Why Implement Sharding?
+
+Sharding solves critical scalability problems that arise as your application grows:
+
+<CardGroup cols={3}>
+  <Card title="Data Volume" icon="database">
+    **Too much data on one machine**: A single database server can only handle so much data before performance degrades.
+  </Card>
+  <Card title="Request Load" icon="bolt">
+    **Too many requests**: A single database server has limited capacity to handle concurrent requests.
+  </Card>
+  <Card title="Query Performance" icon="gauge-high">
+    **High Latency**: As data grows, query latency increases, impacting user experience.
+  </Card>
+</CardGroup>
+
+When your database reaches these limitations, sharding enables you to:
+- Distribute load across multiple servers
+- Improve query response times
+- Scale horizontally by adding more machines
+- Isolate failures to individual shards
+
+## How Sharding Works
+
+Sharding involves splitting a database into multiple, independent parts (shards) and distributing them across different servers or machines. Each shard contains a subset of the data, and all shards collectively hold the entire dataset.
+
+```
+Before Sharding:
+┌────────────────────────┐
+│   Single Database      │
+│  All Users (1M rows)   │
+└────────────────────────┘
+
+After Sharding:
+┌──────────┐  ┌──────────┐  ┌──────────┐
+│ Shard 1  │  │ Shard 2  │  │ Shard 3  │
+│ Users    │  │ Users    │  │ Users    │
+│ 1-333K   │  │ 334-666K │  │ 667K-1M  │
+└──────────┘  └──────────┘  └──────────┘
+```
+
+## Core Concepts
+
+### Sharding Key
+
+A **sharding key** (also called partition key) is a column in the database table that determines how the data is distributed across the shards.
+
+<Tip>
+  Choosing the right sharding key is one of the most critical decisions in your sharding strategy. A poor choice can lead to uneven data distribution and hotspots.
+</Tip>
+
+**Characteristics of a good sharding key**:
+- High cardinality (many unique values)
+- Evenly distributed data
+- Aligned with common query patterns
+- Relatively stable (doesn't change frequently)
+
+**Examples**:
+- User ID for user-centric applications
+- Geographic region for location-based services
+- Timestamp for time-series data
+- Tenant ID for multi-tenant systems
+
+### Sharding Algorithms
+
+The sharding algorithm is the logic that determines which shard a particular row of data should be stored in. The algorithm uses the sharding key to make this determination.
+
+## Sharding Algorithms Explained
+
+![Sharding Algorithms](https://assets.bytebytego.com/diagrams/0373-top-4-data-sharding-algorithms-explained.png)
+
+### 1. Range-Based Sharding
+
+Data is divided into ranges based on the sharding key value.
+
+**How it works**:
+```
+Shard 1: User IDs 1 - 1000
+Shard 2: User IDs 1001 - 2000
+Shard 3: User IDs 2001 - 3000
+Shard 4: User IDs 3001+
+```
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Simple to implement and understand
+  - Range queries are efficient (e.g., "users 100-200")
+  - Easy to add new shards for new ranges
+  
+  **Disadvantages**:
+  - Risk of uneven distribution (hotspots)
+  - Newer data often gets more traffic
+  - Sequential IDs can create bottlenecks
+</Accordion>
+
+**Best for**: Time-series data, logs, historical records where older data is accessed less frequently.
+
+**Example**: Customer data sharded by last name alphabetical ranges, or transaction data sharded by date ranges.
+
+### 2. Hash-Based Sharding
+
+A hash function is applied to the sharding key to determine the shard.
+
+**How it works**:
+```python
+shard_id = hash(user_id) % num_shards
+
+# Example:
+hash(user_id: 12345) = 789456
+789456 % 4 = 0  → Shard 0
+```
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Even distribution of data across shards
+  - Eliminates hotspot issues
+  - Simple and predictable
+  
+  **Disadvantages**:
+  - Range queries are inefficient
+  - Adding/removing shards requires redistribution
+  - Must choose a good hash function to avoid collisions
+</Accordion>
+
+**Best for**: User-generated content, evenly distributing load across shards.
+
+<Warning>
+  Hash-based sharding makes range queries difficult. If you need to query "all users created in January," you'd have to check all shards.
+</Warning>
+
+### 3. Consistent Hashing
+
+An extension of hash-based sharding that reduces the impact of adding or removing shards.
+
+**How it works**:
+- Both data and nodes are hashed onto a circular ring (0 to 2^32-1)
+- Data is assigned to the first node clockwise from its position
+- Adding/removing nodes only affects adjacent data
+
+<Info>
+  Consistent hashing minimizes data movement when the cluster changes. Only K/n keys need to be remapped (where K is total keys and n is number of servers).
+</Info>
+
+**Advantages**:
+- Minimal data redistribution when scaling
+- Better fault tolerance
+- Flexible cluster membership
+
+**Best for**: Distributed caching systems, CDNs, distributed databases.
+
+### 4. Virtual Bucket Sharding
+
+Data is mapped to virtual buckets, which are then mapped to physical shards.
+
+**How it works**:
+```
+Data → Virtual Bucket → Physical Shard
+
+User 123 → Bucket 5 → Server A
+User 456 → Bucket 12 → Server B
+```
+
+This two-level mapping allows for flexible shard management:
+- Move buckets between shards without rehashing
+- Rebalance load by redistributing buckets
+- Scale by adding shards and moving buckets
+
+**Advantages**:
+- Flexible rebalancing without data movement
+- Easy to add/remove physical servers
+- Can optimize for different server capacities
+
+**Best for**: Cloud databases, systems requiring frequent rebalancing.
+
+## Sharding Approaches
+
+### Application-Level Sharding
+
+The application code is responsible for determining which shard to use for each query.
+
+```python
+def get_user_shard(user_id):
+    shard_id = hash(user_id) % NUM_SHARDS
+    return shard_connections[shard_id]
+
+# Application handles routing
+db = get_user_shard(user_id)
+user = db.query("SELECT * FROM users WHERE id = ?", user_id)
+```
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Full control over sharding logic
+  - No additional infrastructure
+  - Can optimize for specific use cases
+  
+  **Disadvantages**:
+  - Complexity in application code
+  - Harder to maintain and change
+  - Every application must implement routing
+</Accordion>
+
+### Middleware Sharding
+
+A middleware layer (proxy) sits between the application and databases, handling sharding logic.
+
+![Database Middleware](https://assets.bytebytego.com/diagrams/0162-database-middleware.png)
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Simplified application code
+  - Centralized routing logic
+  - Better compatibility (uses standard protocols)
+  - Easier to change sharding strategy
+  
+  **Disadvantages**:
+  - Additional network hop (latency)
+  - Potential single point of failure
+  - Requires high-availability setup
+  - Complex middleware system to maintain
+</Accordion>
+
+**Popular middleware**: ProxySQL, Vitess, ShardingSphere
+
+### Database-Native Sharding
+
+The database system itself provides built-in sharding capabilities.
+
+**Examples**:
+- MongoDB (automatic sharding)
+- Cassandra (partition keys)
+- CockroachDB (automatic distribution)
+- Citus (PostgreSQL extension)
+
+<Accordion title="Pros and Cons">
+  **Advantages**:
+  - Transparent to application
+  - Optimized by database vendor
+  - Automatic rebalancing
+  - Integrated monitoring
+  
+  **Disadvantages**:
+  - Vendor lock-in
+  - Less control over sharding logic
+  - May not fit all use cases
+  - Learning curve for specific database
+</Accordion>
+
+## Sharding Challenges
+
+<Warning>
+  Sharding introduces significant complexity. Only implement it when you've exhausted other scaling options like caching, read replicas, and vertical scaling.
+</Warning>
+
+### 1. Increased Complexity
+
+Sharding adds complexity to every aspect of your system:
+- Application code must be shard-aware
+- Deployment becomes more complex
+- Monitoring requires tracking multiple databases
+- Backup and recovery is more involved
+
+### 2. Data Distribution
+
+Choosing the right sharding key and algorithm is crucial:
+- Poor choices lead to uneven distribution
+- Hotspots can bottleneck performance
+- Difficult to change once implemented
+
+### 3. Cross-Shard Queries
+
+Queries spanning multiple shards are challenging:
+
+**Joins across shards**:
+```sql
+-- This query may need to touch multiple shards
+SELECT u.name, o.total 
+FROM users u 
+JOIN orders o ON u.id = o.user_id
+WHERE o.date > '2024-01-01'
+```
+
+**Solutions**:
+- Denormalize data to avoid cross-shard joins
+- Perform joins at application level
+- Use distributed query engines
+- Design schema to minimize cross-shard queries
+
+### 4. Distributed Transactions
+
+Transactions spanning multiple shards require:
+- Two-phase commit protocols
+- Distributed transaction coordinators
+- Handling partial failures
+- Increased latency
+
+<Tip>
+  Design your sharding strategy so that most transactions touch only one shard. This maintains performance and simplifies logic.
+</Tip>
+
+### 5. Resharding
+
+Changing the sharding scheme after implementation is complex:
+- Requires data migration across shards
+- Can cause downtime
+- Risk of data inconsistency
+- Significant engineering effort
+
+**Strategies to minimize resharding pain**:
+- Use consistent hashing or virtual buckets
+- Over-provision shards initially
+- Plan for growth in initial design
+- Use database-native sharding with automatic rebalancing
+
+## Best Practices
+
+<Steps>
+  <Step title="Start Simple">
+    Don't shard prematurely. Exhaust vertical scaling, caching, and read replicas first.
+  </Step>
+  <Step title="Choose Your Sharding Key Carefully">
+    Analyze query patterns and select a key that distributes data evenly and aligns with common queries.
+  </Step>
+  <Step title="Design for Sharding Early">
+    Even if not implementing immediately, design your schema to be shard-friendly.
+  </Step>
+  <Step title="Minimize Cross-Shard Operations">
+    Structure your data model to keep related data together on the same shard.
+  </Step>
+  <Step title="Monitor and Rebalance">
+    Continuously monitor shard distribution and rebalance when necessary.
+  </Step>
+  <Step title="Plan for Growth">
+    Design your sharding scheme to accommodate future growth without major changes.
+  </Step>
+</Steps>
+
+## When to Shard
+
+Consider sharding when:
+
+<Check>Database size exceeds what a single server can handle efficiently</Check>
+<Check>Write throughput exceeds single server capacity</Check>
+<Check>Read replicas can't keep up with read load</Check>
+<Check>You need better geographic distribution</Check>
+<Check>Regulatory requirements mandate data locality</Check>
+
+**Before sharding, try these alternatives**:
+1. **Optimize queries** and add proper indexes
+2. **Implement caching** (Redis, Memcached)
+3. **Add read replicas** for read-heavy workloads
+4. **Vertical scaling** (bigger server)
+5. **Partition tables** within the same database
+
+## Conclusion
+
+Sharding is a powerful technique for scaling databases horizontally, but it comes with significant complexity. Success requires:
+- Careful selection of sharding keys
+- Appropriate sharding algorithms
+- Well-designed application architecture
+- Robust monitoring and operations
+
+<Info>
+  **Key Takeaway**: Sharding should be a last resort after exhausting simpler scaling strategies. When you do shard, plan carefully and design for operational simplicity.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Replication" icon="copy" href="/guides/database/replication">
+    Learn about replication strategies before considering sharding
+  </Card>
+  <Card title="CAP Theorem" icon="triangle-exclamation" href="/guides/database/cap-theorem">
+    Understand trade-offs in distributed databases
+  </Card>
+  <Card title="Choosing a Database" icon="database" href="/guides/database/choosing-database">
+    Select the right database that scales for your needs
+  </Card>
+  <Card title="Database Performance" icon="gauge-high">
+    Optimize before scaling
+  </Card>
+</CardGroup>

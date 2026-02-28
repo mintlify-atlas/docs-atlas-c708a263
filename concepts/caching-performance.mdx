@@ -1,0 +1,255 @@
+---
+title: 'Caching & Performance'
+description: 'Learn to improve the performance of your system by caching data with these visual guides.'
+icon: 'gauge-high'
+---
+
+## Overview
+
+Caching is a technique that stores a copy of a given resource and serves it back when requested. When a web server renders a web page, it stores the result of the page rendering in a cache. The next time the web page is requested, the server serves the cached page without re-rendering the page. This process reduces the time needed to generate the web page and reduces the load on the server.
+
+## Cache Systems Every Developer Should Know
+
+![Cache Systems](https://assets.bytebytego.com/diagrams/0418-cache-systems-every-developer-should-know.jpeg)
+
+Data is cached everywhere, from the client-facing side to backend systems. Let's explore the many caching layers:
+
+### 1. Client Apps (Browser Cache)
+
+- Browsers cache HTTP responses locally
+- Server responses include caching directives in headers
+- Upon subsequent requests, browsers may serve cached data if still fresh
+- Reduces bandwidth and improves load times
+
+### 2. Content Delivery Networks (CDN)
+
+- Cache static content like images, stylesheets, and JavaScript files
+- Serve cached content from locations closer to users
+- Dramatically reduce latency and load times
+- Handle traffic spikes effectively
+
+### 3. Load Balancers
+
+- Some load balancers cache frequently requested data
+- Serve responses without engaging backend servers
+- Reduce load and response times
+- Act as intelligent traffic managers
+
+### 4. Message Brokers
+
+- Systems like Kafka cache messages on disk per retention policy
+- Consumers pull messages according to their own schedule
+- Provide replay capability for event streaming
+
+### 5. Application Services
+
+- Services employ in-memory caching to improve data retrieval speeds
+- Check cache before querying databases
+- May use disk caching for larger datasets
+- Common patterns: cache-aside, write-through, write-behind
+
+### 6. Distributed Caches
+
+- Systems like Redis and Memcached cache key-value pairs across services
+- Provide faster read/write capabilities than traditional databases
+- Support advanced data structures (lists, sets, sorted sets)
+- Enable sharing cached data across multiple application instances
+
+### 7. Full-Text Search Engines
+
+- Platforms like Elasticsearch index data for efficient text search
+- The index is effectively a form of cache
+- Optimized for quick text search retrieval
+- Support complex queries and aggregations
+
+### 8. Database Caching
+
+Databases have specialized mechanisms to enhance performance:
+
+- **Buffer Pool:** Cache within the database that holds copies of data pages
+- **Materialized Views:** Store precomputed results of expensive queries
+- **Query Result Cache:** Cache results of identical queries
+
+## Top Caching Strategies
+
+### Cache-Aside (Lazy Loading)
+
+```
+1. Application checks cache
+2. If cache miss, query database
+3. Store result in cache
+4. Return result to application
+```
+
+**Pros:** Only cache what's needed, simple to implement  
+**Cons:** Cache misses are expensive, potential for stale data
+
+### Read-Through
+
+```
+1. Application queries cache
+2. Cache is responsible for loading from database on miss
+3. Cache returns data to application
+```
+
+**Pros:** Simplified application logic  
+**Cons:** Initial requests are slow, all data goes through cache
+
+### Write-Through
+
+```
+1. Application writes to cache
+2. Cache synchronously writes to database
+3. Confirm write to application
+```
+
+**Pros:** Data consistency between cache and database  
+**Cons:** Higher latency on writes, unnecessary writes if data rarely read
+
+### Write-Behind (Write-Back)
+
+```
+1. Application writes to cache
+2. Confirm write immediately
+3. Cache asynchronously writes to database
+```
+
+**Pros:** Excellent write performance, can batch writes  
+**Cons:** Risk of data loss, more complex implementation
+
+### Refresh-Ahead
+
+```
+1. Cache automatically refreshes hot data before expiration
+2. Predicts what will be requested soon
+3. Keeps frequently accessed data fresh
+```
+
+**Pros:** Reduced latency, improved availability  
+**Cons:** Difficult to predict access patterns, wasted resources on wrong predictions
+
+<Tip>
+Choose your caching strategy based on read/write patterns, consistency requirements, and performance goals.
+</Tip>
+
+## Cache Eviction Policies
+
+When cache is full, which items should be removed?
+
+### LRU (Least Recently Used)
+
+- Evicts items that haven't been accessed recently
+- Most commonly used policy
+- Good balance between simplicity and effectiveness
+
+### LFU (Least Frequently Used)
+
+- Evicts items accessed least often
+- Better for long-term access patterns
+- More complex to implement
+
+### FIFO (First In, First Out)
+
+- Evicts oldest items first
+- Simple but may remove frequently used old items
+- Good for time-based data
+
+### TTL (Time To Live)
+
+- Items expire after specified duration
+- Good for data that becomes stale
+- Often combined with other policies
+
+### Random
+
+- Randomly select items for eviction
+- Simple and fast
+- Surprisingly effective in some scenarios
+
+## Cache Invalidation Challenges
+
+<Warning>
+There are only two hard things in Computer Science: cache invalidation and naming things.
+</Warning>
+
+### Strategies for Cache Invalidation
+
+1. **TTL-Based:** Set expiration times on cached data
+2. **Event-Based:** Invalidate when underlying data changes
+3. **Manual:** Application explicitly invalidates cache entries
+4. **Version-Based:** Include version in cache key
+
+## Common Cache Problems
+
+### Cache Stampede
+
+**Problem:** Many requests for expired cache key hit database simultaneously
+
+**Solutions:**
+- Use probabilistic early expiration
+- Implement request coalescing
+- Use locks to allow only one request to refresh
+
+### Cache Penetration
+
+**Problem:** Requests for non-existent data bypass cache
+
+**Solutions:**
+- Cache null results with short TTL
+- Use Bloom filters to check existence
+- Validate requests before checking cache
+
+### Cache Avalanche
+
+**Problem:** Many cache keys expire simultaneously
+
+**Solutions:**
+- Randomize TTL values
+- Use cache warming strategies
+- Implement hierarchical caching
+
+## Performance Optimization Tips
+
+<CardGroup cols={2}>
+  <Card title="Monitor Cache Hit Ratio" icon="chart-line">
+    Track hit ratio to ensure cache is effective. Aim for >80% hit rate.
+  </Card>
+  
+  <Card title="Right-Size Your Cache" icon="memory">
+    Balance memory usage with hit rate. More isn't always better.
+  </Card>
+  
+  <Card title="Use Appropriate TTLs" icon="clock">
+    Set TTLs based on data change frequency and staleness tolerance.
+  </Card>
+  
+  <Card title="Cache Serialization" icon="file-code">
+    Choose efficient serialization formats (Protocol Buffers, MessagePack).
+  </Card>
+</CardGroup>
+
+## Redis: The Swiss Army Knife of Caching
+
+Redis is more than just a cache:
+
+- **Data Structures:** Strings, hashes, lists, sets, sorted sets, bitmaps
+- **Persistence Options:** RDB snapshots, AOF logs
+- **High Availability:** Redis Sentinel for monitoring and failover
+- **Scalability:** Redis Cluster for horizontal scaling
+- **Use Cases:** Caching, session storage, real-time analytics, message queuing
+
+## Related Guides
+
+Explore more about caching:
+
+- [Cache Systems Every Developer Should Know](/guides/cache-systems-every-developer-should-know)
+- [Top 5 Caching Strategies](/guides/top-5-caching-strategies)
+- [Cache Eviction Policies](/guides/most-popular-cache-eviction)
+- [How Cache Systems Can Go Wrong](/guides/how-can-cache-systems-go-wrong)
+- [Netflix's Caching Strategy](/guides/4-ways-netflix-uses-caching-to-hold-user-attention)
+- [Redis 101](/guides/the-ultimate-redis-101)
+- [Things to Consider When Using Cache](/guides/things-to-consider-when-using-cache)
+
+<Note>
+Effective caching can dramatically improve application performance, but it introduces complexity. Always measure and monitor to ensure your caching strategy delivers value.
+</Note>

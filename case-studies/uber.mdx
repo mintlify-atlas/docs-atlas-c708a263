@@ -1,0 +1,516 @@
+---
+title: 'Uber Architecture'
+description: 'Explore Uber tech stack and architecture evolution powering real-time transportation across 10,000+ cities worldwide.'
+icon: 'car'
+---
+
+## Overview
+
+Uber has revolutionized transportation by connecting riders with drivers through a real-time marketplace. Operating in 10,000+ cities across 70+ countries, Uber's platform handles millions of trips daily while maintaining sub-second response times.
+
+This case study examines Uber's technical architecture, from frontend to backend, and how it has evolved to support massive scale and reliability.
+
+<Info>
+  **Note:** This analysis is based on Uber engineering blogs and open-source projects. Uber's architecture continues to evolve as the company scales globally.
+</Info>
+
+## Overall Architecture
+
+![Uber Tech Stack](https://assets.bytebytego.com/diagrams/0124-uber-tech-stack-overall.png)
+
+## Frontend Technologies
+
+### Web Frontend
+
+<Accordion title="Fusion.js Framework">
+  Uber built **Fusion.js** as a modern React-based framework for creating robust web applications.
+  
+  **Key Features:**
+  - Plugin-based architecture
+  - Universal rendering (SSR + CSR)
+  - Built-in performance optimization
+  - Type-safe with TypeScript support
+  
+  **Why Custom Framework:**
+  - Standardization across teams
+  - Optimized for Uber's specific needs
+  - Better developer experience
+</Accordion>
+
+<Accordion title="Visualization.js">
+  Custom geospatial visualization library for:
+  - Real-time driver locations
+  - Route visualization
+  - Heatmaps for demand
+  - ETA calculations
+  
+  Built on top of deck.gl and WebGL for high-performance rendering.
+</Accordion>
+
+### Mobile Architecture
+
+<CardGroup cols={2}>
+  <Card title="iOS" icon="mobile">
+    **Swift** with RIBs architecture
+    - Router, Interactor, Builder
+    - Testable and maintainable
+    - Shared business logic
+  </Card>
+  
+  <Card title="Android" icon="mobile-screen">
+    **Java/Kotlin** with RIBs architecture
+    - Same architectural patterns as iOS
+    - Platform-specific optimizations
+    - Consistent user experience
+  </Card>
+</CardGroup>
+
+### RIBs Architecture Pattern
+
+Uber developed **RIBs** (Router, Interactor, Builder) as a cross-platform alternative to MVC:
+
+**Components:**
+- **Router:** Manages navigation between screens
+- **Interactor:** Contains business logic
+- **Builder:** Handles dependency injection
+- **Presenter:** Translates business logic to view updates
+- **View:** Displays UI and captures user input
+
+**Benefits:**
+- Cross-platform consistency (iOS and Android)
+- Better testability than MVC/MVVM
+- Clear separation of concerns
+- Scalable for large teams
+
+## Service Mesh and Gateway
+
+### Uber Gateway
+
+Uber built a custom gateway on top of **NGINX** with dynamic configuration capabilities:
+
+**Features:**
+- Dynamic routing rules without restarts
+- Rate limiting and throttling
+- Authentication and authorization
+- Request/response transformation
+- Service discovery integration
+
+### Communication Protocols
+
+<Accordion title="gRPC">
+  Used for internal service-to-service communication:
+  - HTTP/2 based
+  - Binary protocol (Protocol Buffers)
+  - Bi-directional streaming
+  - Automatic code generation
+  
+  **Use Cases:**
+  - Real-time location updates
+  - Driver dispatch
+  - High-frequency microservice calls
+</Accordion>
+
+<Accordion title="QUIC Protocol">
+  Used for client-server communication:
+  - Built on UDP instead of TCP
+  - Reduced latency for mobile networks
+  - Better handling of network switches
+  - 0-RTT connection establishment
+  
+  **Why Important:**
+  - Mobile users frequently switch networks
+  - Lower latency for location updates
+  - Better user experience in poor network conditions
+</Accordion>
+
+<Accordion title="Apache Thrift">
+  Used for API definition and RPC:
+  - Cross-language support
+  - Efficient binary serialization
+  - Code generation for multiple languages
+  - Used before gRPC adoption
+</Accordion>
+
+## Backend Services
+
+### Configuration Management
+
+**Flipr (later UCDP - Unified Configuration Data Platform):**
+- Centralized configuration store
+- Real-time configuration updates
+- No deployment needed for config changes
+- Versioning and rollback capabilities
+- A/B testing support
+
+### Location Services
+
+<Accordion title="H3 - Hexagonal Hierarchical Geospatial Index">
+  Uber's geospatial indexing system (open-sourced):
+  
+  **How It Works:**
+  - Divides Earth into hexagonal cells
+  - Hierarchical levels (0-15)
+  - Each level provides different resolution
+  - Efficient proximity queries
+  
+  **Use Cases:**
+  - Finding nearby drivers
+  - Geofencing
+  - Surge pricing zones
+  - Market analytics
+  
+  **Advantages:**
+  - Better than grid-based systems
+  - Hexagons have uniform neighbor distances
+  - Efficient storage and queries
+  - Open-source for community use
+</Accordion>
+
+### Service Framework
+
+- **Spring Boot:** Primary framework for Java services
+- **uAct:** Event-driven architecture framework
+  - Pub/sub messaging
+  - Event sourcing support
+  - Saga pattern implementation
+
+### Workflow Orchestration
+
+**Cadence** - Distributed workflow engine:
+- Async workflow orchestration
+- Long-running business processes
+- Fault-tolerant execution
+- Workflow versioning
+
+**Use Cases:**
+- Trip lifecycle management
+- Payment processing
+- Driver onboarding
+- Refund workflows
+
+## Database Architecture
+
+### OLTP Databases
+
+<Accordion title="DocStore">
+  Uber's strongly-consistent document store:
+  
+  **Built on:**
+  - MySQL for transactional data
+  - PostgreSQL for specific use cases
+  - Consistent across regions
+  
+  **Features:**
+  - ACID transactions
+  - Multi-document transactions
+  - JSON document storage
+  - SQL-like query capabilities
+</Accordion>
+
+<Accordion title="RocksDB">
+  Embedded key-value store:
+  - High-performance storage engine
+  - Used within other databases
+  - LSM tree based
+  - Optimized for SSDs
+</Accordion>
+
+### Big Data Platform
+
+Uber's data platform is built on the **Hadoop ecosystem**:
+
+**Storage:**
+- **Apache Hudi:** Incremental data lake storage
+- **Apache Parquet:** Columnar file format
+- **Alluxio:** Distributed cache layer
+
+**Time-Series Databases:**
+- **Pinot:** Real-time analytics (OLAP)
+- **AresDB:** GPU-powered time-series database
+  - Real-time analytics on ride data
+  - Sub-second query latency
+  - GPU acceleration for aggregations
+
+### Data Processing
+
+<CardGroup cols={2}>
+  <Card title="Batch Processing" icon="database">
+    - **Apache Hive:** SQL on Hadoop
+    - **Apache Spark:** Large-scale data processing
+    - **Marmaray:** Data ingestion framework (open-source)
+  </Card>
+  
+  <Card title="Stream Processing" icon="water">
+    - **Apache Kafka:** Message streaming
+    - **Apache Flink:** Real-time stream processing
+    - Used for real-time analytics and monitoring
+  </Card>
+</CardGroup>
+
+## API Gateway Evolution
+
+![Uber API Evolution](https://assets.bytebytego.com/diagrams/0397-uber-api-layer.png)
+
+### First Generation: Organic Evolution (2014)
+
+Uber started with two key services:
+
+**Dispatch Service:**
+- Connects riders with drivers
+- Real-time matching algorithm
+- Location-based routing
+
+**API Service:**
+- Stores user data
+- Trip history
+- Long-term data persistence
+
+**Limitations:**
+- Monolithic components
+- Difficult to scale independently
+- Limited flexibility
+
+### Second Generation: All-Encompassing Gateway (2015-2018)
+
+Uber adopted microservices early, reaching **2,200+ microservices** by 2019.
+
+**Gateway Responsibilities:**
+- Routing to appropriate services
+- Authentication and authorization
+- Rate limiting
+- Request/response transformation
+- Monitoring and logging
+
+**Challenges:**
+- Gateway became a bottleneck
+- Difficult to maintain
+- Tight coupling between teams
+- Deployment coordination required
+
+### Third Generation: Self-Service, Decentralized, Layered (2018-Present)
+
+As Uber expanded to new business lines (Freight, ATG, Elevate, Groceries), a new approach was needed:
+
+**Key Features:**
+- **Self-Service:** Teams can define their own API contracts
+- **Decentralized:** Multiple gateways for different domains
+- **Layered:** Different layers for different concerns
+  - Edge layer: TLS termination, DDoS protection
+  - Gateway layer: Routing, authentication
+  - Service layer: Business logic
+
+**Benefits:**
+- Teams move faster independently
+- Better isolation and fault tolerance
+- Easier to maintain and scale
+- Domain-specific optimizations
+
+## DevOps and CI/CD
+
+![Uber CI/CD Stack](https://assets.bytebytego.com/diagrams/0398-uber-tech-stack-ci-cd.png)
+
+### Development Workflow
+
+<Accordion title="Monorepo Strategy">
+  Uber uses a monorepo for code organization:
+  
+  **Build System:**
+  - **Bazel:** Large-scale build system
+  - Incremental builds
+  - Cached artifacts
+  - Deterministic builds
+  
+  **Benefits:**
+  - Atomic commits across services
+  - Easier refactoring
+  - Shared libraries
+  - Consistent tooling
+  
+  **Challenges:**
+  - Large repository size
+  - Build complexity
+  - Requires investment in tooling
+</Accordion>
+
+<Accordion title="Development Environment">
+  **Devpod:**
+  - Simplified local development
+  - Cloud-based development environments
+  - Consistent setup across team
+  - Reduces onboarding time
+</Accordion>
+
+### Code Quality
+
+**Custom Tooling:**
+- **NullAway:** Eliminates NullPointer exceptions in Java
+- **NEAL:** Code linting and style enforcement
+- **Piranha:** Cleans outdated feature flags automatically
+
+### Testing
+
+<CardGroup cols={2}>
+  <Card title="Unit & Integration" icon="flask">
+    - Standard testing frameworks
+    - High test coverage requirements
+    - Automated test runs on PRs
+  </Card>
+  
+  <Card title="Load Testing" icon="gauge-high">
+    **Shadower:**
+    - Replays production traffic
+    - Tests services under real load
+    - Identifies performance regressions
+  </Card>
+</CardGroup>
+
+**SLATE:**
+- Manages short-lived testing environments
+- Spins up isolated test clusters
+- Automatic cleanup
+
+**Ballast:**
+- Ensures smooth user experience
+- Load shedding during overload
+- Graceful degradation
+
+### Experimentation Platform
+
+Uber's experimentation platform enables data-driven decisions:
+
+**Features:**
+- A/B testing framework
+- Deep learning-based analysis
+- Real-time metrics
+- Statistical significance calculations
+
+**Open Source:**
+- **Pyro:** Probabilistic programming in Python
+- Used for Bayesian inference in experiments
+
+### Build and Deploy
+
+<Accordion title="Build - uBuild">
+  Uber's containerization platform:
+  - Built on **Buildkite**
+  - Packages services into containers
+  - Optimized build caching
+  - Multi-architecture support
+</Accordion>
+
+<Accordion title="Deploy - Spinnaker">
+  Uses **Netflix Spinnaker** for deployments:
+  - Multi-cloud support
+  - Canary deployments
+  - Automated rollbacks
+  - Integration with monitoring
+</Accordion>
+
+### Monitoring and Observability
+
+**uMetric Platform:**
+- Built on Cassandra
+- Consistent metrics across services
+- Real-time dashboards
+- Alerting integration
+
+**Monitoring Stack:**
+- Metrics: uMetric
+- Logs: ELK Stack
+- Traces: Distributed tracing
+- Alerts: uMonitor
+
+**OnCall Dashboard:**
+- On-call rotation management
+- Incident tracking
+- Automated escalation
+- Post-mortem workflows
+
+### Special Tooling
+
+<CardGroup cols={3}>
+  <Card title="Peloton" icon="calendar">
+    Capacity planning, scheduling, and resource management
+  </Card>
+  
+  <Card title="Crane" icon="cloud">
+    Multi-cloud infrastructure optimization for cost savings
+  </Card>
+  
+  <Card title="uAct" icon="bolt">
+    Event tracing and debugging across distributed systems
+  </Card>
+</CardGroup>
+
+## Key Architecture Decisions
+
+### 1. Microservices at Scale
+
+- Early adoption of microservices (2,200+ services)
+- Service per business capability
+- Clear ownership model
+- Independent deployment
+
+### 2. Real-Time Processing
+
+- Location updates every few seconds
+- Sub-second matching algorithms
+- Real-time pricing (surge)
+- Event-driven architecture
+
+### 3. Geospatial Optimization
+
+- Custom H3 indexing system
+- Efficient proximity searches
+- Geofencing for regions
+- Market-specific configurations
+
+### 4. Observability First
+
+- Custom monitoring tools (uMetric, uMonitor)
+- Distributed tracing
+- Real-time alerting
+- Data-driven decisions
+
+### 5. Mobile Optimization
+
+- Custom RIBs architecture
+- QUIC protocol for better mobile performance
+- Offline capabilities
+- Battery and data usage optimization
+
+## Lessons Learned
+
+<CardGroup cols={2}>
+  <Card title="Custom When Necessary" icon="hammer">
+    Uber built many custom solutions (Fusion.js, H3, RIBs, uBuild) when existing tools didn't meet their specific needs.
+  </Card>
+  
+  <Card title="Mobile-First" icon="mobile">
+    As a mobile-first platform, Uber optimized protocols (QUIC), architecture (RIBs), and infrastructure specifically for mobile constraints.
+  </Card>
+  
+  <Card title="Polyglot Approach" icon="language">
+    Using the right language for each use case: Swift/Kotlin for mobile, Java for services, Rust for performance-critical components.
+  </Card>
+  
+  <Card title="Developer Productivity" icon="rocket">
+    Heavy investment in developer tools (devpod, NullAway, SLATE) to maintain velocity as the organization scales.
+  </Card>
+</CardGroup>
+
+## Scale Statistics
+
+- **10,000+** cities worldwide
+- **70+** countries
+- **Millions** of trips daily
+- **2,200+** microservices
+- **Sub-second** response times for most operations
+- **Thousands** of engineers
+
+## References
+
+- [Uber Engineering Blog](https://eng.uber.com/)
+- [H3 Geospatial Index (Open Source)](https://h3geo.org/)
+- [RIBs Architecture (Open Source)](https://github.com/uber/RIBs)
+- [Uber Tech Stack Overview](https://assets.bytebytego.com/diagrams/0124-uber-tech-stack-overall.png)

@@ -1,0 +1,113 @@
+---
+title: 'API and Web Development'
+description: 'Learn how APIs enable web development by providing standardized protocols for data exchange between different parts of web applications.'
+icon: 'globe'
+---
+
+## Overview
+
+Web development involves building websites and applications by combining frontend UI, backend logic, and databases. APIs are the fundamental building blocks that enable these components to communicate effectively.
+
+APIs provide standardized protocols for data exchange between different parts of web applications. Using technologies like REST and GraphQL, APIs allow integration of services, database operations, and interactive features while keeping system components cleanly separated.
+
+## Key API Design Approaches
+
+### REST API
+
+REST (Representational State Transfer) is the most widely used API architectural style:
+
+- Uses standard HTTP methods like GET, POST, PUT, DELETE for CRUD operations
+- Works well when you need simple, uniform interfaces between separate services/applications
+- Caching strategies are straightforward to implement
+- May require multiple roundtrips to assemble related data from separate endpoints
+
+### GraphQL
+
+GraphQL provides a more flexible approach to API design:
+
+- Provides a single endpoint for clients to query for precisely the data they need
+- Clients specify the exact fields required in nested queries
+- Supports Mutations for modifying data and Subscriptions for real-time notifications
+- Great for aggregating data from multiple sources and works well with rapidly evolving frontend requirements
+- Shifts complexity to the client side and requires safeguards against abusive queries
+
+<Tip>
+The best choice between REST and GraphQL depends on your specific requirements. GraphQL fits complex or frequently changing frontend needs, while REST suits applications where simple and consistent contracts are preferred.
+</Tip>
+
+## HTTPS and Secure Communication
+
+![HTTPS Workflow](https://assets.bytebytego.com/diagrams/0220-how-does-https-work.png)
+
+HTTPS (Hypertext Transfer Protocol Secure) is essential for secure web communication:
+
+**The HTTPS Handshake Process:**
+
+1. **TCP Connection:** The client (browser) and server establish a TCP connection
+
+2. **Hello Exchange:** The client sends a "client hello" with encryption algorithms (cipher suites) and TLS version. The server responds with "server hello" and sends its SSL certificate containing the public key
+
+3. **Session Key Exchange:** After validating the SSL certificate, the client generates a session key and encrypts it using the server's public key. The server decrypts it with its private key
+
+4. **Secure Transmission:** Both parties now share the same session key for symmetric encryption, enabling secure bi-directional communication
+
+**Why Switch to Symmetric Encryption?**
+
+- **Security:** Asymmetric encryption is one-way only
+- **Performance:** Symmetric encryption reduces mathematical overhead for long sessions
+
+## API Gateway
+
+An API Gateway acts as a single entry point for all client requests:
+
+- **Request Routing:** Directs requests to appropriate backend services
+- **Authentication & Authorization:** Validates credentials and permissions
+- **Rate Limiting:** Prevents abuse by limiting request rates
+- **Load Balancing:** Distributes traffic across backend servers
+- **Response Transformation:** Formats responses for different clients
+
+## Web Request Flow
+
+When you type a URL in your browser:
+
+1. **DNS Lookup:** Browser queries DNS to resolve domain name to IP address
+2. **TCP Connection:** Browser establishes TCP connection with server
+3. **HTTP Request:** Browser sends HTTP request to server
+4. **Server Processing:** Server processes request and prepares response
+5. **HTTP Response:** Server sends response back to browser
+6. **Rendering:** Browser renders HTML, CSS, and executes JavaScript
+
+## Best Practices for API Design
+
+<CardGroup cols={2}>
+  <Card title="Use Proper HTTP Methods" icon="code">
+    Follow REST conventions: GET for retrieval, POST for creation, PUT/PATCH for updates, DELETE for removal
+  </Card>
+  
+  <Card title="Version Your APIs" icon="timeline">
+    Use versioning (e.g., /v1/, /v2/) to maintain backward compatibility
+  </Card>
+  
+  <Card title="Implement Rate Limiting" icon="gauge">
+    Protect your APIs from abuse with proper rate limiting
+  </Card>
+  
+  <Card title="Use Proper Status Codes" icon="check">
+    Return appropriate HTTP status codes (200, 201, 400, 404, 500, etc.)
+  </Card>
+</CardGroup>
+
+## Related Guides
+
+Explore these guides to deepen your understanding:
+
+- [REST API vs. GraphQL](/guides/rest-api-vs-graphql)
+- [How does HTTPS work?](/guides/how-does-https-work)
+- [API Gateway 101](/guides/api-gateway-101)
+- [8 Tips for Efficient API Design](/guides/8-tips-for-efficient-api-design)
+- [How to Design Secure Web API Access](/guides/how-to-design-secure-web-api-access)
+- [Top 5 Common Ways to Improve API Performance](/guides/top-5-common-ways-to-improve-api-performance)
+
+<Note>
+API design is about balancing flexibility, performance, security, and simplicity. Choose the approach that best fits your use case and team capabilities.
+</Note>

@@ -1,0 +1,742 @@
+---
+title: 'Deployment Strategies'
+description: 'Explore deployment strategies for risk mitigation and seamless application updates - from basic to advanced patterns.'
+---
+
+## Why Deployment Strategies Matter
+
+Deploying or upgrading services is risky. The right deployment strategy can minimize downtime, reduce risk, and enable faster recovery from issues. This guide explores various risk mitigation strategies for production deployments.
+
+![Deployment Strategies](https://assets.bytebytego.com/diagrams/0166-deployment-strategies.png)
+
+## Common Deployment Strategies
+
+![Popular Deployment Strategies](https://assets.bytebytego.com/diagrams/0358-the-most-popular-deployment-strategies.png)
+
+Here are the most-used deployment strategies:
+
+1. **Big Bang Deployment** (Multi-Service)
+2. **Rolling Deployment**
+3. **Blue-Green Deployment**
+4. **Canary Deployment**
+5. **A/B Testing**
+6. **Feature Toggle**
+
+Let's explore each strategy in detail.
+
+## Multi-Service (Big Bang) Deployment
+
+### Overview
+
+In this model, we deploy new changes to multiple services simultaneously. All services are upgraded at the same time in one big release.
+
+### Characteristics
+
+<CodeGroup>
+```text Advantages
+✓ Simple to implement
+✓ Everything updates together
+✓ No version compatibility issues
+✓ Coordinated release
+```
+
+```text Disadvantages
+✗ High risk
+✗ Difficult to test dependencies
+✗ Hard to rollback safely
+✗ Potential for widespread issues
+```
+</CodeGroup>
+
+### When to Use
+
+- Small applications with few services
+- Non-critical systems
+- Development/testing environments
+- Scheduled maintenance windows
+
+<Note>
+**Risk Level**: High - All services change at once, making it difficult to isolate issues.
+</Note>
+
+## Rolling Deployment
+
+### Overview
+
+Application instances are updated one by one or in small batches, ensuring high availability during the process.
+
+<Steps>
+  <Step title="Start with Current Version">
+    All instances running version 1.0
+  </Step>
+  
+  <Step title="Update First Batch">
+    Stop 1-2 instances, update to version 2.0, restart
+  </Step>
+  
+  <Step title="Verify Health">
+    Check that updated instances are healthy
+  </Step>
+  
+  <Step title="Continue Rolling">
+    Repeat for remaining instances
+  </Step>
+  
+  <Step title="Complete Rollout">
+    All instances now running version 2.0
+  </Step>
+</Steps>
+
+### Characteristics
+
+<CodeGroup>
+```text Advantages
+✓ No downtime
+✓ Gradual rollout
+✓ Resource efficient
+✓ Built into Kubernetes
+```
+
+```text Disadvantages
+✗ Slower deployment
+✗ Both versions run simultaneously
+✗ Rollback affects live traffic
+✗ Complex state management
+```
+</CodeGroup>
+
+### Configuration Example
+
+<CodeGroup>
+```yaml Kubernetes Rolling Update
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1      # Max pods unavailable during update
+      maxSurge: 2            # Max extra pods during update
+  template:
+    spec:
+      containers:
+      - name: app
+        image: my-app:2.0
+```
+
+```yaml AWS ECS Rolling Update
+{
+  "deploymentConfiguration": {
+    "maximumPercent": 200,
+    "minimumHealthyPercent": 50
+  },
+  "desiredCount": 10
+}
+```
+</CodeGroup>
+
+### When to Use
+
+- **Downtime**: No
+- **Use case**: Periodic releases, regular updates
+- Best for applications that can handle multiple versions running simultaneously
+
+## Blue-Green Deployment
+
+### Overview
+
+Two identical environments are maintained:
+- **Blue**: Current production version
+- **Green**: New version prepared for release
+
+Once testing is done in the green environment, traffic switches from blue to green.
+
+<Steps>
+  <Step title="Blue is Production">
+    All traffic goes to the blue environment (v1.0)
+  </Step>
+  
+  <Step title="Deploy to Green">
+    Deploy new version (v2.0) to green environment
+  </Step>
+  
+  <Step title="Test Green">
+    Thoroughly test green environment
+  </Step>
+  
+  <Step title="Switch Traffic">
+    Route all traffic from blue to green
+  </Step>
+  
+  <Step title="Monitor">
+    Keep blue environment running for quick rollback
+  </Step>
+  
+  <Step title="Cleanup (Optional)">
+    Once stable, blue becomes the next green
+  </Step>
+</Steps>
+
+### Characteristics
+
+<CodeGroup>
+```text Advantages
+✓ Zero downtime
+✓ Instant rollback
+✓ Full testing before switch
+✓ Clean separation
+```
+
+```text Disadvantages
+✗ Expensive (2x infrastructure)
+✗ Database migrations complex
+✗ Requires load balancer
+✗ State synchronization issues
+```
+</CodeGroup>
+
+### Implementation Example
+
+<CodeGroup>
+```yaml AWS Load Balancer
+# Initially: Blue target group receives 100% traffic
+
+# Step 1: Deploy to Green
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-green
+spec:
+  selector:
+    app: my-app
+    version: v2
+  ports:
+  - port: 80
+
+# Step 2: Switch traffic via load balancer
+# Update ALB listener rule to point to green target group
+
+# Step 3: Blue becomes standby for rollback
+```
+
+```bash DNS Switch Method
+# Current: myapp.com -> blue-env.myapp.com
+
+# Deploy to green
+# Test green-env.myapp.com
+
+# Switch DNS
+# myapp.com -> green-env.myapp.com
+
+# Wait for DNS propagation (consider TTL)
+```
+</CodeGroup>
+
+### When to Use
+
+- **Downtime**: No
+- **Use case**: High-stake updates, critical applications
+- Best when instant rollback is critical
+- Suitable for applications with sufficient budget for dual infrastructure
+
+## Canary Deployment
+
+### Overview
+
+The new version is released to a small subset of users or servers for testing before broader deployment. Named after "canary in a coal mine" - an early warning system.
+
+<Steps>
+  <Step title="Deploy Canary">
+    Release new version to 5-10% of servers/users
+  </Step>
+  
+  <Step title="Monitor Metrics">
+    Watch error rates, performance, user feedback
+  </Step>
+  
+  <Step title="Gradual Increase">
+    If stable, increase to 25%, then 50%, then 75%
+  </Step>
+  
+  <Step title="Full Rollout">
+    Eventually reach 100% of traffic
+  </Step>
+  
+  <Step title="Rollback if Needed">
+    Quickly route traffic away from canary if issues detected
+  </Step>
+</Steps>
+
+### Characteristics
+
+<CodeGroup>
+```text Advantages
+✓ Reduced risk
+✓ Real production testing
+✓ Gradual rollout
+✓ Cost effective
+```
+
+```text Disadvantages
+✗ Complex monitoring needed
+✗ No staging environment
+✗ Requires traffic routing
+✗ Slower than blue-green
+```
+</CodeGroup>
+
+### Implementation Example
+
+<CodeGroup>
+```yaml Kubernetes with Istio
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: my-app
+spec:
+  hosts:
+  - my-app
+  http:
+  - match:
+    - headers:
+        user-type:
+          exact: beta
+    route:
+    - destination:
+        host: my-app
+        subset: v2
+  - route:
+    - destination:
+        host: my-app
+        subset: v1
+      weight: 90
+    - destination:
+        host: my-app
+        subset: v2
+      weight: 10
+```
+
+```yaml Argo Rollouts
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: my-app
+spec:
+  replicas: 10
+  strategy:
+    canary:
+      steps:
+      - setWeight: 10
+      - pause: {duration: 10m}
+      - setWeight: 25
+      - pause: {duration: 10m}
+      - setWeight: 50
+      - pause: {duration: 10m}
+      - setWeight: 75
+      - pause: {duration: 10m}
+```
+</CodeGroup>
+
+### Canary Metrics to Monitor
+
+- Error rate increase
+- Response time degradation
+- CPU/Memory usage
+- Business metrics (conversion rate, etc.)
+- User complaints/feedback
+
+### When to Use
+
+- **Downtime**: No
+- **Use case**: Impact validation on subset of users
+- Best for risk-averse organizations
+- Ideal when you have good monitoring and can test in production
+
+<Note>
+Canary deployments are used by Netflix, Facebook, and Google to safely roll out changes to millions of users.
+</Note>
+
+## A/B Testing
+
+### Overview
+
+Different versions of services run in production simultaneously. Each version runs an "experiment" for a subset of users to compare performance or user experience.
+
+### A/B Testing vs Canary
+
+<CodeGroup>
+```text Canary Deployment
+- Focus: Risk mitigation
+- Goal: Safe rollout
+- Duration: Temporary (hours/days)
+- Metrics: Technical (errors, latency)
+- Outcome: Replace old version
+```
+
+```text A/B Testing
+- Focus: Feature validation
+- Goal: Measure impact
+- Duration: Longer (weeks/months)
+- Metrics: Business (conversion, engagement)
+- Outcome: Choose winning variant
+```
+</CodeGroup>
+
+### Implementation Example
+
+<CodeGroup>
+```yaml Feature Flag Based
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feature-flags
+data:
+  features.json: |
+    {
+      "new-checkout": {
+        "enabled": true,
+        "percentage": 50,
+        "targeting": {
+          "userSegments": ["premium"]
+        }
+      }
+    }
+```
+
+```javascript Application Code
+const featureFlags = require('./feature-flags');
+
+function showCheckout(user) {
+  const flag = featureFlags.get('new-checkout');
+  
+  if (flag.enabled && shouldShowToUser(user, flag)) {
+    return renderNewCheckout();
+  } else {
+    return renderOldCheckout();
+  }
+}
+
+function shouldShowToUser(user, flag) {
+  // Hash user ID to get consistent experience
+  const hash = hashUserId(user.id);
+  return hash % 100 < flag.percentage;
+}
+```
+</CodeGroup>
+
+### Characteristics
+
+<CodeGroup>
+```text Advantages
+✓ Data-driven decisions
+✓ Measure business impact
+✓ Multiple variants possible
+✓ Cost effective testing
+```
+
+```text Disadvantages
+✗ Requires feature flag system
+✗ Statistical significance needed
+✗ Can confuse users
+✗ Complex tracking required
+```
+</CodeGroup>
+
+### When to Use
+
+- **Downtime**: Not directly applicable
+- **Use case**: Optimizing user experience, feature validation
+- Testing new features or UI changes
+- Measuring business impact before full rollout
+
+## Feature Toggle (Feature Flags)
+
+### Overview
+
+Features are deployed to production but hidden behind toggles. They can be enabled/disabled without redeployment.
+
+<Steps>
+  <Step title="Deploy with Feature Disabled">
+    Code is deployed but feature is off by default
+  </Step>
+  
+  <Step title="Enable for Testing">
+    Turn on feature for internal users or test accounts
+  </Step>
+  
+  <Step title="Gradual Rollout">
+    Enable for increasing percentages of users
+  </Step>
+  
+  <Step title="Full Release">
+    Enable for all users
+  </Step>
+  
+  <Step title="Cleanup">
+    Remove flag after stable (technical debt management)
+  </Step>
+</Steps>
+
+### Types of Feature Flags
+
+<CodeGroup>
+```text Release Flags
+- Toggle new features on/off
+- Short-lived (remove after release)
+- Used for gradual rollouts
+```
+
+```text Ops Flags
+- Control operational aspects
+- Long-lived
+- Example: Circuit breakers
+```
+
+```text Experiment Flags
+- A/B testing
+- Data collection
+- Measure impact
+```
+
+```text Permission Flags
+- User-specific features
+- Premium features
+- Regional restrictions
+```
+</CodeGroup>
+
+### Implementation Example
+
+<CodeGroup>
+```javascript LaunchDarkly
+const LD = require('launchdarkly-node-server-sdk');
+
+const client = LD.init(process.env.LAUNCHDARKLY_SDK_KEY);
+
+await client.waitForInitialization();
+
+const showNewFeature = await client.variation(
+  'new-feature',
+  { key: user.id, email: user.email },
+  false // default value
+);
+
+if (showNewFeature) {
+  // Show new feature
+} else {
+  // Show old feature
+}
+```
+
+```javascript Custom Implementation
+class FeatureFlags {
+  constructor() {
+    this.flags = this.loadFromConfig();
+  }
+  
+  isEnabled(flagName, context = {}) {
+    const flag = this.flags[flagName];
+    if (!flag) return false;
+    
+    // Check if enabled
+    if (!flag.enabled) return false;
+    
+    // Check percentage rollout
+    if (context.userId) {
+      const hash = this.hashString(context.userId);
+      if (hash % 100 >= flag.percentage) return false;
+    }
+    
+    // Check targeting rules
+    if (flag.targeting) {
+      return this.evaluateTargeting(flag.targeting, context);
+    }
+    
+    return true;
+  }
+}
+```
+</CodeGroup>
+
+### Best Practices
+
+- **Name flags clearly**: Use descriptive names like `enable-new-checkout`
+- **Set expiration**: Plan to remove flags after rollout
+- **Monitor flag usage**: Track which flags are active
+- **Limit flag count**: Too many flags create complexity
+- **Document flags**: Explain purpose and expected lifecycle
+
+## Kubernetes Deployment Strategies
+
+![Kubernetes Deployments](https://assets.bytebytego.com/diagrams/0247-kubernates-deployment-strategy.jpeg)
+
+Kubernetes supports several deployment strategies natively:
+
+### Recreate Strategy
+
+<CodeGroup>
+```yaml Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      containers:
+      - name: app
+        image: my-app:2.0
+```
+
+```text Characteristics
+- All instances terminated at once
+- New instances created
+- Downtime: Yes
+- Use case: Non-critical apps
+```
+</CodeGroup>
+
+### Rolling Update (Default)
+
+See Rolling Deployment section above.
+
+### Shadow Deployment
+
+A copy of live traffic is redirected to the new version for testing without affecting production users.
+
+<CodeGroup>
+```text Characteristics
+- Most complex strategy
+- Requires mock services
+- Real traffic testing
+- No user impact
+- Downtime: No
+- Use case: Performance validation
+```
+
+```yaml Istio Shadow
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: my-app
+spec:
+  hosts:
+  - my-app
+  http:
+  - route:
+    - destination:
+        host: my-app
+        subset: v1
+      weight: 100
+    mirror:
+      host: my-app
+      subset: v2
+    mirrorPercentage:
+      value: 100
+```
+</CodeGroup>
+
+## Choosing the Right Strategy
+
+<Note>
+The right deployment strategy depends on your:
+- Risk tolerance
+- Budget constraints
+- Application architecture
+- Team capabilities
+- User base size
+</Note>
+
+### Decision Matrix
+
+| Strategy | Downtime | Complexity | Cost | Rollback Speed | Risk |
+|----------|----------|------------|------|----------------|------|
+| Big Bang | High | Low | Low | Slow | High |
+| Rolling | None | Medium | Low | Medium | Medium |
+| Blue-Green | None | Medium | High | Instant | Low |
+| Canary | None | High | Medium | Fast | Low |
+| A/B Test | None | High | Medium | Fast | Low |
+
+### Recommendations
+
+<Steps>
+  <Step title="Start Simple">
+    Begin with rolling deployments for most applications
+  </Step>
+  
+  <Step title="Add Safety">
+    Implement canary for critical services
+  </Step>
+  
+  <Step title="Invest in Monitoring">
+    Good monitoring enables advanced strategies
+  </Step>
+  
+  <Step title="Use Feature Flags">
+    Decouple deployment from release
+  </Step>
+  
+  <Step title="Reserve Blue-Green">
+    Use for highest-risk deployments where instant rollback is critical
+  </Step>
+</Steps>
+
+## Best Practices Across All Strategies
+
+### 1. Automate Everything
+
+- Use CI/CD pipelines
+- Automate testing
+- Automate rollbacks
+- Infrastructure as Code
+
+### 2. Monitor Continuously
+
+<CodeGroup>
+```text Key Metrics
+- Error rates
+- Response times
+- Resource usage
+- Business metrics
+- User experience
+```
+
+```text Tools
+- Prometheus
+- Grafana
+- DataDog
+- New Relic
+- ELK Stack
+```
+</CodeGroup>
+
+### 3. Test Thoroughly
+
+- Unit tests
+- Integration tests
+- Load tests
+- Smoke tests
+- Chaos engineering
+
+### 4. Plan for Rollback
+
+- Always have a rollback plan
+- Test rollback procedures
+- Keep previous versions accessible
+- Document rollback steps
+
+### 5. Communicate
+
+- Notify stakeholders
+- Maintain status pages
+- Document changes
+- Post-mortem after incidents
+
+<Note>
+Successful deployment strategies combine technical implementation with good communication, monitoring, and process discipline.
+</Note>

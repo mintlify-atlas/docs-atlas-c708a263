@@ -1,0 +1,205 @@
+---
+title: How to use this guide
+description: Navigate and get the most out of System Design 101 documentation
+---
+
+## Welcome to your learning journey
+
+System Design 101 is organized to help you learn system design concepts efficiently, whether you're a beginner or an experienced engineer preparing for interviews. This guide will help you navigate the documentation and maximize your learning.
+
+## Documentation structure
+
+The documentation is organized into four main tabs:
+
+### Learn tab
+
+The Learn tab contains foundational knowledge organized into:
+
+- **Getting Started** - Introduction and how to use this guide
+- **Core Concepts** - APIs, databases, caching, cloud systems, and security fundamentals
+- **System Architecture** - Software architecture patterns, design patterns, microservices, and scalability
+- **Infrastructure & Operations** - DevOps, CI/CD, Kubernetes, Docker, and monitoring
+
+### Guides tab
+
+The Guides tab provides in-depth technical guides on:
+
+- **APIs & Web** - REST, GraphQL, gRPC, API gateways, load balancers, HTTP protocols
+- **Databases** - Choosing databases, SQL vs NoSQL, sharding, replication, CAP theorem, ACID
+- **Caching & Performance** - Redis, CDN, caching strategies, cache eviction
+- **Security** - Authentication, OAuth, JWT, HTTPS/SSL, encryption
+- **Cloud & Distributed Systems** - AWS services, scalability, distributed patterns, resilience
+- **DevOps & CI/CD** - CI/CD pipelines, Kubernetes, Docker, deployment strategies
+
+### Case Studies tab
+
+Real-world examples of production systems:
+
+- **Tech Giants** - Netflix, Uber, Twitter, Airbnb, Discord architectures
+- **System Designs** - Google Maps, chat applications, payment systems, stock exchanges
+
+### Interview Prep tab
+
+Resources for system design interviews:
+
+- **System Design Interviews** - Overview, how to ace interviews, common questions, algorithms
+- **Fundamentals** - Computer fundamentals, networking, data structures
+
+## Learning paths
+
+Depending on your goals, here are recommended learning paths:
+
+### For interview preparation
+
+<Steps>
+  <Step title="Start with fundamentals">
+    Begin with the Core Concepts section to understand APIs, databases, caching, and distributed systems.
+  </Step>
+  <Step title="Study real-world systems">
+    Review case studies from the Case Studies tab to see how major companies designed their systems.
+  </Step>
+  <Step title="Practice common patterns">
+    Work through the Interview Prep section, focusing on common system design questions and solution patterns.
+  </Step>
+  <Step title="Master the interview framework">
+    Learn the structured approach to tackling any system design problem in an interview setting.
+  </Step>
+</Steps>
+
+<Note>
+  Focus on understanding the **why** behind design decisions, not just memorizing solutions. Interviewers want to see your thought process.
+</Note>
+
+### For building production systems
+
+<Steps>
+  <Step title="Understand your requirements">
+    Start with guides on choosing the right database, API architecture, and caching strategies based on your specific needs.
+  </Step>
+  <Step title="Design for scale and reliability">
+    Study scalability strategies, distributed system patterns, and resilience patterns from the Guides tab.
+  </Step>
+  <Step title="Implement security">
+    Review security guides covering OAuth, JWT, encryption, and secure system design best practices.
+  </Step>
+  <Step title="Deploy and monitor">
+    Learn from DevOps guides on CI/CD pipelines, Kubernetes deployment, and observability (logging, tracing, metrics).
+  </Step>
+</Steps>
+
+### For learning fundamentals
+
+<Steps>
+  <Step title="Computer fundamentals">
+    Start with networking basics (TCP/UDP, DNS, OSI model) and data structures from the Interview Prep fundamentals section.
+  </Step>
+  <Step title="Web development basics">
+    Learn how REST APIs work, what load balancers do, and how HTTP protocols evolved.
+  </Step>
+  <Step title="Database fundamentals">
+    Understand database types, ACID properties, CAP theorem, and when to use different database systems.
+  </Step>
+  <Step title="Build up to advanced topics">
+    Progress to distributed systems, cloud architecture, and scalability patterns as you gain confidence.
+  </Step>
+</Steps>
+
+## Using the visual diagrams
+
+<Info>
+  Every guide includes visual diagrams to help you understand concepts at a glance. These diagrams are designed to be shared and referenced during discussions.
+</Info>
+
+Our diagrams:
+
+- **Simplify complexity** - Break down intricate systems into digestible visual components
+- **Show relationships** - Illustrate how different parts of a system interact
+- **Highlight patterns** - Make common design patterns easy to recognize
+- **Support memory** - Visual learning helps concepts stick better than text alone
+
+**Tip**: Save diagrams you find particularly useful. They make great references during design discussions and interviews.
+
+## Navigation tips
+
+### Using the sidebar
+
+The left sidebar organizes all content by tabs and groups. Click on any tab or group to expand and see all available guides.
+
+### Search functionality
+
+Use the search bar at the top to quickly find specific topics:
+
+- Search for technologies (e.g., "Redis", "Kubernetes", "OAuth")
+- Search for concepts (e.g., "caching", "sharding", "load balancing")
+- Search for companies (e.g., "Netflix", "Uber", "Discord")
+
+## Code examples
+
+When guides include code examples, they're presented in multiple languages where applicable:
+
+```python Python
+# Example: Simple caching implementation
+cache = {}
+
+def get_with_cache(key):
+    if key in cache:
+        return cache[key]
+    
+    value = fetch_from_database(key)
+    cache[key] = value
+    return value
+```
+
+```javascript JavaScript
+// Example: Simple caching implementation
+const cache = {};
+
+function getWithCache(key) {
+  if (cache[key]) {
+    return cache[key];
+  }
+  
+  const value = fetchFromDatabase(key);
+  cache[key] = value;
+  return value;
+}
+```
+
+## Best practices for learning
+
+<CardGroup cols={2}>
+  <Card title="Take notes" icon="pen">
+    Write down key concepts and draw your own diagrams. Active engagement helps retention.
+  </Card>
+  <Card title="Start simple" icon="seedling">
+    Begin with basic concepts before diving into complex distributed systems. Build a strong foundation first.
+  </Card>
+  <Card title="Practice explaining" icon="comments">
+    Try explaining concepts to others or in your own words. This reveals gaps in your understanding.
+  </Card>
+  <Card title="Build projects" icon="hammer">
+    Apply what you learn by building small projects that implement the patterns and concepts you study.
+  </Card>
+</CardGroup>
+
+## Common patterns you'll encounter
+
+Throughout the documentation, you'll see these recurring patterns:
+
+- **Trade-offs** - Understanding the pros and cons of different approaches
+- **Scalability** - How to grow from hundreds to millions of users
+- **Reliability** - Designing systems that handle failures gracefully
+- **Performance** - Optimizing latency and throughput
+- **Security** - Protecting data and preventing unauthorized access
+
+## Getting help
+
+If you find errors or have suggestions for improving the documentation:
+
+- Visit the [GitHub repository](https://github.com/ByteByteGoHq/system-design-101)
+- Check the [ByteByteGo blog](https://blog.bytebytego.com) for additional resources
+- Follow [ByteByteGo on YouTube](https://www.youtube.com/channel/UCZgt6AzoyjslHTC9dz0UoTw) for video explanations
+
+<Tip>
+  The best way to learn system design is to combine reading, visual learning, and hands-on practice. Don't just read—try to design systems yourself and compare your solutions to established patterns.
+</Tip>

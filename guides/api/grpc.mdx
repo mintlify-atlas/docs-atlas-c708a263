@@ -1,0 +1,531 @@
+---
+title: 'gRPC'
+description: 'Explore gRPC, a high-performance RPC framework using Protocol Buffers and HTTP/2 for efficient microservices communication.'
+---
+
+## What is gRPC?
+
+<img src="https://assets.bytebytego.com/diagrams/0054-what-is-grpc.png" alt="What is gRPC" />
+
+gRPC is a high-performance, open-source universal RPC (Remote Procedure Call) framework initially developed by Google. It leverages HTTP/2 for transport, Protocol Buffers as the interface description language, and provides features such as authentication, load balancing, and more.
+
+<Info>
+  gRPC enables efficient and robust communication between services in a microservices architecture, making it a popular choice for building distributed systems and internal APIs.
+</Info>
+
+## What is RPC?
+
+RPC (Remote Procedure Call) is called "remote" because it enables communications between remote services when services are deployed to different servers under microservice architecture.
+
+**From the user's point of view, it acts like a local function call.**
+
+This abstraction makes distributed systems easier to build and maintain, as developers can write code that appears to call local functions while actually communicating across the network.
+
+## How gRPC Works
+
+<img src="https://assets.bytebytego.com/diagrams/0210-grpc.png" alt="How gRPC Works" />
+
+The diagram illustrates the overall data flow for gRPC:
+
+<Steps>
+  <Step title="REST Call Received">
+    A REST call is made from the client. The request body is usually in JSON format.
+  </Step>
+  
+  <Step title="Client Transformation">
+    The order service (gRPC client) receives the REST call, transforms it, and makes an RPC call to the payment service.
+    
+    gRPC encodes the **client stub** into a binary format and sends it to the low-level transport layer.
+  </Step>
+  
+  <Step title="Network Transmission">
+    gRPC sends the packets over the network via HTTP/2.
+    
+    Because of binary encoding and network optimizations, **gRPC is said to be 5X faster than JSON**.
+  </Step>
+  
+  <Step title="Server Processing">
+    The payment service (gRPC server) receives the packets from the network, decodes them, and invokes the server application.
+  </Step>
+  
+  <Step title="Response Encoding">
+    The result is returned from the server application, gets encoded, and sent to the transport layer.
+  </Step>
+  
+  <Step title="Client Response">
+    The order service receives the packets, decodes them, and sends the result to the client application.
+  </Step>
+</Steps>
+
+## Key Features of gRPC
+
+### Protocol Buffers (protobuf)
+
+By default, gRPC uses Protocol Buffers as its Interface Definition Language (IDL).
+
+<Note>
+  Protocol Buffers make gRPC messages smaller and faster compared to JSON or XML.
+</Note>
+
+**Benefits of Protocol Buffers:**
+- Binary serialization format (more compact than text)
+- Strongly typed schema
+- Backward and forward compatibility
+- Auto-generated code in multiple languages
+- Faster serialization/deserialization
+
+### HTTP/2 Based Transport
+
+gRPC uses HTTP/2 for transport, providing many improvements over HTTP/1.x:
+
+- **Multiplexing**: Multiple requests/responses over a single connection
+- **Binary Protocol**: More efficient parsing
+- **Header Compression**: Reduced overhead
+- **Server Push**: Proactive data sending
+- **Stream Prioritization**: Control resource allocation
+
+### Multiple Language Support
+
+gRPC supports a wide range of programming languages:
+
+- C++, Java, Python, Go
+- C#, Node.js, Ruby, PHP
+- Dart, Kotlin, Objective-C
+- And many more through community plugins
+
+### Bi-Directional Streaming
+
+gRPC supports four types of communication:
+
+<CodeGroup>
+```protobuf Unary RPC
+// Simple request-response (like REST)
+rpc GetUser (GetUserRequest) returns (User) {}
+```
+
+```protobuf Server Streaming
+// Client sends one request, server sends stream of responses
+rpc ListUsers (ListUsersRequest) returns (stream User) {}
+```
+
+```protobuf Client Streaming
+// Client sends stream of requests, server sends one response
+rpc CreateUsers (stream CreateUserRequest) returns (CreateUsersResponse) {}
+```
+
+```protobuf Bidirectional Streaming
+// Both client and server send streams
+rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
+```
+</CodeGroup>
+
+This enables development of sophisticated real-time applications with bidirectional communication like chat services, live updates, and streaming data processing.
+
+## Protocol Buffers Example
+
+### Defining a Service
+
+```protobuf
+syntax = "proto3";
+
+package userservice;
+
+// The user service definition
+service UserService {
+  // Unary RPC
+  rpc GetUser (GetUserRequest) returns (User) {}
+  
+  // Server streaming RPC
+  rpc ListUsers (ListUsersRequest) returns (stream User) {}
+  
+  // Client streaming RPC
+  rpc CreateUsers (stream CreateUserRequest) returns (CreateUsersResponse) {}
+  
+  // Bidirectional streaming RPC
+  rpc StreamUsers (stream UserRequest) returns (stream User) {}
+}
+
+// Request message
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message UserRequest {
+  string query = 1;
+}
+
+// Response messages
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  int64 created_at = 4;
+  repeated string roles = 5;
+}
+
+message CreateUsersResponse {
+  int32 created_count = 1;
+  repeated string user_ids = 2;
+}
+```
+
+### Generated Code Usage
+
+<CodeGroup>
+```go Go Server
+package main
+
+import (
+    "context"
+    "log"
+    "net"
+    
+    "google.golang.org/grpc"
+    pb "path/to/userservice"
+)
+
+type server struct {
+    pb.UnimplementedUserServiceServer
+}
+
+func (s *server) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
+    // Implementation
+    return &pb.User{
+        Id:    req.UserId,
+        Name:  "John Doe",
+        Email: "john@example.com",
+    }, nil
+}
+
+func main() {
+    lis, err := net.Listen("tcp", ":50051")
+    if err != nil {
+        log.Fatalf("failed to listen: %v", err)
+    }
+    
+    s := grpc.NewServer()
+    pb.RegisterUserServiceServer(s, &server{})
+    
+    log.Printf("server listening at %v", lis.Addr())
+    if err := s.Serve(lis); err != nil {
+        log.Fatalf("failed to serve: %v", err)
+    }
+}
+```
+
+```go Go Client
+package main
+
+import (
+    "context"
+    "log"
+    "time"
+    
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+    pb "path/to/userservice"
+)
+
+func main() {
+    conn, err := grpc.Dial("localhost:50051", 
+        grpc.WithTransportCredentials(insecure.NewCredentials()))
+    if err != nil {
+        log.Fatalf("did not connect: %v", err)
+    }
+    defer conn.Close()
+    
+    c := pb.NewUserServiceClient(conn)
+    
+    ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+    defer cancel()
+    
+    r, err := c.GetUser(ctx, &pb.GetUserRequest{UserId: "123"})
+    if err != nil {
+        log.Fatalf("could not get user: %v", err)
+    }
+    log.Printf("User: %s (%s)", r.GetName(), r.GetEmail())
+}
+```
+
+```python Python Server
+import grpc
+from concurrent import futures
+import userservice_pb2
+import userservice_pb2_grpc
+
+class UserServiceServicer(userservice_pb2_grpc.UserServiceServicer):
+    def GetUser(self, request, context):
+        return userservice_pb2.User(
+            id=request.user_id,
+            name="John Doe",
+            email="john@example.com"
+        )
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    userservice_pb2_grpc.add_UserServiceServicer_to_server(
+        UserServiceServicer(), server)
+    server.add_insecure_port('[::]:50051')
+    server.start()
+    print("Server started on port 50051")
+    server.wait_for_termination()
+
+if __name__ == '__main__':
+    serve()
+```
+
+```python Python Client
+import grpc
+import userservice_pb2
+import userservice_pb2_grpc
+
+def run():
+    with grpc.insecure_channel('localhost:50051') as channel:
+        stub = userservice_pb2_grpc.UserServiceStub(channel)
+        response = stub.GetUser(userservice_pb2.GetUserRequest(user_id="123"))
+        print(f"User: {response.name} ({response.email})")
+
+if __name__ == '__main__':
+    run()
+```
+</CodeGroup>
+
+## gRPC Communication Patterns
+
+### Unary RPC (Request-Response)
+
+Most similar to traditional REST API calls:
+
+```protobuf
+rpc GetUser (GetUserRequest) returns (User) {}
+```
+
+**Use Cases:**
+- Simple CRUD operations
+- Authentication requests
+- Configuration retrieval
+
+### Server Streaming RPC
+
+Client sends one request, server responds with a stream:
+
+```protobuf
+rpc ListUsers (ListUsersRequest) returns (stream User) {}
+```
+
+**Use Cases:**
+- Large dataset retrieval
+- Real-time notifications
+- Log streaming
+- Stock price updates
+
+### Client Streaming RPC
+
+Client sends a stream of requests, server responds once:
+
+```protobuf
+rpc UploadFile (stream FileChunk) returns (UploadResponse) {}
+```
+
+**Use Cases:**
+- File uploads
+- Batch data submission
+- Sensor data collection
+
+### Bidirectional Streaming RPC
+
+Both client and server send streams independently:
+
+```protobuf
+rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
+```
+
+**Use Cases:**
+- Chat applications
+- Real-time collaboration
+- Live video/audio streaming
+- Gaming
+
+## Advantages of gRPC
+
+### Performance
+
+- **5X faster than JSON**: Binary serialization is more efficient
+- **Smaller payload size**: Protocol Buffers are compact
+- **HTTP/2 multiplexing**: Multiple requests on one connection
+- **Lower latency**: Reduced network overhead
+
+### Developer Productivity
+
+- **Auto-generated code**: Client and server code from .proto files
+- **Strong typing**: Compile-time type checking
+- **Cross-language support**: Polyglot microservices
+- **Built-in features**: Authentication, load balancing, timeouts
+
+### Scalability
+
+- **Streaming support**: Efficient for large datasets
+- **Load balancing**: Built-in client-side load balancing
+- **Connection pooling**: Efficient resource usage
+- **Backpressure**: Flow control mechanisms
+
+## Disadvantages of gRPC
+
+### Limited Browser Support
+
+<Note>
+  gRPC is not natively supported in browsers. gRPC-Web exists but requires a proxy.
+</Note>
+
+- Cannot call gRPC services directly from browsers
+- Requires gRPC-Web proxy (e.g., Envoy)
+- Not ideal for public-facing APIs
+
+### Human Readability
+
+- Binary format is not human-readable
+- Requires special tools to inspect messages
+- Debugging can be more challenging
+- Not suitable for public APIs where transparency is needed
+
+### Learning Curve
+
+- Requires learning Protocol Buffers
+- More complex than REST
+- Additional tooling needed
+- Team training required
+
+## gRPC vs REST vs GraphQL
+
+<img src="https://assets.bytebytego.com/diagrams/0126-api-style-compare.jpg" alt="API Comparison" />
+
+| Aspect | gRPC | REST | GraphQL |
+|--------|------|------|----------|
+| **Protocol** | HTTP/2 | HTTP/1.1 | HTTP/1.1+ |
+| **Data Format** | Protocol Buffers | JSON | JSON |
+| **Performance** | Very High | Moderate | Moderate |
+| **Browser Support** | Limited (gRPC-Web) | Native | Native |
+| **Streaming** | Native (4 types) | Limited (SSE) | Subscriptions |
+| **Schema** | Required (.proto) | Optional (OpenAPI) | Required (SDL) |
+| **Use Case** | Microservices | Public APIs | Complex queries |
+
+## When to Use gRPC
+
+### Ideal Use Cases
+
+- **Microservices Communication**: Internal service-to-service calls
+- **Real-Time Applications**: Chat, gaming, live updates
+- **Mobile Applications**: Efficient data transfer, battery saving
+- **Polyglot Environments**: Multiple programming languages
+- **High-Performance Requirements**: Low latency, high throughput
+- **Streaming Data**: Large datasets, real-time processing
+
+### When REST Might Be Better
+
+- Public-facing APIs
+- Browser-based applications without proxy
+- Simple CRUD operations
+- Need for human-readable messages
+- Third-party integrations
+- Legacy system compatibility
+
+## Best Practices
+
+<Steps>
+  <Step title="Use Semantic Versioning">
+    Version your .proto files and maintain backward compatibility.
+    
+    ```protobuf
+    syntax = "proto3";
+    package userservice.v1;
+    ```
+  </Step>
+  
+  <Step title="Implement Proper Error Handling">
+    Use gRPC status codes for consistent error reporting.
+    
+    ```go
+    return nil, status.Errorf(codes.NotFound, "user %s not found", req.UserId)
+    ```
+  </Step>
+  
+  <Step title="Add Timeouts and Deadlines">
+    Prevent hanging requests with context deadlines.
+    
+    ```go
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+    ```
+  </Step>
+  
+  <Step title="Use Interceptors for Cross-Cutting Concerns">
+    Implement logging, authentication, and metrics consistently.
+  </Step>
+  
+  <Step title="Implement Health Checks">
+    Use gRPC health checking protocol for service monitoring.
+  </Step>
+  
+  <Step title="Enable Compression">
+    Use gzip compression for larger payloads when appropriate.
+  </Step>
+</Steps>
+
+## Security in gRPC
+
+### TLS/SSL Encryption
+
+```go
+creds, err := credentials.NewServerTLSFromFile("server.crt", "server.key")
+if err != nil {
+    log.Fatalf("Failed to setup TLS: %v", err)
+}
+s := grpc.NewServer(grpc.Creds(creds))
+```
+
+### Authentication
+
+- **Token-based**: Using JWT or OAuth2 tokens
+- **mTLS**: Mutual TLS for service-to-service
+- **API Keys**: Simple key-based authentication
+
+### Authorization
+
+Implement authorization using interceptors:
+
+```go
+func authInterceptor(ctx context.Context, req interface{}, 
+    info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+    // Extract and validate token from metadata
+    md, ok := metadata.FromIncomingContext(ctx)
+    if !ok {
+        return nil, status.Errorf(codes.Unauthenticated, "missing metadata")
+    }
+    // Validate token and check permissions
+    // ...
+    return handler(ctx, req)
+}
+```
+
+## Key Takeaways
+
+<Info>
+  gRPC excels in microservices architectures where performance, streaming, and polyglot support are critical. For public APIs or browser-based applications, REST or GraphQL may be more suitable.
+</Info>
+
+- gRPC is 5X faster than JSON-based APIs due to binary serialization
+- Native support for four streaming patterns enables real-time applications
+- HTTP/2 provides multiplexing, compression, and performance benefits
+- Protocol Buffers ensure strong typing and cross-language compatibility
+- Best suited for internal microservices communication
+- Limited browser support requires gRPC-Web proxy for web applications

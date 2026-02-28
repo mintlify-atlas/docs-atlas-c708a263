@@ -1,0 +1,370 @@
+---
+title: "Designing a Chat Application"
+description: "Learn how to design a scalable chat application like WhatsApp, Facebook Messenger, or Discord."
+icon: "message"
+---
+
+## Overview
+
+Chat applications like WhatsApp, Facebook Messenger, and Discord serve billions of messages daily. This case study explores two approaches to building a chat application: a **simplified 1-to-1 chat** using Redis pub/sub, and a more comprehensive **production-grade architecture**.
+
+<Tip>
+  Understanding both simple and complex chat architectures helps you choose the right approach based on scale requirements.
+</Tip>
+
+## Approach 1: Simple Chat with Redis
+
+<img
+  src="https://assets.bytebytego.com/diagrams/0314-redis-chat.jpg"
+  alt="Redis-based Chat Application Architecture"
+/>
+
+A simple chat application can leverage Redis pub/sub functionality for real-time messaging.
+
+### Stage 1: Connection Initialization
+
+Let's walk through how Bob connects to the chat application:
+
+<Steps>
+  <Step title="Client Connection">
+    **Steps 1-2**: Bob opens the chat application. A WebSocket connection is established between the client and the server for bidirectional, real-time communication.
+  </Step>
+  
+  <Step title="Redis Setup">
+    **Steps 3-4**: The pub-sub server establishes multiple connections to Redis:
+    - One connection to update Redis data models and publish messages to topics
+    - Multiple connections to subscribe and listen for updates on different topics
+  </Step>
+  
+  <Step title="Initial Data Load">
+    **Steps 5-6**: Bob's client requests:
+    - Chat member list (who's available)
+    - Historical message list (previous conversations)
+    
+    This information is retrieved from Redis and sent to the client.
+  </Step>
+  
+  <Step title="Presence Update">
+    **Steps 7-8**: Since Bob is a new member joining the chat, a message is published to the `member_add` topic. Other participants' clients receive this update and can see Bob is now online.
+  </Step>
+</Steps>
+
+### Stage 2: Message Handling
+
+When Bob sends a message to Alice:
+
+<Steps>
+  <Step title="Send Message">
+    **Step 1**: Bob sends a message to Alice through the WebSocket connection.
+  </Step>
+  
+  <Step title="Persist & Publish">
+    **Step 2**: The server performs two operations:
+    1. Adds the message to a Redis SortedSet using `ZADD` (sorted by timestamp)
+    2. Publishes the message to the `messages` topic for subscribers
+  </Step>
+  
+  <Step title="Receive Message">
+    **Step 3**: Alice's client, subscribed to the `messages` topic, receives the chat message in real-time.
+  </Step>
+</Steps>
+
+**Key Redis Data Structures:**
+
+```redis
+# Store messages in a sorted set (sorted by timestamp)
+ZADD chat:room:123 1678901234 '{"user":"Bob","msg":"Hello Alice!"}'
+
+# Publish message to subscribers
+PUBLISH messages '{"room":"123","user":"Bob","msg":"Hello Alice!"}'
+
+# Store online members
+SADD chat:room:123:members "Bob" "Alice"
+```
+
+### Limitations of Redis Approach
+
+<Warning>
+  While simple, this Redis-based approach has limitations:
+  - **No message persistence**: Redis pub/sub doesn't guarantee delivery if clients are offline
+  - **Single point of failure**: Redis instance becomes a bottleneck
+  - **No message history**: Pub/sub messages are fire-and-forget
+  - **Limited scalability**: One Redis instance can only handle so many connections
+</Warning>
+
+## Approach 2: Production-Grade Architecture
+
+<img
+  src="https://assets.bytebytego.com/diagrams/0134-chat-app.jpeg"
+  alt="Production Chat Application Architecture"
+/>
+
+A scalable chat application for millions of users requires a more sophisticated architecture.
+
+### User Login Flow
+
+<Steps>
+  <Step title="Establish Connection">
+    **Step 1**: Alice logs in and establishes a WebSocket connection with the server. The connection is stateful and persistent.
+  </Step>
+  
+  <Step title="Update Presence">
+    **Steps 2-4**: 
+    - The presence service receives Alice's connection notification
+    - Updates Alice's status to "online" in the presence database
+    - Notifies Alice's friends about her online status
+  </Step>
+</Steps>
+
+### Messaging Flow
+
+When Alice sends a message to Bob:
+
+<Steps>
+  <Step title="Send Message">
+    **Steps 1-2**: Alice sends a chat message to Bob. The message is routed to **Chat Service A** (the service instance handling Alice's connection).
+  </Step>
+  
+  <Step title="Generate ID & Persist">
+    **Steps 3-4**: 
+    - Message is sent to the **Sequencing Service**, which generates a globally unique, ordered message ID
+    - Message is persisted in the **Message Store** (database) for durability and history
+  </Step>
+  
+  <Step title="Queue for Delivery">
+    **Step 5**: The message is sent to the **Message Sync Queue** to be synchronized to Bob's chat service.
+  </Step>
+  
+  <Step title="Check Recipient Status">
+    **Step 6**: The **Message Sync Service** checks Bob's presence:
+    
+    **If Bob is online:**
+    - Message is sent to **Chat Service B** (handling Bob's connection)
+    - Delivered via WebSocket in real-time
+    
+    **If Bob is offline:**
+    - Message is sent to the **Push Notification Server**
+    - Push notification sent to Bob's device
+  </Step>
+  
+  <Step title="Deliver to Recipient">
+    **Steps 7-8**: If Bob is online, the message is pushed to Bob's client through the WebSocket connection.
+  </Step>
+</Steps>
+
+## Key Components Explained
+
+<AccordionGroup>
+  <Accordion title="Chat Service (Stateful)">
+    **Purpose**: Maintain WebSocket connections with clients
+    
+    **Characteristics**:
+    - Each instance handles thousands of concurrent WebSocket connections
+    - Routes incoming messages to appropriate services
+    - Delivers outgoing messages to connected clients
+    - Must be horizontally scalable
+    
+    **Challenges**:
+    - Session affinity: Same client should reconnect to same instance
+    - Connection state management
+    - Graceful handling of disconnections
+  </Accordion>
+  
+  <Accordion title="Presence Service">
+    **Purpose**: Track online/offline status of users
+    
+    **Features**:
+    - Real-time status updates
+    - Last seen timestamps
+    - User availability (online, away, busy, offline)
+    - Heartbeat mechanism to detect disconnections
+    
+    **Implementation**:
+    ```
+    # Redis example
+    HSET user:alice:presence status "online" last_seen "1678901234"
+    EXPIRE user:alice:presence 300  # Auto-expire if no heartbeat
+    ```
+  </Accordion>
+  
+  <Accordion title="Sequencing Service">
+    **Purpose**: Generate globally unique, ordered message IDs
+    
+    **Why needed:**
+    - Ensure messages appear in correct order across all clients
+    - Provide unique identifier for each message
+    - Enable efficient message synchronization
+    
+    **Approaches:**
+    - **Snowflake ID**: Timestamp + machine ID + sequence number
+    - **Database sequence**: Use database auto-increment (limited scalability)
+    - **Distributed ID generator**: Services like Twitter Snowflake or Instagram's ID generator
+  </Accordion>
+  
+  <Accordion title="Message Store">
+    **Purpose**: Persist all messages for history and recovery
+    
+    **Requirements**:
+    - High write throughput (millions of messages per second)
+    - Fast retrieval of recent messages
+    - Long-term storage of message history
+    - Support for pagination
+    
+    **Database choices**:
+    - **Cassandra**: High write throughput, good for time-series data
+    - **MongoDB**: Flexible schema, good query capabilities
+    - **HBase**: Scalable, column-oriented storage
+  </Accordion>
+  
+  <Accordion title="Message Sync Queue">
+    **Purpose**: Decouple message sending from delivery
+    
+    **Benefits**:
+    - Handle bursts of messages
+    - Retry failed deliveries
+    - Support offline delivery
+    - Enable message ordering guarantees
+    
+    **Technologies**: Kafka, RabbitMQ, AWS SQS
+  </Accordion>
+</AccordionGroup>
+
+## Design Tradeoffs
+
+<AccordionGroup>
+  <Accordion title="WebSocket vs. HTTP Polling">
+    **WebSocket (Chosen)**:
+    - ✅ True real-time, bidirectional communication
+    - ✅ Lower latency
+    - ✅ Less bandwidth overhead
+    - ❌ More complex to scale (stateful connections)
+    - ❌ Requires connection state management
+    
+    **HTTP Polling**:
+    - ✅ Simple to implement
+    - ✅ Stateless, easier to scale
+    - ❌ Higher latency
+    - ❌ Wasteful (polling empty results)
+  </Accordion>
+  
+  <Accordion title="Push vs. Pull for Message Delivery">
+    **Push (Chosen)**:
+    - ✅ Instant delivery when recipient is online
+    - ✅ Better user experience
+    - ❌ Requires maintaining connections
+    
+    **Pull**:
+    - ✅ Simpler architecture
+    - ✅ Client controls polling frequency
+    - ❌ Higher latency
+    - ❌ Increased server load from constant polling
+  </Accordion>
+  
+  <Accordion title="Synchronous vs. Asynchronous Message Processing">
+    **Asynchronous (Chosen)**:
+    - ✅ Better scalability
+    - ✅ Handles traffic spikes
+    - ✅ Decouples components
+    - ❌ More complex architecture
+    - ❌ Eventual consistency
+    
+    **Synchronous**:
+    - ✅ Simpler to reason about
+    - ✅ Immediate consistency
+    - ❌ Tight coupling
+    - ❌ Harder to scale
+  </Accordion>
+</AccordionGroup>
+
+## Scalability Considerations
+
+### Horizontal Scaling
+
+<CardGroup cols={2}>
+  <Card title="Chat Services" icon="server">
+    Run multiple instances behind a load balancer. Use consistent hashing for session affinity.
+  </Card>
+  <Card title="Message Store" icon="database">
+    Shard by user ID or conversation ID. Use replication for high availability.
+  </Card>
+  <Card title="Message Queue" icon="list">
+    Partition by conversation ID. Scale consumers independently of producers.
+  </Card>
+  <Card title="Presence Service" icon="circle-user">
+    Use distributed cache (Redis Cluster) for high-speed reads/writes.
+  </Card>
+</CardGroup>
+
+### Handling Group Chats
+
+Group chats introduce additional complexity:
+
+**Challenges:**
+- Message must be delivered to N recipients (fan-out)
+- Large groups (thousands of members)
+- Read receipts and typing indicators
+
+**Solutions:**
+<Steps>
+  <Step title="Message Fan-out">
+    When a message is sent to a group:
+    1. Persist once in message store
+    2. Create N queue entries (one per recipient)
+    3. Each recipient's chat service pulls their messages
+  </Step>
+  <Step title="Optimize Large Groups">
+    For large groups (>100 members):
+    - Disable read receipts
+    - Batch presence updates
+    - Use message pagination aggressively
+  </Step>
+</Steps>
+
+## Key Technologies
+
+<CardGroup cols={2}>
+  <Card title="WebSocket" icon="plug">
+    Real-time, bidirectional communication between client and server
+  </Card>
+  <Card title="Redis" icon="database">
+    Presence service, caching, pub/sub for simple implementations
+  </Card>
+  <Card title="Cassandra/HBase" icon="table">
+    Message storage with high write throughput
+  </Card>
+  <Card title="Kafka" icon="bars-progress">
+    Message queue for async processing and delivery
+  </Card>
+  <Card title="Snowflake IDs" icon="fingerprint">
+    Globally unique, time-ordered message identifiers
+  </Card>
+  <Card title="Push Notification" icon="bell">
+    Deliver messages to offline users (APNs, FCM)
+  </Card>
+</CardGroup>
+
+## Summary
+
+Building a chat application requires careful consideration of:
+
+<Steps>
+  <Step title="Real-time Communication">
+    Use WebSockets for persistent, bidirectional connections
+  </Step>
+  <Step title="Message Persistence">
+    Store messages durably with globally unique, ordered IDs
+  </Step>
+  <Step title="Presence Management">
+    Track user online/offline status in real-time
+  </Step>
+  <Step title="Async Processing">
+    Use message queues to decouple and scale message delivery
+  </Step>
+  <Step title="Offline Support">
+    Integrate push notifications for offline users
+  </Step>
+</Steps>
+
+<Note>
+  Start simple with Redis pub/sub for prototypes or low-scale applications. As you grow, migrate to a distributed architecture with dedicated services for chat, presence, and message delivery.
+</Note>

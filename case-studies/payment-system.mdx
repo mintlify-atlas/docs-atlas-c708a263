@@ -1,0 +1,512 @@
+---
+title: "Designing a Payment System"
+description: "Explore the architecture and flow of a production-grade payment processing system."
+icon: "credit-card"
+---
+
+<img
+  src="https://assets.bytebytego.com/diagrams/0299-payment-system.jpeg"
+  alt="Payment System Architecture"
+/>
+
+## Overview
+
+When you click the **Buy** button on Amazon or any e-commerce website, a complex payment processing system springs into action. This case study explores how money moves through a payment system, from the initial purchase to final settlement.
+
+<Warning>
+  Payment systems handle real money and must prioritize **reliability**, **security**, and **consistency** above all else.
+</Warning>
+
+## Payment Flow Architecture
+
+Let's trace how a payment moves through the system step by step:
+
+### 1. Payment Event Generation
+
+<Steps>
+  <Step title="User Action">
+    When a user clicks the "Buy" button, a **payment event** is generated and sent to the payment service.
+  </Step>
+  
+  <Step title="Event Persistence">
+    The payment service immediately stores the payment event in the database for audit and recovery purposes.
+  </Step>
+</Steps>
+
+**Why persist immediately?**
+- Ensure no payment request is lost
+- Enable recovery from failures
+- Maintain audit trail
+- Support dispute resolution
+
+### 2. Payment Order Processing
+
+<Steps>
+  <Step title="Order Decomposition">
+    A single payment event may contain **multiple payment orders**. For example, you might buy products from several sellers in one checkout.
+    
+    The payment service breaks down the event into individual payment orders, one per seller.
+  </Step>
+  
+  <Step title="Payment Execution">
+    For each payment order:
+    1. The payment service calls the **payment executor**
+    2. The payment executor stores the order in the database
+    3. The executor calls an external **PSP** (Payment Service Provider) to process the credit card payment
+  </Step>
+</Steps>
+
+**Payment Service Provider (PSP) Examples:**
+- Stripe
+- PayPal
+- Adyen
+- Square
+- Braintree
+
+### 3. Balance Updates
+
+<Steps>
+  <Step title="Wallet Update">
+    After successful payment execution:
+    1. Payment service calls the **wallet service**
+    2. Wallet service updates the seller's balance
+    3. Updated balance is persisted in the wallet database
+  </Step>
+  
+  <Step title="Ledger Recording">
+    After wallet update:
+    1. Payment service calls the **ledger service**
+    2. Ledger service appends new transaction records
+    3. Ledger maintains immutable financial record
+  </Step>
+</Steps>
+
+### 4. Settlement Process
+
+<Steps>
+  <Step title="Daily Settlement">
+    Every night, PSPs and banks send **settlement files** to their clients.
+  </Step>
+  
+  <Step title="Settlement File Contents">
+    The settlement file contains:
+    - Current balance of the bank account
+    - All transactions that occurred during the day
+    - Transaction fees and charges
+    - Any chargebacks or refunds
+  </Step>
+</Steps>
+
+## Key Components Explained
+
+<AccordionGroup>
+  <Accordion title="Payment Service">
+    **Role**: Orchestrates the entire payment flow
+    
+    **Responsibilities**:
+    - Receive and validate payment events
+    - Break down events into individual orders
+    - Coordinate with payment executor, wallet, and ledger
+    - Handle payment state management
+    - Manage retries and error handling
+    
+    **Critical Features**:
+    - Idempotency: Same payment request should not be processed twice
+    - State machine: Track payment through various states (pending, processing, completed, failed)
+    - Error handling: Gracefully handle failures and timeouts
+  </Accordion>
+  
+  <Accordion title="Payment Executor">
+    **Role**: Execute payments through external PSPs
+    
+    **Responsibilities**:
+    - Store payment orders before processing
+    - Integrate with multiple PSPs (Stripe, PayPal, etc.)
+    - Handle PSP-specific protocols and formats
+    - Manage payment method details securely
+    - Retry failed payments with exponential backoff
+    
+    **Security Considerations**:
+    - Never store raw credit card numbers (use tokens)
+    - PCI DSS compliance
+    - Secure communication with PSPs (TLS)
+    - Encrypt sensitive data at rest
+  </Accordion>
+  
+  <Accordion title="Wallet Service">
+    **Role**: Manage account balances for all parties
+    
+    **Responsibilities**:
+    - Track balances for sellers and buyers
+    - Process debits and credits atomically
+    - Prevent negative balances
+    - Support multiple currencies
+    - Handle holds and reservations
+    
+    **Database Design**:
+    ```sql
+    CREATE TABLE wallets (
+      wallet_id BIGINT PRIMARY KEY,
+      user_id BIGINT NOT NULL,
+      currency VARCHAR(3) NOT NULL,
+      balance DECIMAL(19, 4) NOT NULL,
+      available_balance DECIMAL(19, 4) NOT NULL,
+      held_balance DECIMAL(19, 4) NOT NULL,
+      version BIGINT NOT NULL,  -- For optimistic locking
+      updated_at TIMESTAMP NOT NULL
+    );
+    ```
+  </Accordion>
+  
+  <Accordion title="Ledger Service">
+    **Role**: Maintain immutable record of all financial transactions
+    
+    **Characteristics**:
+    - **Append-only**: Never update or delete entries
+    - **Double-entry bookkeeping**: Every transaction has equal debits and credits
+    - **Audit trail**: Complete history of all money movements
+    - **Reconciliation**: Match internal records with bank statements
+    
+    **Why separate from wallet?**
+    - Wallet = current state ("How much money do I have now?")
+    - Ledger = complete history ("How did I get this balance?")
+    - Separation enables independent scaling and optimization
+    
+    **Example Ledger Entry**:
+    ```json
+    {
+      "transaction_id": "tx_123456",
+      "timestamp": "2024-02-28T10:30:00Z",
+      "entries": [
+        {
+          "account": "buyer_wallet_456",
+          "type": "debit",
+          "amount": 100.00,
+          "currency": "USD"
+        },
+        {
+          "account": "seller_wallet_789",
+          "type": "credit",
+          "amount": 95.00,
+          "currency": "USD"
+        },
+        {
+          "account": "platform_fee",
+          "type": "credit",
+          "amount": 5.00,
+          "currency": "USD"
+        }
+      ]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## 10 Principles for Resilient Payment Systems
+
+Based on Shopify's experience processing billions in payments:
+
+<img
+  src="https://assets.bytebytego.com/diagrams/0336-shopify.png"
+  alt="Shopify Payment System Resilience Principles"
+/>
+
+<AccordionGroup>
+  <Accordion title="1. Lower Timeouts">
+    **Problem**: Default timeout of 60 seconds is too long
+    
+    **Solution**: 
+    - Read timeout: **5 seconds**
+    - Write timeout: **1 second**
+    
+    **Rationale**: Fail fast and retry rather than blocking for a minute
+  </Accordion>
+  
+  <Accordion title="2. Install Circuit Breakers">
+    **Problem**: Cascading failures when downstream services fail
+    
+    **Solution**: Use circuit breakers to stop calling failing services
+    
+    **Example**: Shopify's Semian library protects:
+    - Net::HTTP
+    - MySQL
+    - Redis
+    - gRPC services
+    
+    **States**:
+    - Closed: Normal operation
+    - Open: Stop calling service (return cached/default response)
+    - Half-open: Test if service recovered
+  </Accordion>
+  
+  <Accordion title="3. Capacity Management">
+    **Formula**: 
+    ```
+    Throughput = Queue Size / Average Processing Time
+    ```
+    
+    **Example**:
+    - 50 requests in queue
+    - 100ms average processing time
+    - Throughput = 500 requests/second
+    
+    **Action**: Monitor queue depth and processing time to detect capacity issues early
+  </Accordion>
+  
+  <Accordion title="4. Monitoring & Alerting">
+    **Four Golden Signals** (from Google SRE):
+    
+    1. **Latency**: How long requests take
+    2. **Traffic**: How many requests you're getting
+    3. **Errors**: Rate of failed requests
+    4. **Saturation**: How full your service is
+    
+    Set up alerts for all four metrics.
+  </Accordion>
+  
+  <Accordion title="5. Structured Logging">
+    **Requirements**:
+    - Centralized logging system
+    - Structured format (JSON)
+    - Easily searchable
+    - Correlated by request ID
+    
+    **Example**:
+    ```json
+    {
+      "timestamp": "2024-02-28T10:30:00Z",
+      "level": "info",
+      "request_id": "req_abc123",
+      "user_id": "user_456",
+      "payment_id": "pay_789",
+      "message": "Payment processed successfully",
+      "amount": 100.00,
+      "currency": "USD"
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="6. Use Idempotency Keys">
+    **Problem**: Network failures can cause duplicate payments
+    
+    **Solution**: Client provides unique idempotency key
+    
+    **Implementation**:
+    ```
+    POST /payments
+    Idempotency-Key: ulid_01HQJK8M9N7P6R3S5T4V2W1X0Y
+    
+    {
+      "amount": 100.00,
+      "currency": "USD",
+      "source": "tok_visa_1234"
+    }
+    ```
+    
+    **Why ULID over UUID?**
+    - Lexicographically sortable
+    - More compact
+    - Contains timestamp
+  </Accordion>
+  
+  <Accordion title="7. Reconciliation">
+    **Purpose**: Ensure internal records match bank/PSP statements
+    
+    **Process**:
+    1. Receive settlement file from PSP/bank
+    2. Compare with internal ledger
+    3. Identify discrepancies
+    4. Investigate and resolve breaks
+    5. Store results in database
+    
+    **Frequency**: Daily (automated), plus on-demand for investigations
+  </Accordion>
+  
+  <Accordion title="8. Load Testing">
+    **Strategy**: Regularly simulate high-volume scenarios
+    
+    **Shopify's Approach**:
+    - Simulate flash sales (Black Friday, Cyber Monday)
+    - Test with 10x normal traffic
+    - Measure latency at different percentiles (p50, p95, p99)
+    - Identify bottlenecks before they hit production
+  </Accordion>
+  
+  <Accordion title="9. Incident Management">
+    **Three Key Roles**:
+    
+    1. **Incident Manager on Call (IMOC)**: Coordinates response
+    2. **Support Response Manager (SRM)**: Handles customer communication
+    3. **Service Owners**: Fix the technical issue
+    
+    **Process**:
+    - Detect → Alert → Assemble team → Diagnose → Fix → Communicate → Document
+  </Accordion>
+  
+  <Accordion title="10. Incident Retrospectives">
+    **Three Questions**:
+    
+    1. **What exactly happened?** (Timeline of events)
+    2. **What incorrect assumptions did we hold?** (Root cause)
+    3. **What can we do to prevent this?** (Action items)
+    
+    **Culture**: Blameless retrospectives focused on system improvements
+  </Accordion>
+</AccordionGroup>
+
+## Design Tradeoffs
+
+<AccordionGroup>
+  <Accordion title="Consistency vs. Availability">
+    **Challenge**: In a distributed payment system, network partitions can occur
+    
+    **Decision**: Choose **consistency** over availability
+    
+    **Rationale**:
+    - Better to fail a payment than process it twice
+    - Financial accuracy is non-negotiable
+    - Temporary unavailability is acceptable; incorrect balances are not
+    
+    **Implementation**:
+    - Use distributed transactions (2PC, Saga pattern)
+    - Strong consistency for wallet updates
+    - Eventual consistency acceptable for analytics/reporting
+  </Accordion>
+  
+  <Accordion title="Sync vs. Async Processing">
+    **Synchronous (for critical path)**:
+    - Payment validation
+    - Wallet debits/credits
+    - Ledger recording
+    
+    **Asynchronous (for non-critical)**:
+    - Email notifications
+    - Analytics updates
+    - Fraud scoring (post-authorization)
+    - Webhooks to merchants
+    
+    **Benefit**: Keep critical path fast and reliable
+  </Accordion>
+  
+  <Accordion title="Build vs. Buy (PSP Integration)">
+    **Don't build**:
+    - Credit card processing (PCI DSS complexity)
+    - Fraud detection (requires massive data)
+    - Bank integrations (regulatory requirements)
+    
+    **Do build**:
+    - Payment orchestration layer
+    - Wallet and ledger systems
+    - Business logic and rules
+    - Reconciliation systems
+    
+    **Strategy**: Use PSPs (Stripe, Adyen) for payment processing, build orchestration and financial systems
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+<CardGroup cols={2}>
+  <Card title="PCI DSS Compliance" icon="shield-check">
+    Never store raw credit card numbers. Use tokenization provided by PSPs.
+  </Card>
+  <Card title="Encryption" icon="lock">
+    Encrypt all sensitive data at rest and in transit (TLS 1.2+).
+  </Card>
+  <Card title="Fraud Detection" icon="user-secret">
+    Integrate with fraud detection services. Monitor for suspicious patterns.
+  </Card>
+  <Card title="Rate Limiting" icon="gauge-high">
+    Prevent brute force attacks on payment endpoints.
+  </Card>
+  <Card title="Audit Logging" icon="file-lines">
+    Log all payment actions with user, timestamp, and outcome.
+  </Card>
+  <Card title="Access Control" icon="key">
+    Strict RBAC for payment system access. Separate read/write permissions.
+  </Card>
+</CardGroup>
+
+## Handling Failures
+
+### Double Payment Prevention
+
+**Problem**: Network timeout after PSP charges card but before response received
+
+**Solution**:
+<Steps>
+  <Step title="Idempotency Keys">
+    Client includes unique key with each request
+  </Step>
+  <Step title="Request Deduplication">
+    Server checks if key already processed before executing
+  </Step>
+  <Step title="Store Results">
+    Cache response for duplicate requests (24 hours)
+  </Step>
+</Steps>
+
+### Wallet Update Failure
+
+**Problem**: Payment succeeds at PSP but wallet update fails
+
+**Solution**: Use distributed transactions
+
+**Saga Pattern**:
+```
+1. Reserve amount in buyer's wallet
+2. Call PSP to charge card
+3. If success:
+   - Commit buyer wallet debit
+   - Credit seller wallet
+   - Record in ledger
+4. If failure:
+   - Release reservation in buyer wallet
+   - Refund via PSP (if charged)
+```
+
+## Key Technologies
+
+<CardGroup cols={2}>
+  <Card title="Database" icon="database">
+    PostgreSQL with ACID transactions for wallet and ledger
+  </Card>
+  <Card title="Message Queue" icon="list">
+    Kafka for async processing (notifications, webhooks)
+  </Card>
+  <Card title="Cache" icon="bolt">
+    Redis for idempotency keys and rate limiting
+  </Card>
+  <Card title="Monitoring" icon="chart-line">
+    Prometheus + Grafana for metrics, PagerDuty for alerts
+  </Card>
+</CardGroup>
+
+## Summary
+
+Building a resilient payment system requires:
+
+<Steps>
+  <Step title="Strong Consistency">
+    Use ACID transactions for financial operations. Never compromise on data accuracy.
+  </Step>
+  <Step title="Idempotency">
+    Prevent duplicate payments with idempotency keys on all write operations.
+  </Step>
+  <Step title="Comprehensive Logging">
+    Maintain immutable ledger and detailed audit logs for compliance and debugging.
+  </Step>
+  <Step title="Fault Tolerance">
+    Implement circuit breakers, timeouts, and graceful degradation.
+  </Step>
+  <Step title="Reconciliation">
+    Daily reconciliation with PSPs and banks to catch discrepancies early.
+  </Step>
+  <Step title="Security First">
+    PCI DSS compliance, encryption, fraud detection, and strict access controls.
+  </Step>
+</Steps>
+
+<Note>
+  Payment systems are among the most critical systems in software engineering. Prioritize correctness and reliability over performance. It's better to process payments slowly than to process them incorrectly.
+</Note>

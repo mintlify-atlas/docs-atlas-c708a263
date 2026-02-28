@@ -1,0 +1,478 @@
+---
+title: 'GraphQL'
+description: 'Master GraphQL query language, understand its benefits over REST, and learn adoption patterns for modern applications.'
+---
+
+## What is GraphQL?
+
+<img src="https://assets.bytebytego.com/diagrams/0055-what-is-graphql.png" alt="What is GraphQL" />
+
+GraphQL is a query language for APIs and a runtime for executing those queries using a type system you define for your data. Developed internally by Meta (Facebook) in 2012 and publicly released in 2015, GraphQL provides a more efficient alternative to traditional REST APIs.
+
+<Info>
+  Unlike REST, GraphQL allows clients to request exactly the data they need, making it possible to fetch data from multiple sources with a single query.
+</Info>
+
+## How GraphQL Works
+
+GraphQL servers sit between the client and backend services, organizing resources in a graph structure:
+
+- **Single Endpoint**: All queries go to one endpoint, not multiple REST endpoints
+- **Flexible Queries**: Clients specify exactly what data they need
+- **Type System**: Strong typing ensures data consistency and reduces errors
+- **Data Aggregation**: Can combine multiple REST requests into one query
+
+### Core Operations
+
+GraphQL supports three types of operations:
+
+<Steps>
+  <Step title="Queries">
+    Fetch data from the server (equivalent to GET in REST)
+    
+    ```graphql
+    query {
+      user(id: "123") {
+        name
+        email
+        posts {
+          title
+          createdAt
+        }
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Mutations">
+    Modify data on the server (equivalent to POST, PUT, DELETE in REST)
+    
+    ```graphql
+    mutation {
+      createUser(input: {
+        name: "John Doe"
+        email: "john@example.com"
+      }) {
+        id
+        name
+        email
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Subscriptions">
+    Receive real-time notifications when data changes
+    
+    ```graphql
+    subscription {
+      postAdded {
+        id
+        title
+        author {
+          name
+        }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Benefits of GraphQL
+
+### Efficient Data Fetching
+
+GraphQL eliminates over-fetching and under-fetching problems common in REST:
+
+<CodeGroup>
+```graphql Precise Query
+# Request only the fields you need
+query {
+  user(id: "123") {
+    name
+    email
+    # No extra fields returned
+  }
+}
+```
+
+```json Response
+{
+  "data": {
+    "user": {
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Single Request for Multiple Resources
+
+<CodeGroup>
+```graphql Complex Query
+query {
+  user(id: "123") {
+    name
+    email
+    posts {
+      title
+      comments {
+        text
+        author {
+          name
+        }
+      }
+    }
+    followers {
+      name
+      email
+    }
+  }
+}
+```
+
+```rest REST Equivalent
+# Would require multiple requests:
+GET /users/123
+GET /users/123/posts
+GET /posts/{id}/comments  (for each post)
+GET /users/123/followers
+```
+</CodeGroup>
+
+### Strong Type System
+
+```graphql
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  posts: [Post!]!
+  createdAt: DateTime!
+}
+
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  author: User!
+  comments: [Comment!]!
+}
+
+type Comment {
+  id: ID!
+  text: String!
+  author: User!
+  createdAt: DateTime!
+}
+```
+
+<Note>
+  The type system provides automatic validation and excellent IDE support with autocomplete and documentation.
+</Note>
+
+### Key Advantages
+
+- **More Accurate Results**: Get exactly what you request, no more, no less
+- **Improved Performance**: Fewer network requests and optimized data transfer
+- **Better Developer Experience**: Self-documenting APIs with introspection
+- **Microservices-Friendly**: Excellent for managing complex microservice architectures
+- **Versioning Not Required**: Evolve API by adding new fields without breaking changes
+
+## Disadvantages of GraphQL
+
+While powerful, GraphQL has tradeoffs to consider:
+
+### Increased Complexity
+
+- Steeper learning curve compared to REST
+- Requires understanding of GraphQL schema language
+- More complex server-side implementation
+
+### Query Complexity
+
+- Risk of expensive queries if not properly limited
+- Need to implement query depth limiting and cost analysis
+- Potential for denial-of-service through complex nested queries
+
+### Caching Complexity
+
+<Info>
+  Unlike REST where URLs serve as cache keys, GraphQL queries are dynamic, making HTTP-level caching more challenging.
+</Info>
+
+- Cannot use simple HTTP caching mechanisms
+- Requires specialized caching strategies (e.g., Apollo Client cache)
+- More complex cache invalidation
+
+### Over-fetching by Design
+
+- Clients can request unnecessary data if not carefully designed
+- Need proper query analysis and monitoring
+
+## GraphQL vs REST
+
+<img src="https://assets.bytebytego.com/diagrams/0036-rest-vs-graphql.png" alt="GraphQL vs REST" />
+
+| Aspect | REST | GraphQL |
+|--------|------|----------|
+| **Endpoints** | Multiple endpoints per resource | Single endpoint |
+| **Data Fetching** | Fixed data structure | Client specifies exact needs |
+| **Over/Under-fetching** | Common issue | Eliminated |
+| **Versioning** | Required (v1, v2) | Not needed (add new fields) |
+| **Caching** | Straightforward HTTP caching | Requires custom implementation |
+| **Learning Curve** | Lower | Higher |
+| **Use Case** | Simple, uniform interfaces | Complex, evolving requirements |
+
+## GraphQL Adoption Patterns
+
+<img src="https://assets.bytebytego.com/diagrams/0208-graphql-adoption-patterns.png" alt="GraphQL Adoption Patterns" />
+
+Teams typically adopt GraphQL through one of these patterns:
+
+<Steps>
+  <Step title="Client-Based GraphQL">
+    The client wraps existing APIs behind a single GraphQL endpoint.
+    
+    **Pros**: Improved developer experience for frontend
+    
+    **Cons**: Client still bears performance costs of aggregating data
+  </Step>
+  
+  <Step title="GraphQL with BFFs (Backend-for-Frontends)">
+    Each client has a dedicated BFF service. GraphQL serves as the client-focused intermediary layer.
+    
+    **Pros**: Optimized performance and developer experience per client
+    
+    **Cons**: Additional maintenance overhead for BFF services
+  </Step>
+  
+  <Step title="Monolithic GraphQL">
+    Single GraphQL server shared by multiple teams and clients.
+    
+    **Pros**: Centralized API management, consistent schema
+    
+    **Cons**: Potential bottleneck, coordination overhead
+  </Step>
+  
+  <Step title="GraphQL Federation">
+    Multiple GraphQL services (subgraphs) consolidated into a supergraph.
+    
+    **Pros**: Domain ownership maintained, no duplication of effort
+    
+    **Cons**: Additional complexity in gateway routing
+  </Step>
+</Steps>
+
+## Real-World Example: LinkedIn's GraphQL Implementation
+
+<img src="https://assets.bytebytego.com/diagrams/0209-graphql-linkedin.jpeg" alt="LinkedIn GraphQL" />
+
+LinkedIn's GraphQL adoption transformed their development workflow for thousands of engineers:
+
+### The Three-Part Workflow
+
+<Steps>
+  <Step title="Edit and Test a Query">
+    Client-side developers develop and test queries with backend services during development.
+  </Step>
+  
+  <Step title="Register a Query">
+    Developers commit the query and publish it to a central query registry for production use.
+  </Step>
+  
+  <Step title="Use in Production">
+    - Query released with client code
+    - Routing metadata routes requests to correct service cluster
+    - Registered queries cached at service runtime
+    - Requests flow through multiple services as needed
+  </Step>
+</Steps>
+
+<Note>
+  LinkedIn chose not to deploy a GraphQL gateway to prevent additional network hops and avoid a single point of failure.
+</Note>
+
+## Practical GraphQL Examples
+
+### Schema Definition
+
+```graphql
+type Query {
+  user(id: ID!): User
+  users(limit: Int, offset: Int): [User!]!
+  post(id: ID!): Post
+  posts(authorId: ID, limit: Int): [Post!]!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  updateUser(id: ID!, input: UpdateUserInput!): User!
+  deleteUser(id: ID!): Boolean!
+  createPost(input: CreatePostInput!): Post!
+}
+
+type Subscription {
+  postAdded: Post!
+  commentAdded(postId: ID!): Comment!
+}
+
+input CreateUserInput {
+  name: String!
+  email: String!
+  password: String!
+}
+
+input UpdateUserInput {
+  name: String
+  email: String
+}
+
+input CreatePostInput {
+  title: String!
+  content: String!
+  authorId: ID!
+}
+```
+
+### Query Examples
+
+<CodeGroup>
+```graphql Simple Query
+query GetUser {
+  user(id: "123") {
+    id
+    name
+    email
+  }
+}
+```
+
+```graphql Nested Query
+query GetUserWithPosts {
+  user(id: "123") {
+    id
+    name
+    email
+    posts {
+      id
+      title
+      createdAt
+      comments(limit: 5) {
+        id
+        text
+        author {
+          name
+        }
+      }
+    }
+  }
+}
+```
+
+```graphql Query with Variables
+query GetUsers($limit: Int!, $offset: Int!) {
+  users(limit: $limit, offset: $offset) {
+    id
+    name
+    email
+    createdAt
+  }
+}
+
+# Variables
+{
+  "limit": 10,
+  "offset": 0
+}
+```
+
+```graphql Mutation Example
+mutation CreatePost($input: CreatePostInput!) {
+  createPost(input: $input) {
+    id
+    title
+    content
+    author {
+      name
+      email
+    }
+    createdAt
+  }
+}
+
+# Variables
+{
+  "input": {
+    "title": "Getting Started with GraphQL",
+    "content": "GraphQL is a powerful query language...",
+    "authorId": "123"
+  }
+}
+```
+</CodeGroup>
+
+### Fragments for Reusability
+
+```graphql
+fragment UserFields on User {
+  id
+  name
+  email
+  createdAt
+}
+
+fragment PostFields on Post {
+  id
+  title
+  content
+  createdAt
+}
+
+query GetUserAndPosts {
+  user(id: "123") {
+    ...UserFields
+    posts {
+      ...PostFields
+      author {
+        ...UserFields
+      }
+    }
+  }
+}
+```
+
+## When to Choose GraphQL
+
+### Ideal Use Cases
+
+- Mobile applications requiring minimal data transfer
+- Applications with complex, nested data requirements
+- Rapidly evolving frontend requirements
+- Microservices architecture needing data aggregation
+- Real-time applications with subscription needs
+- Developer tools and internal APIs
+
+### When REST Might Be Better
+
+- Simple CRUD operations
+- Public APIs with diverse, unknown clients
+- File upload/download operations
+- Need for simple HTTP caching
+- Team unfamiliar with GraphQL
+- Legacy system integration
+
+## Key Takeaways
+
+<Info>
+  GraphQL excels when you need flexible, efficient data fetching with complex requirements, while REST remains ideal for simple, uniform interfaces with straightforward caching needs.
+</Info>
+
+- GraphQL provides precise data fetching, eliminating over/under-fetching
+- Strong type system reduces errors and improves developer experience
+- Single endpoint simplifies client development
+- More complex to implement and cache than REST
+- Best suited for complex, evolving frontend requirements
+- Multiple adoption patterns available based on team needs

@@ -1,0 +1,176 @@
+---
+title: 'System Design Interviews Overview'
+description: 'Master system design interviews with this comprehensive guide covering key concepts, preparation strategies, and what to expect.'
+icon: 'compass'
+---
+
+## What is a System Design Interview?
+
+System design interviews assess your ability to design scalable, reliable, and efficient systems. Unlike coding interviews that focus on algorithms and data structures, system design interviews evaluate your understanding of distributed systems, architecture patterns, and real-world engineering tradeoffs.
+
+<Tip>
+System design interviews are typically for mid-level to senior engineering positions. They're used to evaluate your architectural thinking and ability to handle ambiguity.
+</Tip>
+
+## Why System Design Interviews Matter
+
+System design interviews are crucial because they:
+
+- **Evaluate real-world skills**: They test your ability to solve practical engineering problems
+- **Assess communication**: They show how you articulate technical concepts and collaborate
+- **Test decision-making**: They reveal how you make tradeoffs and justify architectural choices
+- **Gauge experience**: They demonstrate your understanding of production systems at scale
+
+## What Interviewers Look For
+
+<AccordionGroup>
+  <Accordion title="Technical Knowledge">
+    - Understanding of distributed systems concepts
+    - Knowledge of scalability patterns and techniques
+    - Familiarity with databases, caching, and storage systems
+    - Awareness of network protocols and API design
+  </Accordion>
+
+  <Accordion title="Problem-Solving Approach">
+    - Ability to break down complex problems
+    - Systematic thinking from requirements to implementation
+    - Consideration of edge cases and failure scenarios
+    - Creative solutions to technical challenges
+  </Accordion>
+
+  <Accordion title="Communication Skills">
+    - Clear articulation of design decisions
+    - Active listening and asking clarifying questions
+    - Ability to explain tradeoffs and alternatives
+    - Receptiveness to feedback and suggestions
+  </Accordion>
+
+  <Accordion title="Experience and Judgment">
+    - Understanding of real-world constraints
+    - Knowledge of when to optimize vs. keep it simple
+    - Awareness of operational and maintenance concerns
+    - Recognition of security and reliability requirements
+  </Accordion>
+</AccordionGroup>
+
+## Core Concepts to Master
+
+### 15 Essential System Design Topics
+
+Before your interview, ensure you understand these fundamental concepts:
+
+1. **Requirement Gathering** - Understanding functional and non-functional requirements
+2. **System Architecture** - Breaking down systems into components
+3. **Data Design** - Modeling data and choosing appropriate databases
+4. **Domain Design** - Organizing business logic and services
+5. **Scalability** - Horizontal and vertical scaling strategies
+6. **Reliability** - Ensuring system uptime and fault tolerance
+7. **Availability** - Maintaining service accessibility
+8. **Performance** - Optimizing latency and throughput
+9. **Security** - Protecting data and preventing attacks
+10. **Maintainability** - Building systems that are easy to update
+11. **Testing** - Ensuring quality through various testing strategies
+12. **User Experience** - Designing with end-users in mind
+13. **Cost Estimation** - Understanding resource and infrastructure costs
+14. **Documentation** - Creating clear technical specifications
+15. **Migration Plan** - Strategies for deploying and transitioning systems
+
+<Note>
+You don't need to be an expert in all areas, but you should be familiar with how these concepts apply to system design decisions.
+</Note>
+
+## Common Interview Formats
+
+### 1. Open-Ended Design Questions
+
+You're given a broad problem like "Design Netflix" or "Design a URL shortener" and asked to architect the entire system.
+
+**Duration**: 45-60 minutes
+
+**Focus**: End-to-end system design from requirements to scalability
+
+### 2. Component Deep Dive
+
+You're asked to design a specific component or solve a particular technical challenge within a larger system.
+
+**Duration**: 30-45 minutes
+
+**Focus**: Detailed design of databases, APIs, or specific subsystems
+
+### 3. Tradeoff Discussion
+
+You're presented with scenarios and asked to evaluate different approaches and their tradeoffs.
+
+**Duration**: 20-30 minutes
+
+**Focus**: Decision-making and understanding of architectural choices
+
+## Key Tradeoffs You Must Understand
+
+<Warning>
+If you don't understand tradeoffs, you don't truly understand system design. Every architectural decision involves choosing between competing priorities.
+</Warning>
+
+### Critical Tradeoffs
+
+- **Vertical vs Horizontal Scaling** - More power vs more servers
+- **SQL vs NoSQL** - Structured consistency vs flexible scalability
+- **Consistency vs Availability** - CAP theorem implications
+- **Strong vs Eventual Consistency** - Immediate vs delayed updates
+- **Normalization vs Denormalization** - Storage efficiency vs query performance
+- **Batch vs Stream Processing** - Delayed analysis vs real-time insights
+- **REST vs GraphQL** - Simple endpoints vs flexible queries
+- **Stateful vs Stateless** - Session memory vs no session tracking
+- **Sync vs Async Processing** - Sequential vs parallel execution
+- **Read-Through vs Write-Through Cache** - Cache loading strategies
+
+## Interview Preparation Timeline
+
+<Steps>
+  <Step title="Fundamentals (2-3 weeks)">
+    Study core concepts: databases, caching, load balancing, CDNs, message queues, and distributed systems basics.
+  </Step>
+
+  <Step title="Common Patterns (2-3 weeks)">
+    Learn standard architecture patterns and when to apply them. Study real-world system designs like Netflix, Google Maps, and WhatsApp.
+  </Step>
+
+  <Step title="Practice Problems (3-4 weeks)">
+    Work through common system design questions. Practice drawing diagrams and explaining your thought process out loud.
+  </Step>
+
+  <Step title="Mock Interviews (1-2 weeks)">
+    Do mock interviews with peers or use platforms like Pramp or Interviewing.io to simulate real interview conditions.
+  </Step>
+</Steps>
+
+## Recommended Study Materials
+
+### Books
+
+- **System Design Interview Vol 1 & 2** by Alex Xu and Sahn Lam
+- **Designing Data-Intensive Applications** by Martin Kleppmann
+- **Head First Design Patterns** by Eric Freeman
+
+### Online Resources
+
+- **Grokking the System Design Interview** by Design Guru
+- **Tech Interview Handbook** (GitHub repository)
+- **LeetCode** system design discussion section
+
+### Video Content
+
+- **A Life Engineered** (YouTube channel)
+- System design walkthroughs from experienced engineers
+
+<Tip>
+Don't just passively consume content. Actively practice designing systems and explaining them out loud. The communication aspect is just as important as the technical knowledge.
+</Tip>
+
+## Next Steps
+
+Now that you understand what system design interviews entail, dive deeper into:
+
+- [How to Ace System Design Interviews](/interviews/how-to-ace) - Learn the proven 7-step process
+- [Common System Design Questions](/interviews/common-questions) - Practice with real interview problems
+- [Essential Algorithms](/interviews/algorithms) - Master the algorithms you need to know

@@ -1,0 +1,171 @@
+---
+title: 'Database and Storage'
+description: 'Understand the different types of databases and storage solutions and how to choose the right one for your application.'
+icon: 'database'
+---
+
+## Overview
+
+Databases are the backbone of most modern applications since they store and manage the data that powers the application. There are many types of databases, including relational databases, NoSQL databases, in-memory databases, and key-value stores. Each type of database has its own strengths and weaknesses, and the best choice depends on the specific requirements of the application.
+
+## Types of Databases
+
+![Database Types](https://assets.bytebytego.com/diagrams/0097-dbtypes.png)
+
+A database is a digital playground where we organize and store loads of information in a structured manner. Let's explore the main types:
+
+### Relational Databases
+
+Relational databases organize data in neat tables with rows and columns:
+
+- **Structure:** Data is organized in tables with predefined schemas
+- **ACID Compliance:** Ensures data consistency and reliability
+- **SQL Language:** Uses Structured Query Language for querying
+- **Use Cases:** Traditional applications, transactional systems, financial systems
+- **Examples:** PostgreSQL, MySQL, Oracle, SQL Server
+
+### OLAP Databases
+
+Online Analytical Processing (OLAP) is optimized for reporting and analysis:
+
+- **Purpose:** Designed for complex analytical queries and business intelligence
+- **Characteristics:** Optimized for read-heavy workloads
+- **Data Structure:** Often uses dimensional modeling (star/snowflake schemas)
+- **Use Cases:** Data warehousing, business analytics, reporting
+
+### NoSQL Databases
+
+NoSQL databases offer flexible alternatives to traditional relational databases:
+
+#### Graph Databases
+
+- **Structure:** Stores data as nodes and relationships
+- **Best For:** Social networks, recommendation engines, fraud detection
+- **Examples:** Neo4j, Amazon Neptune
+- **Think:** Mapping who's friends with whom in social networks
+
+#### Key-Value Stores
+
+- **Structure:** Simple key-value pairs, like a treasure chest
+- **Best For:** Caching, session management, user preferences
+- **Examples:** Redis, DynamoDB, Memcached
+- **Benefit:** Extremely fast lookups by key
+
+#### Document Databases
+
+- **Structure:** Stores information in JSON-like documents
+- **Best For:** Content management, catalogs, user profiles
+- **Examples:** MongoDB, Couchbase, Amazon DocumentDB
+- **Flexibility:** Schema-less design allows for easy evolution
+
+#### Column-Family Databases
+
+- **Structure:** Organizes data by columns rather than rows
+- **Best For:** Time-series data, analytics, IoT applications
+- **Examples:** Cassandra, HBase, ScyllaDB
+- **Advantage:** Efficient for scanning large datasets
+
+## Database Scaling Strategies
+
+### Vertical Scaling (Scale Up)
+
+- Add more CPU, RAM, or storage to existing server
+- Simpler to implement but has hardware limits
+- Single point of failure
+
+### Horizontal Scaling (Scale Out)
+
+- Add more servers to distribute the load
+- More complex but theoretically unlimited scaling
+- Requires data distribution strategies
+
+### Database Sharding
+
+![Consistent Hashing](https://assets.bytebytego.com/diagrams/0151-consistent-hashing.png)
+
+Sharding distributes data across multiple databases:
+
+- **Hash-Based Sharding:** Use hash function to determine shard
+- **Range-Based Sharding:** Divide data by ranges (e.g., A-M, N-Z)
+- **Geographic Sharding:** Distribute by location
+- **Directory-Based Sharding:** Use lookup table to map data to shards
+
+<Tip>
+Consistent hashing is widely used by systems like Amazon DynamoDB, Apache Cassandra, and Discord to minimize data movement during rebalancing.
+</Tip>
+
+## Data Structures Powering Databases
+
+Databases use specialized data structures for efficient operations:
+
+- **B-Trees/B+ Trees:** Used for indexing in relational databases
+- **LSM Trees:** Used in write-heavy NoSQL databases like Cassandra
+- **Hash Tables:** Power key-value stores for O(1) lookups
+- **Skip Lists:** Alternative to balanced trees in some databases
+- **Bloom Filters:** Space-efficient probabilistic data structure for membership tests
+
+## Choosing the Right Database
+
+<CardGroup cols={2}>
+  <Card title="Relational" icon="table">
+    Choose when you need ACID guarantees, complex queries, and structured data
+  </Card>
+  
+  <Card title="Document" icon="file">
+    Choose for flexible schemas, nested data, and rapid development
+  </Card>
+  
+  <Card title="Key-Value" icon="key">
+    Choose for caching, session storage, and simple lookups
+  </Card>
+  
+  <Card title="Graph" icon="diagram-project">
+    Choose for relationship-heavy data and traversal queries
+  </Card>
+</CardGroup>
+
+## Database Performance Optimization
+
+### Indexing
+
+- Create indexes on frequently queried columns
+- Balance between read and write performance
+- Monitor index usage and remove unused indexes
+
+### Query Optimization
+
+- Analyze query execution plans
+- Avoid N+1 query problems
+- Use appropriate JOIN strategies
+- Implement pagination for large result sets
+
+### Caching
+
+- Implement database query caching
+- Use materialized views for complex queries
+- Leverage buffer pools effectively
+
+## Database Replication
+
+Replication creates copies of your database:
+
+- **Master-Slave:** One write node, multiple read replicas
+- **Master-Master:** Multiple nodes accept writes
+- **Benefits:** Improved read performance, high availability, disaster recovery
+- **Challenges:** Replication lag, conflict resolution
+
+## Related Guides
+
+Deepen your database knowledge:
+
+- [Types of Databases](/guides/types-of-databases)
+- [How to Choose the Right Database](/guides/how-to-choose-the-right-database)
+- [7 Must-Know Strategies to Scale Your Database](/guides/7-must-know-strategies-to-scale-your-database)
+- [Database Sharding Explained](/guides/a-crash-course-in-database-sharding)
+- [Consistent Hashing](/guides/consistent-hashing)
+- [8 Data Structures That Power Your Databases](/guides/8-data-structures-that-power-your-databases)
+- [SQL Query Execution](/guides/how-is-a-sql-statement-executed-in-the-database)
+
+<Note>
+The database choice significantly impacts your application's performance, scalability, and maintenance complexity. Consider your data model, query patterns, and scaling requirements carefully.
+</Note>

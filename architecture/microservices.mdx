@@ -1,0 +1,433 @@
+---
+title: "Microservices Architecture"
+description: "Learn how to design, build, and scale microservices-based systems with industry best practices."
+---
+
+## What Are Microservices?
+
+Microservices architecture breaks down a large system into smaller, more manageable components. Each microservice is designed to do one thing well and can be developed, deployed, and scaled independently.
+
+<Note>
+Systems built with microservices architecture are fault tolerant. Each component can be scaled individually, though it may increase the complexity of the application.
+</Note>
+
+## Typical Microservice Architecture
+
+![Typical Microservice Architecture](https://assets.bytebytego.com/diagrams/0396-typical-microservice-architecture.png)
+
+The diagram above shows a typical microservice architecture with all essential components.
+
+### Key Components
+
+<CardGroup cols={2}>
+  <Card title="Load Balancer" icon="scale-balanced">
+    Distributes incoming traffic across multiple backend services for high availability.
+  </Card>
+  <Card title="CDN" icon="network-wired">
+    Content Delivery Network holds static content for faster delivery globally.
+  </Card>
+  <Card title="API Gateway" icon="door-open">
+    Handles incoming requests and routes them to relevant services.
+  </Card>
+  <Card title="Identity Provider" icon="shield">
+    Handles authentication and authorization for users.
+  </Card>
+  <Card title="Service Registry" icon="book">
+    Microservice registration and discovery happens here.
+  </Card>
+  <Card title="Management" icon="chart-line">
+    Monitors services, handles logging, and tracks metrics.
+  </Card>
+</CardGroup>
+
+#### Load Balancer
+
+Distributes incoming traffic across multiple backend services ensuring:
+- High availability
+- Fault tolerance
+- Optimal resource utilization
+- Better response times
+
+#### CDN (Content Delivery Network)
+
+<Tip>
+CDN is a group of geographically distributed servers that hold static content for faster delivery. Clients look for content in CDN first, then progress to backend services.
+</Tip>
+
+#### API Gateway
+
+Handles incoming requests and routes them to the relevant services. It communicates with:
+- Identity provider for authentication
+- Service discovery for routing
+- Backend microservices
+
+#### Service Registry & Discovery
+
+<Accordion title="How Service Discovery Works">
+Microservice registration and discovery happen in this component. The API gateway looks for relevant services in this component to communicate.
+
+**Common Tools:**
+- Consul
+- Eureka
+- Zookeeper
+- Kubernetes Services
+</Accordion>
+
+## 9 Best Practices for Building Microservices
+
+![Best Practices](https://assets.bytebytego.com/diagrams/0019-9-best-practices-for-building-microservices.png)
+
+Creating a system using microservices is extremely difficult unless you follow strong principles.
+
+### 1. Design For Failure
+
+<Note>
+A distributed system with microservices **will** fail. You must design the system to tolerate failure at multiple levels such as infrastructure, database, and individual services.
+</Note>
+
+**Strategies:**
+- Implement circuit breakers
+- Use bulkheads for isolation
+- Apply graceful degradation methods
+- Design for redundancy
+- Plan for chaos engineering
+
+### 2. Build Small Services
+
+<Tip>
+A microservice should not do multiple things at once. A good microservice is designed to do one thing well.
+</Tip>
+
+**Single Responsibility Benefits:**
+- Easier to understand and maintain
+- Faster to develop and deploy
+- Independent scaling
+- Team ownership clarity
+
+### 3. Use Lightweight Protocols for Communication
+
+Communication is the core of a distributed system. Microservices must talk to each other using lightweight protocols.
+
+<CardGroup cols={3}>
+  <Card title="REST" icon="globe">
+    Simple, widely adopted HTTP-based protocol
+  </Card>
+  <Card title="gRPC" icon="bolt">
+    High-performance RPC framework
+  </Card>
+  <Card title="Message Brokers" icon="envelopes-bulk">
+    Kafka, RabbitMQ for async communication
+  </Card>
+</CardGroup>
+
+### 4. Implement Service Discovery
+
+To communicate with each other, microservices need to discover each other over the network.
+
+**Tools:**
+- Consul
+- Eureka  
+- Zookeeper
+- Kubernetes Services
+- etcd
+
+### 5. Data Ownership
+
+<Accordion title="Database Per Service Pattern">
+In microservices, data should be owned and managed by the individual services.
+
+**Goal:** Reduce coupling between services so they can evolve independently.
+
+**Benefits:**
+- Independent data schema evolution
+- Technology choice flexibility
+- Better scalability
+- Clear ownership boundaries
+
+**Challenges:**
+- Data consistency across services
+- Complex queries spanning services
+- Distributed transactions
+</Accordion>
+
+### 6. Use Resiliency Patterns
+
+Implement specific resiliency patterns to improve service availability.
+
+<CardGroup cols={2}>
+  <Card title="Retry Policies" icon="rotate">
+    Automatically retry failed requests with exponential backoff
+  </Card>
+  <Card title="Caching" icon="database">
+    Store frequently accessed data to reduce load
+  </Card>
+  <Card title="Rate Limiting" icon="gauge">
+    Prevent service overload and ensure fair usage
+  </Card>
+  <Card title="Circuit Breaker" icon="plug-circle-xmark">
+    Stop cascading failures by breaking the circuit
+  </Card>
+</CardGroup>
+
+### 7. Security at All Levels
+
+<Note>
+In a microservices-based system, the attack surface is quite large. You must implement security at every level of the service communication path.
+</Note>
+
+**Security Layers:**
+- API Gateway authentication/authorization
+- Service-to-service authentication (mTLS)
+- Data encryption in transit and at rest
+- Secret management
+- Network segmentation
+- API rate limiting
+
+### 8. Centralized Logging
+
+<Tip>
+Logs are important for finding issues in any system. With multiple services, they become critical for debugging and monitoring.
+</Tip>
+
+**Logging Stack:**
+- **Collection:** Logstash, Fluentd
+- **Storage:** Elasticsearch, S3
+- **Visualization:** Kibana, Grafana
+- **Analysis:** Distributed tracing (Jaeger, Zipkin)
+
+### 9. Use Containerization Techniques
+
+To deploy microservices in an isolated manner, use containerization techniques.
+
+**Benefits:**
+- Consistent environments
+- Easy scaling
+- Resource isolation
+- Simplified deployment
+
+**Tools:**
+- **Docker** - Container runtime
+- **Kubernetes** - Container orchestration
+- **Helm** - Package management
+- **Docker Compose** - Local development
+
+## 9 Essential Production Components
+
+![Production Components](https://assets.bytebytego.com/diagrams/0020-9-essential-components-of-production-microservice-app.png)
+
+### 1. API Gateway
+
+Provides a unified entry point for client applications. Handles:
+- Routing
+- Filtering
+- Load balancing
+- Authentication
+- Rate limiting
+
+### 2. Service Registry
+
+Contains the details of all services. The gateway discovers services using the registry.
+
+**Options:**
+- Consul
+- Eureka
+- Zookeeper
+- etcd
+
+### 3. Service Layer
+
+Each microservice serves a specific business function and can run on multiple instances.
+
+<Accordion title="Framework Options">
+**Java/JVM:**
+- Spring Boot
+- Quarkus
+- Micronaut
+
+**Node.js:**
+- NestJS
+- Express
+- Fastify
+
+**Go:**
+- Go Kit
+- Micro
+- Gin
+
+**Python:**
+- FastAPI
+- Flask
+- Django
+</Accordion>
+
+### 4. Authorization Server
+
+Secures microservices and manages identity and access control.
+
+**Solutions:**
+- Keycloak
+- Azure AD
+- Okta
+- Auth0
+
+### 5. Data Storage
+
+Databases store application data generated by services.
+
+<CardGroup cols={2}>
+  <Card title="SQL Databases" icon="database">
+    PostgreSQL, MySQL for relational data
+  </Card>
+  <Card title="NoSQL Databases" icon="table">
+    MongoDB, Cassandra for flexible schemas
+  </Card>
+</CardGroup>
+
+### 6. Distributed Caching
+
+Caching boosts application performance significantly.
+
+**Options:**
+- Redis
+- Memcached
+- Couchbase
+- Hazelcast
+
+### 7. Async Microservices Communication
+
+<Tip>
+Use message platforms for async communication between microservices to improve resilience and scalability.
+</Tip>
+
+**Platforms:**
+- Apache Kafka
+- RabbitMQ
+- Amazon SQS
+- Google Pub/Sub
+
+### 8. Metrics Visualization
+
+Microservices publish metrics for monitoring and alerting.
+
+**Stack:**
+- **Collection:** Prometheus
+- **Visualization:** Grafana
+- **Alerting:** Alertmanager
+
+### 9. Log Aggregation and Visualization
+
+Logs generated by services need to be aggregated and analyzed.
+
+**ELK Stack:**
+- **Logstash** - Aggregation
+- **Elasticsearch** - Storage
+- **Kibana** - Visualization
+
+## Orchestration vs. Choreography
+
+![Orchestration vs Choreography](https://assets.bytebytego.com/diagrams/0113-orchestration-vs-choreography-microservices.png)
+
+How do microservices collaborate and interact with each other? There are two approaches:
+
+### Choreography
+
+<Accordion title="How Choreography Works">
+Like having a choreographer set all the rules, then the dancers (microservices) interact according to them. Service choreography describes the exchange of messages and the rules by which microservices interact.
+
+**Benefits:**
+- Loose coupling
+- No central point of failure
+- Services are autonomous
+
+**Challenges:**
+- Complex fault tolerance scenarios
+- Difficult to understand overall flow
+- Harder to modify interactions
+</Accordion>
+
+### Orchestration
+
+<Note>
+The orchestrator acts as a center of authority, responsible for invoking and combining services. It's like a conductor leading musicians in a symphony.
+</Note>
+
+**Benefits:**
+- **Reliability** - Built-in transaction management and error handling
+- **Scalability** - Only the orchestrator needs modification when adding new services
+- **Visibility** - Central view of the workflow
+
+**Limitations:**
+- **Performance** - Higher latency through centralized communication
+- **Single point of failure** - Orchestrator must be highly available
+
+**Real-world Example:** Netflix Conductor is a microservice orchestrator.
+
+## When NOT to Use Microservices
+
+![Monolithic Use Cases](https://assets.bytebytego.com/diagrams/0278-monolithic-arch-use-cases.jpg)
+
+<Note>
+Microservice architecture is not a silver bullet. Some applications should use monolithic architecture.
+</Note>
+
+### Applications That Should Avoid Microservices:
+
+**1. Real-time Gaming**
+- Requires millisecond-level latency
+- Network latency is unbearable
+- State must be stored in memory for quick updates
+- Needs web socket connections and sticky routing
+
+**2. Low-latency Trading**
+- Requires microsecond-level latency
+- Cannot separate services into different processes
+- Needs in-memory state storage
+- High-frequency server communication required
+
+### Common Features Requiring Monolithic Architecture:
+
+<CardGroup cols={2}>
+  <Card title="Latency Sensitive" icon="clock">
+    Applications that cannot tolerate network latency
+  </Card>
+  <Card title="Stateful Operations" icon="memory">
+    Systems requiring in-memory state for quick updates
+  </Card>
+  <Card title="High Frequency" icon="signal">
+    Applications with high-frequency server communication
+  </Card>
+  <Card title="Single Process" icon="microchip">
+    Systems where separation causes performance issues
+  </Card>
+</CardGroup>
+
+## Best Practices Summary
+
+<Tip>
+**Key Takeaways:**
+
+1. Design for failure from day one
+2. Keep services small and focused
+3. Implement proper service discovery
+4. Ensure data ownership and independence
+5. Build in resiliency patterns
+6. Secure every communication layer
+7. Centralize logging and monitoring
+8. Use containerization for consistency
+9. Choose the right communication pattern
+10. Consider if microservices are actually needed
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Software Architecture" href="/architecture/software-architecture" icon="building">
+    Learn about broader architectural patterns
+  </Card>
+  <Card title="Scalability" href="/architecture/scalability" icon="chart-line">
+    Discover how to scale microservices
+  </Card>
+  <Card title="Design Patterns" href="/architecture/design-patterns" icon="puzzle-piece">
+    Explore patterns for microservices
+  </Card>
+</CardGroup>

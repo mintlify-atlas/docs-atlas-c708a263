@@ -1,0 +1,575 @@
+---
+title: 'Encryption'
+description: 'Learn about encryption techniques, algorithms, and best practices for securing sensitive data.'
+icon: 'shield-halved'
+---
+
+Encryption is the process of converting readable data (plaintext) into an unreadable format (ciphertext) to protect it from unauthorized access. It's a fundamental building block of modern security.
+
+## Types of Encryption
+
+<img src="https://assets.bytebytego.com/diagrams/0349-symmetric-encryption-vs-asymmetric-encryption.png" alt="Symmetric vs Asymmetric Encryption" />
+
+There are two main types of encryption used in system design:
+
+### Symmetric Encryption
+
+A single key is used for both encryption and decryption of data.
+
+**How it works:**
+1. Sender and receiver share a secret key
+2. Sender encrypts data with the key
+3. Receiver decrypts data with the same key
+
+**Characteristics:**
+- Fast and efficient
+- Lower computational overhead
+- Suitable for bulk data encryption
+- Key distribution is challenging
+- Both parties must keep the key secret
+
+**Common algorithms:**
+- **AES (Advanced Encryption Standard)** - Industry standard, extremely secure
+  - AES-128, AES-192, AES-256 (key sizes in bits)
+- **ChaCha20** - Modern alternative to AES, optimized for mobile
+- **Blowfish** - Older but still secure
+- **DES/3DES** - Legacy, no longer recommended
+
+**Use cases:**
+- Encrypting large amounts of data (PII, databases)
+- File encryption
+- Disk encryption
+- VPN tunnels
+- Secure messaging (after key exchange)
+- HTTPS data transmission (after handshake)
+
+<Info>
+AES-256 is considered virtually unbreakable with current technology. It would take billions of years to crack using brute force.
+</Info>
+
+### Asymmetric Encryption
+
+Uses a pair of keys: a public key for encryption and a private key for decryption.
+
+**How it works:**
+1. Receiver generates a key pair (public + private)
+2. Receiver shares public key openly
+3. Sender encrypts data with receiver's public key
+4. Only receiver can decrypt with their private key
+
+**Characteristics:**
+- More secure for key distribution
+- Private key never shared
+- Slower than symmetric encryption
+- Computationally expensive
+- Not suitable for large amounts of data
+- Enables digital signatures
+
+**Common algorithms:**
+- **RSA (Rivest-Shamir-Adleman)** - Most widely used
+  - Key sizes: 2048, 3072, 4096 bits
+- **ECC (Elliptic Curve Cryptography)** - Smaller keys, faster
+  - ECDSA (Digital Signature Algorithm)
+  - ECDH (Diffie-Hellman key exchange)
+- **DSA (Digital Signature Algorithm)** - For digital signatures
+
+**Use cases:**
+- TLS/SSL handshake (HTTPS)
+- Digital signatures
+- Email encryption (PGP/GPG)
+- SSH authentication
+- Cryptocurrency transactions
+- Software code signing
+
+<Warning>
+Asymmetric encryption can be 1000x slower than symmetric encryption. Use it for key exchange and small data, not bulk encryption.
+</Warning>
+
+## Comparison: Symmetric vs Asymmetric
+
+| Feature | Symmetric | Asymmetric |
+|---------|-----------|------------|
+| **Speed** | Very fast | Slower (1000x+) |
+| **Key Management** | Difficult (shared secret) | Easier (public key distribution) |
+| **Key Size** | Smaller (128-256 bits) | Larger (2048-4096 bits) |
+| **Use Case** | Bulk encryption | Key exchange, signatures |
+| **Security** | Secure if key is secret | Secure even if public key is known |
+| **Examples** | AES, ChaCha20 | RSA, ECC |
+| **Data Size** | Unlimited | Limited |
+
+<Note>
+Modern systems use both: asymmetric encryption for key exchange, then symmetric encryption for data transmission.
+</Note>
+
+## Encoding vs Encryption vs Tokenization
+
+<img src="https://assets.bytebytego.com/diagrams/0033-encoding-vs-encryption-vs-tokenization.png" alt="Encoding vs Encryption vs Tokenization" />
+
+It's important to understand the differences between these three data handling approaches:
+
+### Encoding
+
+Converts data into a different format using a publicly available scheme.
+
+**Purpose:**
+- Data transmission
+- Data storage compatibility
+- Not for security
+
+**Characteristics:**
+- Easily reversible
+- No key required
+- Anyone can decode
+- Not secure
+
+**Common schemes:**
+- **Base64** - Encodes binary to ASCII text
+- **URL encoding** - Encodes special characters for URLs
+- **UTF-8** - Character encoding
+- **ASCII** - Text encoding
+
+**Example:**
+```
+Original: Hello, World!
+Base64:   SGVsbG8sIFdvcmxkIQ==
+```
+
+<Warning>
+Encoding is NOT encryption. Base64 encoded data can be easily decoded by anyone. Never use encoding for security.
+</Warning>
+
+### Encryption
+
+Transforms data into an unreadable format using a secret key.
+
+**Purpose:**
+- Protect data confidentiality
+- Prevent unauthorized access
+- Secure data transmission
+
+**Characteristics:**
+- Requires secret key
+- Reversible (with correct key)
+- Computationally difficult to break
+- Maintains data format/size (approximately)
+
+**Algorithms:**
+- Symmetric: AES, ChaCha20
+- Asymmetric: RSA, ECC
+
+**Example:**
+```
+Original:    Hello, World!
+Encrypted:   U2FsdGVkX1+6J3Z... (ciphertext)
+Key:         secretkey123
+```
+
+**Use cases:**
+- Encrypting passwords (with proper hashing)
+- Protecting sensitive files
+- Securing network traffic
+- Database encryption
+
+### Tokenization
+
+Replaces sensitive data with non-sensitive placeholders (tokens).
+
+**Purpose:**
+- Data protection
+- PCI DSS compliance
+- Reduce security scope
+
+**Characteristics:**
+- Original data stored securely in token vault
+- Tokens are meaningless outside the system
+- Cannot be reverse-engineered
+- Maintains data format (optional)
+
+**Process:**
+1. Original data sent to tokenization system
+2. System generates random token
+3. System stores mapping in secure vault
+4. Token returned for use in applications
+5. Original data retrieved only when needed
+
+**Example:**
+```
+Credit Card:    4532-1234-5678-9010
+Token:          7893-4561-2890-3456
+
+(Token has no mathematical relationship to original)
+```
+
+**Use cases:**
+- Credit card number protection
+- Social security numbers
+- Personal identification numbers
+- Healthcare records (HIPAA compliance)
+- Payment processing (PCI DSS compliance)
+
+<Info>
+Tokenization is highly secure because tokens cannot be reverse-engineered. Even if the token is stolen, it's useless without access to the token vault.
+</Info>
+
+### When to Use Each
+
+**Use Encoding when:**
+- You need to transmit binary data over text-based protocols
+- You need to ensure data compatibility
+- Security is not a concern
+
+**Use Encryption when:**
+- You need to protect data confidentiality
+- Data needs to be reversible
+- You have secure key management
+- You need to encrypt large amounts of data
+
+**Use Tokenization when:**
+- You need compliance (PCI DSS, HIPAA)
+- You want to reduce security scope
+- You're storing payment card data
+- You need format-preserving protection
+
+## Digital Signatures
+
+<img src="https://assets.bytebytego.com/diagrams/0219-how-digital-signatures-work.png" alt="Digital Signatures" />
+
+Digital signatures use asymmetric encryption to verify authenticity and integrity of documents.
+
+### How Digital Signatures Work
+
+**Signing process (Alice signs a document):**
+
+1. **Generate key pair**
+   - Alice creates public key and private key
+   - Private key kept secret, public key distributed
+
+2. **Create hash**
+   - Alice uses hash function (SHA-256) to create unique hash of document
+   - Hash is fixed-length representation of document content
+
+3. **Encrypt hash**
+   - Alice encrypts hash with her private key
+   - This encrypted hash is the digital signature
+
+4. **Attach signature**
+   - Digital signature is attached to document
+   - Both are sent to recipient (John)
+
+**Verification process (John verifies):**
+
+5. **Extract signature and document**
+   - John receives document and digital signature
+
+6. **Decrypt signature**
+   - John uses Alice's public key to decrypt the signature
+   - This produces the original hash value
+
+7. **Calculate new hash**
+   - John calculates a new hash of the received document
+   - Uses same hashing algorithm as Alice
+
+8. **Compare hashes**
+   - If calculated hash == decrypted hash:
+     - Document is authentic (from Alice)
+     - Document hasn't been tampered with
+   - If hashes don't match:
+     - Document has been modified
+     - Or signature is invalid
+
+### Benefits of Digital Signatures
+
+**Authentication:**
+- Verifies identity of the signer
+- Proves document came from claimed sender
+
+**Integrity:**
+- Detects any changes to document
+- Even single character change invalidates signature
+
+**Non-repudiation:**
+- Signer cannot deny signing
+- Only person with private key could create signature
+
+**Legally binding:**
+- Equivalent to handwritten signatures in many jurisdictions
+- Accepted for contracts, agreements, etc.
+
+### Use Cases
+
+- Software distribution (code signing)
+- Email signing (S/MIME, PGP)
+- PDF document signing
+- Blockchain transactions
+- SSL/TLS certificates
+- Software updates verification
+
+## Encryption Best Practices
+
+### 1. Use Strong Algorithms
+
+<Warning>
+**Never use:**
+- DES, 3DES (too weak)
+- RC4 (broken)
+- MD5 for hashing (collisions found)
+- SHA-1 for hashing (deprecated)
+- Custom/homemade encryption
+</Warning>
+
+**Recommended:**
+- **Symmetric:** AES-256, ChaCha20
+- **Asymmetric:** RSA-2048+ (prefer 4096), ECC-256+
+- **Hashing:** SHA-256, SHA-3, bcrypt, Argon2
+
+### 2. Proper Key Management
+
+**Key generation:**
+- Use cryptographically secure random number generators
+- Never use predictable seeds
+- Sufficient key length (256 bits for symmetric, 2048+ for RSA)
+
+**Key storage:**
+- Never hardcode keys in source code
+- Use environment variables or key management services
+- Encrypt keys at rest
+- Use Hardware Security Modules (HSM) for critical keys
+
+**Key rotation:**
+- Rotate keys regularly (annually or more frequently)
+- Automate rotation process
+- Maintain key version history
+
+**Key distribution:**
+- Use secure channels for key exchange
+- Never send keys via email or unencrypted channels
+- Use key derivation functions (KDF) when appropriate
+
+<Info>
+Use services like AWS KMS, Azure Key Vault, or HashiCorp Vault for enterprise key management.
+</Info>
+
+### 3. Encrypt Data at Rest and in Transit
+
+**Data at rest:**
+- Database encryption (TDE - Transparent Data Encryption)
+- File system encryption
+- Backup encryption
+- Mobile device encryption
+
+**Data in transit:**
+- Always use TLS/SSL (HTTPS)
+- Never transmit sensitive data over HTTP
+- Use VPNs for remote access
+- Encrypt email (PGP, S/MIME)
+
+### 4. Use Authenticated Encryption
+
+Combine encryption with authentication to prevent tampering:
+
+**Recommended modes:**
+- **AES-GCM** (Galois/Counter Mode) - Most popular
+- **ChaCha20-Poly1305** - Modern alternative
+- **AES-CCM** (Counter with CBC-MAC)
+
+**Why authenticated encryption:**
+- Prevents tampering attacks
+- Detects if ciphertext was modified
+- Protects against chosen-ciphertext attacks
+
+<Warning>
+Don't use unauthenticated modes like ECB or plain CBC without HMAC. They're vulnerable to tampering attacks.
+</Warning>
+
+### 5. Protect Against Common Attacks
+
+**Padding oracle attacks:**
+- Use authenticated encryption (GCM)
+- Don't reveal padding errors in responses
+
+**Timing attacks:**
+- Use constant-time comparison functions
+- Avoid early returns based on decryption success
+
+**Replay attacks:**
+- Include timestamps or nonces
+- Implement message counters
+- Use session tokens
+
+**Man-in-the-middle:**
+- Always verify certificates
+- Implement certificate pinning
+- Use mutual TLS for critical services
+
+## Encryption in Practice
+
+### Encrypting Passwords
+
+<Warning>
+Never encrypt passwords for storage. Use password hashing algorithms instead.
+</Warning>
+
+**Wrong:**
+```javascript
+// Don't do this!
+const encrypted = encrypt(password, secretKey);
+database.save(encrypted);
+```
+
+**Correct:**
+```javascript
+// Use password hashing with salt
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
+const hashedPassword = await bcrypt.hash(password, saltRounds);
+database.save(hashedPassword);
+
+// Verification
+const isValid = await bcrypt.compare(password, hashedPassword);
+```
+
+### Encrypting Sensitive Data
+
+**Node.js example (AES-256-GCM):**
+```javascript
+const crypto = require('crypto');
+
+function encrypt(plaintext, key) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  
+  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  const authTag = cipher.getAuthTag();
+  
+  return {
+    encrypted,
+    iv: iv.toString('hex'),
+    authTag: authTag.toString('hex')
+  };
+}
+
+function decrypt(encrypted, key, iv, authTag) {
+  const decipher = crypto.createDecipheriv(
+    'aes-256-gcm',
+    key,
+    Buffer.from(iv, 'hex')
+  );
+  
+  decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+  
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
+```
+
+### Database Encryption
+
+**Column-level encryption:**
+```sql
+-- Encrypt sensitive columns
+CREATE TABLE users (
+  id INT PRIMARY KEY,
+  email VARCHAR(255),
+  encrypted_ssn VARBINARY(256),  -- Encrypted SSN
+  encryption_key_id INT
+);
+
+-- Application handles encryption
+INSERT INTO users (id, email, encrypted_ssn)
+VALUES (1, 'user@example.com', ENCRYPT('123-45-6789', @key));
+```
+
+**Transparent Data Encryption (TDE):**
+- Encrypts entire database at storage level
+- Transparent to application
+- Protects against physical theft
+- Available in most modern databases (MySQL, PostgreSQL, SQL Server)
+
+### File Encryption
+
+**OpenSSL command line:**
+```bash
+# Encrypt file
+openssl enc -aes-256-cbc -salt -in file.txt -out file.txt.enc
+
+# Decrypt file
+openssl enc -d -aes-256-cbc -in file.txt.enc -out file.txt
+```
+
+**GPG encryption:**
+```bash
+# Encrypt file with public key
+gpg --encrypt --recipient user@example.com file.txt
+
+# Decrypt file with private key
+gpg --decrypt file.txt.gpg > file.txt
+```
+
+## Performance Considerations
+
+### Hardware Acceleration
+
+Modern CPUs have built-in encryption acceleration:
+
+**AES-NI (AES New Instructions):**
+- Hardware acceleration for AES
+- 3-10x faster than software implementation
+- Available on Intel/AMD processors since 2010
+
+**Benefits:**
+- Minimal performance impact
+- Makes encryption practical for all data
+- Reduces CPU overhead
+
+### Optimization Strategies
+
+1. **Use hardware acceleration** - Enable AES-NI support
+2. **Batch operations** - Encrypt multiple items together
+3. **Cache decrypted data** - Balance security vs performance
+4. **Choose appropriate algorithms** - ChaCha20 for mobile, AES for servers
+5. **Async encryption** - Don't block main thread
+
+<Note>
+With modern hardware, encryption overhead is typically less than 5% for most applications.
+</Note>
+
+## Compliance and Regulations
+
+Many industries require encryption by law:
+
+### PCI DSS (Payment Card Industry)
+- Encrypt cardholder data
+- Use strong cryptography (AES-256)
+- Secure key management
+- Regular key rotation
+
+### HIPAA (Healthcare)
+- Encrypt patient health information
+- Both at rest and in transit
+- Access controls and audit logs
+
+### GDPR (EU Data Protection)
+- Encrypt personal data
+- Pseudonymization requirements
+- Right to be forgotten
+- Data breach notification
+
+### SOC 2
+- Encryption of sensitive data
+- Key management procedures
+- Access controls
+- Regular security audits
+
+## Next Steps
+
+Explore related security topics:
+
+- [HTTPS/SSL](/guides/security/https-ssl) - Learn how encryption secures web traffic
+- [Authentication](/guides/security/authentication) - Secure user authentication
+- [JWT](/guides/security/jwt) - Token-based authentication
+- [OAuth 2.0](/guides/security/oauth) - Secure authorization framework

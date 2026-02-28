@@ -1,0 +1,280 @@
+---
+title: "Computer Fundamentals"
+description: "Essential computer fundamentals concepts tested in system design interviews"
+---
+
+Understanding computer fundamentals is critical for system design interviews. This guide covers the core concepts you need to know.
+
+## Memory Hierarchy
+
+<img src="https://assets.bytebytego.com/diagrams/0045-memory-types.png" alt="Types of Memory" />
+
+Memory types vary by speed, size, and function, creating a multi-layered architecture that balances cost with the need for rapid data access.
+
+By grasping the roles and capabilities of each memory type, developers and system architects can design systems that effectively leverage the strengths of each storage layer, leading to improved overall system performance and user experience.
+
+### Common Memory Types
+
+<AccordionGroup>
+  <Accordion title="Registers" icon="microchip">
+    Tiny, ultra-fast storage within the CPU for immediate data access.
+    
+    - **Speed**: Fastest
+    - **Size**: Smallest (bytes)
+    - **Location**: Inside CPU
+    - **Use Case**: Active instruction execution
+  </Accordion>
+
+  <Accordion title="Caches" icon="bolt">
+    Small, quick memory located close to the CPU to speed up data retrieval.
+    
+    - **Speed**: Very fast
+    - **Size**: Small (KB to MB)
+    - **Levels**: L1, L2, L3 cache
+    - **Use Case**: Frequently accessed data
+  </Accordion>
+
+  <Accordion title="Main Memory (RAM)" icon="memory">
+    Larger, primary storage for currently executing programs and data.
+    
+    - **Speed**: Fast
+    - **Size**: Moderate (GB)
+    - **Volatile**: Data lost on power off
+    - **Use Case**: Active program execution
+  </Accordion>
+
+  <Accordion title="Solid-State Drives (SSDs)" icon="hard-drive">
+    Fast, reliable storage with no moving parts, used for persistent data.
+    
+    - **Speed**: Moderate
+    - **Size**: Large (GB to TB)
+    - **Persistent**: Data retained
+    - **Use Case**: Operating systems, applications
+  </Accordion>
+
+  <Accordion title="Hard Disk Drives (HDDs)" icon="server">
+    Mechanical drives with large capacities for long-term storage.
+    
+    - **Speed**: Slower
+    - **Size**: Very large (TB)
+    - **Cost**: Lower per GB
+    - **Use Case**: Bulk storage, backups
+  </Accordion>
+
+  <Accordion title="Remote Secondary Storage" icon="cloud">
+    Offsite storage for data backup and archiving, accessible over a network.
+    
+    - **Speed**: Slowest
+    - **Size**: Unlimited
+    - **Access**: Network-dependent
+    - **Use Case**: Backups, archives, disaster recovery
+  </Accordion>
+</AccordionGroup>
+
+## Process vs Thread
+
+<img src="https://assets.bytebytego.com/diagrams/0304-program-process-thread.png" alt="Process vs Thread" />
+
+### Understanding Programs, Processes, and Threads
+
+To better understand this question, let's first take a look at what a **Program** is. A Program is an executable file containing a set of instructions and passively stored on disk. One program can have multiple processes. For example, the Chrome browser creates a different process for every single tab.
+
+A **Process** means a program is in execution. When a program is loaded into the memory and becomes active, the program becomes a process. The process requires some essential resources such as registers, program counter, and stack.
+
+A **Thread** is the smallest unit of execution within a process.
+
+### The Relationship Flow
+
+<Steps>
+  <Step title="Program Creation">
+    The program contains a set of instructions.
+  </Step>
+  <Step title="Loading into Memory">
+    The program is loaded into memory. It becomes one or more running processes.
+  </Step>
+  <Step title="Thread Execution">
+    When a process starts, it is assigned memory and resources. A process can have one or more threads. For example, in the Microsoft Word app, a thread might be responsible for spelling checking and the other thread for inserting text into the doc.
+  </Step>
+</Steps>
+
+### Key Differences
+
+<CardGroup cols={2}>
+  <Card title="Independence" icon="circle-nodes">
+    Processes are usually independent, while threads exist as subsets of a process.
+  </Card>
+  
+  <Card title="Memory" icon="database">
+    Each process has its own memory space. Threads that belong to the same process share the same memory.
+  </Card>
+  
+  <Card title="Weight" icon="weight-hanging">
+    A process is a heavyweight operation. It takes more time to create and terminate.
+  </Card>
+  
+  <Card title="Context Switching" icon="arrow-right-arrow-left">
+    Context switching is more expensive between processes.
+  </Card>
+</CardGroup>
+
+<Note>
+  **Performance Tip**: Inter-thread communication is faster for threads since they share the same memory space.
+</Note>
+
+## Memory Management
+
+### Paging vs Segmentation
+
+<img src="https://assets.bytebytego.com/diagrams/0269-memory-allocation-paging-vs-segmentation.png" alt="Paging vs Segmentation" />
+
+<Tabs>
+  <Tab title="Paging">
+    Paging is a memory management scheme that eliminates the need for contiguous allocation of physical memory. The process's address space is divided into fixed-size blocks called pages, while physical memory is divided into fixed-size blocks called frames.
+
+    **Address Translation Process:**
+    
+    1. **Logical Address Space**: The logical address (generated by the CPU) is divided into a page number and a page offset.
+    2. **Page Table Lookup**: The page number is used as an index into the page table to find the corresponding frame number.
+    3. **Physical Address Formation**: The frame number is combined with the page offset to form the physical address in memory.
+
+    **Advantages:**
+    - Eliminates external fragmentation
+    - Simplifies memory allocation
+    - Supports efficient swapping and virtual memory
+  </Tab>
+  
+  <Tab title="Segmentation">
+    Segmentation is a memory management technique where the memory is divided into variable-sized segments based on the logical divisions of a program, such as functions, objects, or data arrays.
+
+    **Address Translation Process:**
+    
+    1. **Logical Address Space**: The logical address consists of a segment number and an offset within that segment.
+    2. **Segment Table Lookup**: The segment number is used as an index into the segment table to find the base address of the segment.
+    3. **Physical Address Formation**: The base address is added to the offset to form the physical address in memory.
+
+    **Advantages:**
+    - Provides logical separation of different parts of a program
+    - Facilitates protection and sharing of segments
+    - Simplifies management of growing data structures
+  </Tab>
+</Tabs>
+
+## Concurrency vs Parallelism
+
+<img src="https://assets.bytebytego.com/diagrams/0150-concurrency-is-not-parallelism.png" alt="Concurrency vs Parallelism" />
+
+In system design, it is important to understand the difference between concurrency and parallelism.
+
+As Rob Pike (one of the creators of GoLang) stated: "Concurrency is about **dealing with** lots of things at once. Parallelism is about **doing** lots of things at once." This distinction emphasizes that concurrency is more about the **design** of a program, while parallelism is about the **execution**.
+
+<CardGroup cols={2}>
+  <Card title="Concurrency" icon="layer-group">
+    ### About Dealing With
+    
+    Concurrency is about dealing with multiple things at once. It involves structuring a program to handle multiple tasks simultaneously, where the tasks can start, run, and complete in overlapping time periods, but not necessarily at the same instant.
+    
+    **Key Points:**
+    - About program design and composition
+    - Can work on single-core processors
+    - Useful for I/O-bound operations
+    - Enables responsiveness
+    
+    **Use Cases:**
+    - Web servers handling multiple requests
+    - UI applications remaining responsive
+    - File I/O operations
+    - Network communication
+  </Card>
+  
+  <Card title="Parallelism" icon="arrows-split-up-and-left">
+    ### About Doing
+    
+    Parallelism refers to the simultaneous execution of multiple computations. It is the technique of running two or more tasks or computations at the same time, utilizing multiple processors or cores within a computer to perform several operations concurrently.
+    
+    **Key Points:**
+    - About program execution
+    - Requires multiple processing units
+    - Useful for CPU-bound operations
+    - Increases throughput
+    
+    **Use Cases:**
+    - Heavy mathematical computations
+    - Data analysis
+    - Image processing
+    - Real-time processing
+  </Card>
+</CardGroup>
+
+<Tip>
+  Concurrency enables a program to remain responsive to input, perform background tasks, and handle multiple operations in a seemingly simultaneous manner, even on a single-core processor.
+</Tip>
+
+## How Computer Programs Execute
+
+<img src="https://assets.bytebytego.com/diagrams/0218-how-do-computer-programs-run.png" alt="How Programs Run" />
+
+### Execution Flow
+
+<Steps>
+  <Step title="User Interaction">
+    By double-clicking a program, a user is instructing the operating system to launch an application via the graphical user interface.
+  </Step>
+  
+  <Step title="Program Preloading">
+    Once the execution request has been initiated, the operating system first retrieves the program's executable file. The operating system locates this file through the file system and loads it into memory in preparation for execution.
+  </Step>
+  
+  <Step title="Dependency Resolution">
+    Most modern applications rely on a number of shared libraries, such as dynamic link libraries (DLLs). These dependencies must be resolved and loaded.
+  </Step>
+  
+  <Step title="Memory Allocation">
+    The operating system is responsible for allocating space in memory for the program's code, data, and stack.
+  </Step>
+  
+  <Step title="Runtime Initialization">
+    After allocating memory, the operating system and execution environment (e.g., Java's JVM or the .NET Framework) will initialize various resources needed to run the program.
+  </Step>
+  
+  <Step title="Execution Begin">
+    The entry point of a program (usually a function named `main`) is called to begin execution of the code written by the programmer.
+  </Step>
+  
+  <Step title="Von Neumann Architecture">
+    In the Von Neumann architecture, the CPU executes instructions stored in memory, following the fetch-decode-execute cycle.
+  </Step>
+  
+  <Step title="Program Termination">
+    When the program has completed its task, or the user actively terminates the application, the program begins a cleanup phase. This includes closing open file descriptors, freeing up network resources, and returning memory to the system.
+  </Step>
+</Steps>
+
+## Key Takeaways
+
+<CardGroup cols={2}>
+  <Card title="Memory Hierarchy" icon="layer-group">
+    Understanding the trade-offs between speed, size, and cost across different memory types is crucial for system design.
+  </Card>
+  
+  <Card title="Process Management" icon="gears">
+    Know when to use processes vs threads based on isolation needs, resource sharing, and performance requirements.
+  </Card>
+  
+  <Card title="Memory Management" icon="table-cells">
+    Both paging and segmentation have their place - paging for simplicity and efficiency, segmentation for logical organization.
+  </Card>
+  
+  <Card title="Concurrency Patterns" icon="code-branch">
+    Design for concurrency to handle multiple tasks; leverage parallelism to speed up computation-heavy operations.
+  </Card>
+</CardGroup>
+
+## Interview Tips
+
+<Warning>
+  **Common Pitfall**: Don't confuse concurrency with parallelism. You can have concurrency without parallelism (single-core systems), but parallelism always implies some form of concurrency.
+</Warning>
+
+<Tip>
+  When discussing system design, always consider the memory hierarchy. Decisions about caching, data structures, and access patterns should account for the speed differences between memory levels.
+</Tip>

@@ -1,0 +1,536 @@
+---
+title: 'Twitter/X Architecture'
+description: 'Explore Twitter architecture evolution, tech stack, and recommendation system serving 400+ million users with real-time updates.'
+icon: 'x-twitter'
+---
+
+## Overview
+
+Twitter (now X) is one of the most influential social media platforms, enabling real-time communication and information sharing across the globe. With over 400 million monthly active users posting hundreds of millions of tweets daily, Twitter's architecture has evolved significantly to handle massive scale while maintaining real-time performance.
+
+This case study examines Twitter's technical evolution, architecture patterns, and the sophisticated systems powering the "For You" timeline.
+
+## Architecture Evolution: 2012 vs 2022
+
+![Twitter Architecture Evolution](https://assets.bytebytego.com/diagrams/0392-twitter-architecture-2022-vs-2012.jpeg)
+
+Over the past decade, Twitter's architecture has undergone dramatic transformation to support increased scale, new features, and better user experience.
+
+### Key Changes
+
+<CardGroup cols={2}>
+  <Card title="Scale Growth" icon="chart-line">
+    - 10x increase in users
+    - 100x increase in tweets
+    - Global distribution
+    - Multi-region deployment
+  </Card>
+  
+  <Card title="Technology Evolution" icon="microchip">
+    - Monolith to microservices
+    - Custom infrastructure
+    - ML-powered recommendations
+    - Real-time processing at scale
+  </Card>
+</CardGroup>
+
+## Twitter 1.0 Tech Stack
+
+![Twitter Tech Stack](https://assets.bytebytego.com/diagrams/0122-twitter1-0-tech-stack.jpg)
+
+### Frontend Technologies
+
+<Accordion title="Mobile Applications">
+  **iOS:**
+  - **Swift:** Native iOS development
+  - Platform-specific optimizations
+  - Offline capabilities
+  
+  **Android:**
+  - **Kotlin:** Modern Android development
+  - Material Design guidelines
+  - Performance optimizations
+  
+  **Progressive Web App (PWA):**
+  - Web-based mobile experience
+  - Reduced data usage
+  - Faster initial load
+</Accordion>
+
+<Accordion title="Web Application">
+  **Technology Stack:**
+  - **JavaScript/TypeScript:** Core language
+  - **React:** UI framework
+  - **Redux:** State management
+  
+  **Architecture:**
+  - Component-based design
+  - Server-side rendering
+  - Code splitting for performance
+  - Progressive enhancement
+</Accordion>
+
+### Backend Services
+
+<Accordion title="Service Infrastructure">
+  **Apache Mesos:**
+  - Cluster management
+  - Resource allocation
+  - Service orchestration
+  - Multi-tenant infrastructure
+  
+  **Finagle:**
+  - RPC framework (built by Twitter)
+  - Protocol-agnostic
+  - Async, concurrent programming model
+  - Circuit breakers and retry logic
+  - Service discovery integration
+  
+  **Key Features:**
+  - Fault tolerant
+  - Load balancing
+  - Connection pooling
+  - Observability built-in
+</Accordion>
+
+### Caching Layer
+
+<CardGroup cols={2}>
+  <Card title="Pelikan Cache" icon="gauge-high">
+    Twitter's custom caching solution:
+    - Built in C for performance
+    - Low memory overhead
+    - High throughput
+    - Memcached and Redis compatible
+  </Card>
+  
+  <Card title="Redis" icon="database">
+    Used for:
+    - Session storage
+    - Real-time counters
+    - Leaderboards
+    - Timeline caching
+  </Card>
+</CardGroup>
+
+### Database Architecture
+
+<Accordion title="Manhattan - Distributed Database">
+  Twitter's custom distributed database:
+  
+  **Architecture:**
+  - AP system (Available and Partition-tolerant)
+  - Eventually consistent
+  - Multi-datacenter replication
+  
+  **Use Cases:**
+  - User profiles
+  - Tweet storage
+  - Social graph
+  - Timeline data
+  
+  **Features:**
+  - Horizontal scalability
+  - Multi-tenancy
+  - Automated sharding
+  - Hot data rebalancing
+</Accordion>
+
+<Accordion title="MySQL">
+  Used for:
+  - Transactional data
+  - User authentication
+  - Billing and payments
+  - Strongly consistent data
+  
+  **Sharding Strategy:**
+  - Horizontally partitioned
+  - ID-based sharding
+  - Cross-shard queries minimized
+</Accordion>
+
+<Accordion title="PostgreSQL">
+  Used for:
+  - Analytics workloads
+  - Complex queries
+  - Reporting systems
+  - Internal tools
+</Accordion>
+
+## Recommendation System: "For You" Timeline
+
+<Info>
+  Twitter can recommend relevant tweets and build a personalized "For You" timeline in just **1.5 seconds** - processing 500 million potential tweets down to the final feed.
+</Info>
+
+![Twitter Recommendation Pipeline](https://assets.bytebytego.com/diagrams/0121-twitter-serving-pipeline.jpeg)
+
+### The Five-Stage Pipeline
+
+Twitter's recommendation system is one of the most sophisticated in the industry, involving multiple stages to deliver personalized content:
+
+### Stage 1: Candidate Sourcing
+
+**Starting Point:** ~500 million tweets
+
+<Accordion title="Candidate Sources">
+  **In-Network Sources:**
+  - Tweets from users you follow
+  - Recent tweets (recency-based ranking)
+  - Popular tweets from your network
+  
+  **Out-of-Network Sources:**
+  - Tweets from similar users
+  - Trending topics
+  - Collaborative filtering
+  - Content-based recommendations
+  
+  **Embedding-Based Retrieval:**
+  - User embeddings
+  - Tweet embeddings
+  - Cosine similarity search
+  - Vector databases (Faiss)
+</Accordion>
+
+### Stage 2: Global Filtering
+
+**Result:** ~1,500 candidates
+
+**Filters Applied:**
+- Remove blocked/muted users
+- Filter out tweets you've seen
+- Remove tweets that violate policies
+- Deduplicate similar content
+- Age filter (too old tweets removed)
+- NSFW filtering based on settings
+
+**Performance:**
+- Must process 500M tweets quickly
+- Distributed filtering across clusters
+- Cached filter results
+
+### Stage 3: Scoring and Ranking
+
+**The Core Ranking Model:**
+
+<Accordion title="Neural Network Architecture">
+  **Model Size:** 48 million parameters
+  
+  **Input Features:**
+  - User features (1000+ dimensions)
+    - Follow graph
+    - Engagement history
+    - Demographics
+    - Interests
+  
+  - Tweet features (500+ dimensions)
+    - Content embeddings
+    - Author information
+    - Engagement metrics
+    - Freshness
+  
+  - Context features
+    - Time of day
+    - Device type
+    - Location
+  
+  **Predicted Metrics:**
+  - Probability of engagement (like, retweet, reply)
+  - Dwell time
+  - Negative actions (report, mute, block)
+  - Follow probability
+  
+  **Model Training:**
+  - Trained on billions of examples
+  - Multi-task learning
+  - Regular retraining (daily)
+  - A/B testing for improvements
+</Accordion>
+
+<Accordion title="Ranking Signals">
+  **Engagement Predictions:**
+  - Like probability (weight: 1x)
+  - Retweet probability (weight: 2x)
+  - Reply probability (weight: 3x)
+  - Profile click probability
+  - Video watch time
+  
+  **Content Quality:**
+  - Author authority
+  - Tweet freshness
+  - Media richness (images/videos)
+  - Link quality
+  
+  **User Preferences:**
+  - Historical interactions
+  - Topic interests
+  - Network similarity
+  - Explicit feedback
+</Accordion>
+
+<Accordion title="Twitter Blue Boost">
+  Subscribers to Twitter Blue receive ranking boosts:
+  
+  **Boosting Strategy:**
+  - 2x boost for verified subscribers
+  - Applied after scoring
+  - Helps surface quality content
+  - Controversial but revenue-driven
+  
+  **Implementation:**
+  - Multiplicative boost to score
+  - Configurable weight
+  - A/B tested extensively
+</Accordion>
+
+### Stage 4: Filtering for Diversity
+
+**Goal:** Achieve author and content diversity
+
+<Accordion title="Diversity Rules">
+  **Author Diversity:**
+  - Limit tweets from same author
+  - Space out tweets from followed accounts
+  - Mix in-network and out-of-network
+  
+  **Content Diversity:**
+  - Avoid similar topics in sequence
+  - Mix media types (text, images, videos)
+  - Balance trending vs evergreen content
+  
+  **Temporal Diversity:**
+  - Mix recent and older tweets
+  - Balance real-time and algorithmic content
+  - Ensure some recency
+</Accordion>
+
+**Techniques:**
+- Sliding window deduplication
+- Topic clustering
+- Greedy selection with constraints
+- Re-ranking for diversity
+
+### Stage 5: Mixing with Other Content
+
+**Final Timeline Composition:**
+
+<CardGroup cols={3}>
+  <Card title="Recommended Tweets" icon="star">
+    70-80% of timeline
+  </Card>
+  
+  <Card title="Advertisements" icon="ad">
+    10-15% of timeline
+  </Card>
+  
+  <Card title="Who to Follow" icon="user-plus">
+    5-10% of timeline
+  </Card>
+</CardGroup>
+
+**Mixing Strategy:**
+- Interleave ads at optimal frequency
+- Insert "Who to Follow" suggestions
+- Add trending topics
+- Include promoted content
+- Balance monetization and user experience
+
+### Performance Optimization
+
+To achieve the 1.5-second goal:
+
+**Parallelization:**
+- Stages run in parallel where possible
+- Distributed scoring across GPU clusters
+- Asynchronous processing
+
+**Caching:**
+- User embeddings cached
+- Tweet features pre-computed
+- Popular tweets pre-ranked
+
+**Infrastructure:**
+- Low-latency data stores
+- Edge computing for regional users
+- Predictive pre-fetching
+
+## Real-Time Tweet Delivery
+
+### Fanout Architecture
+
+When a user posts a tweet:
+
+**Fanout-on-Write (for small followings):**
+1. Tweet posted to database
+2. Immediately pushed to followers' timelines
+3. Cached in Redis/Pelikan
+4. Fast reads at the cost of write amplification
+
+**Fanout-on-Read (for large followings):**
+1. Tweet posted to database
+2. Followers fetch dynamically when reading timeline
+3. Reduces write amplification
+4. Used for celebrities with millions of followers
+
+**Hybrid Approach:**
+- Small/medium accounts: fanout-on-write
+- Large accounts: fanout-on-read
+- Threshold-based decision
+- Optimizes for both read and write performance
+
+## Streaming and Messaging
+
+### Apache Kafka
+
+Twitter heavily uses Kafka for:
+
+**Use Cases:**
+- Tweet stream processing
+- Real-time analytics
+- Event sourcing
+- Cross-datacenter replication
+- Feed generation
+
+**Scale:**
+- Billions of messages daily
+- Hundreds of clusters
+- Petabytes of data
+- Sub-second latency
+
+### Stream Processing
+
+**Apache Storm / Heron:**
+- Real-time computation
+- Trend detection
+- Spam filtering
+- Real-time counters
+
+**Processing Patterns:**
+- Event time processing
+- Windowed aggregations
+- Stateful processing
+- Exactly-once semantics
+
+## Key Architecture Decisions
+
+### 1. Custom Infrastructure
+
+Twitter built many custom solutions:
+- **Manhattan:** Distributed database
+- **Pelikan:** High-performance cache
+- **Finagle:** RPC framework
+- **Heron:** Stream processing (Storm successor)
+
+**Reasoning:**
+- Specific performance requirements
+- Scale beyond existing solutions
+- Optimize for Twitter's access patterns
+- Full control over performance tuning
+
+### 2. Hybrid Fanout Strategy
+
+- Balances read and write performance
+- Handles both typical and celebrity users
+- Reduces infrastructure costs
+- Maintains real-time experience
+
+### 3. Machine Learning at Scale
+
+- 48M parameter ranking model
+- Billions of training examples
+- Real-time inference
+- Continuous learning and improvement
+
+### 4. Multi-Datacenter Architecture
+
+- Active-active across regions
+- Eventually consistent model
+- Optimized for availability
+- Graceful degradation
+
+## Challenges and Solutions
+
+<CardGroup cols={2}>
+  <Card title="Hot Partitions" icon="fire">
+    **Problem:** Celebrity tweets cause traffic spikes
+    
+    **Solution:**
+    - Fanout-on-read for large accounts
+    - Dynamic traffic routing
+    - Read replicas for hot data
+  </Card>
+  
+  <Card title="Real-Time Ranking" icon="clock">
+    **Problem:** Rank 500M tweets in 1.5s
+    
+    **Solution:**
+    - Multi-stage filtering
+    - GPU acceleration for scoring
+    - Pre-computed features
+    - Aggressive caching
+  </Card>
+  
+  <Card title="Spam and Abuse" icon="shield">
+    **Problem:** Malicious content at scale
+    
+    **Solution:**
+    - ML-based spam detection
+    - Real-time filtering
+    - User reporting signals
+    - Automated enforcement
+  </Card>
+  
+  <Card title="Timeline Freshness" icon="rotate">
+    **Problem:** Balance real-time and algorithmic
+    
+    **Solution:**
+    - Hybrid timeline approach
+    - User controls for chronological
+    - Freshness as ranking signal
+    - Real-time tweet insertion
+  </Card>
+</CardGroup>
+
+## Lessons Learned
+
+<Info>
+  **Key Takeaway:** Twitter's architecture demonstrates that building custom infrastructure can be justified at massive scale when existing solutions don't meet specific requirements.
+</Info>
+
+**Custom vs. Off-the-Shelf:**
+- Twitter built custom solutions (Manhattan, Pelikan, Finagle) when needed
+- Used open-source where appropriate (Kafka, Mesos)
+- Balance between build and buy
+
+**Real-Time at Scale:**
+- Multiple stages of filtering/ranking
+- Parallelization and caching critical
+- GPU acceleration for ML inference
+- Sacrifice perfect consistency for availability
+
+**ML-Powered Recommendations:**
+- Massive investment in recommendation systems
+- 48M parameters trained on billions of examples
+- Continuous experimentation and improvement
+- Balance engagement with user experience
+
+**Social Graph Complexity:**
+- Hybrid fanout strategy essential
+- Different approaches for different user types
+- Real-time updates vs. batch processing tradeoffs
+
+## Scale Statistics
+
+- **400+ million** monthly active users
+- **500+ million** tweets processed daily
+- **1.5 seconds** to generate personalized timeline
+- **48 million** parameters in ranking model
+- **500 million → 1,500** candidates filtered in Stage 2
+- **Multi-region** active-active architecture
+
+## References
+
+- [Twitter Engineering Blog](https://blog.twitter.com/engineering/en_us)
+- [Twitter Open Source](https://twitter.github.io/)
+- [Twitter Recommendation Algorithm (Open Source)](https://github.com/twitter/the-algorithm)
+- [Finagle RPC Framework](https://twitter.github.io/finagle/)

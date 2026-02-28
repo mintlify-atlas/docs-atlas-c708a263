@@ -1,0 +1,795 @@
+---
+title: "Data Structures"
+description: "Essential data structures for system design interviews"
+---
+
+Data structures are fundamental to building efficient systems. This guide covers the key data structures you need to understand for system design interviews.
+
+## Common Data Structures in Daily Use
+
+<img src="https://assets.bytebytego.com/diagrams/0024-10-data-structures-used-in-daily-life.png" alt="Data Structures in Daily Use" />
+
+Here are 10 key data structures we use every day:
+
+<CardGroup cols={2}>
+  <Card title="List" icon="list">
+    **Real-World Use**: Keep your Twitter feeds
+    
+    - Sequential access
+    - Dynamic sizing
+    - Insertion/deletion at ends
+    - Used in social media feeds, playlists
+  </Card>
+  
+  <Card title="Stack" icon="layer-group">
+    **Real-World Use**: Support undo/redo of the word editor
+    
+    - LIFO (Last In, First Out)
+    - Push and pop operations
+    - Function call stack
+    - Browser history, text editors
+  </Card>
+  
+  <Card title="Queue" icon="list-ol">
+    **Real-World Use**: Keep printer jobs, or send user actions in-game
+    
+    - FIFO (First In, First Out)
+    - Enqueue and dequeue
+    - Task scheduling
+    - Message queues, BFS algorithms
+  </Card>
+  
+  <Card title="Hash Table" icon="hashtag">
+    **Real-World Use**: Caching systems
+    
+    - Key-value pairs
+    - O(1) average lookup
+    - Hash function
+    - Databases, caches, dictionaries
+  </Card>
+  
+  <Card title="Array" icon="table-cells">
+    **Real-World Use**: Math operations
+    
+    - Fixed size (in most languages)
+    - Contiguous memory
+    - Random access O(1)
+    - Matrix operations, images
+  </Card>
+  
+  <Card title="Heap" icon="triangle">
+    **Real-World Use**: Task scheduling
+    
+    - Priority queue implementation
+    - Min-heap or max-heap
+    - O(log n) insertion/deletion
+    - Priority scheduling, top K problems
+  </Card>
+  
+  <Card title="Tree" icon="sitemap">
+    **Real-World Use**: Keep the HTML document, or for AI decision
+    
+    - Hierarchical structure
+    - Parent-child relationships
+    - Various traversals
+    - DOM, file systems, decision trees
+  </Card>
+  
+  <Card title="Suffix Tree" icon="code-branch">
+    **Real-World Use**: For searching string in a document
+    
+    - String matching
+    - Pattern search O(m)
+    - Space-intensive
+    - Full-text search, DNA sequencing
+  </Card>
+  
+  <Card title="Graph" icon="circle-nodes">
+    **Real-World Use**: For tracking friendship, or path finding
+    
+    - Vertices and edges
+    - Directed or undirected
+    - Weighted or unweighted
+    - Social networks, maps, dependencies
+  </Card>
+  
+  <Card title="R-Tree" icon="location-dot">
+    **Real-World Use**: For finding the nearest neighbor
+    
+    - Spatial indexing
+    - Multi-dimensional data
+    - Bounding boxes
+    - Geospatial queries, mapping
+  </Card>
+</CardGroup>
+
+<Note>
+  Each data structure is optimized for specific operations. Understanding their trade-offs is crucial for system design.
+</Note>
+
+## Database Data Structures
+
+<img src="https://assets.bytebytego.com/diagrams/0181-eight-ds-db.jpg" alt="Database Data Structures" />
+
+The choice of data structure will vary depending on your use case. Data can be indexed in memory or on disk. Data formats vary, such as numbers, strings, geographic coordinates, etc. The system might be write-heavy or read-heavy. All of these factors affect your choice of database index format.
+
+### Popular Database Index Structures
+
+<AccordionGroup>
+  <Accordion title="Skiplist" icon="bars-staggered">
+    A common in-memory index type.
+    
+    **Characteristics:**
+    - Probabilistic data structure
+    - Multiple levels of linked lists
+    - O(log n) search, insert, delete
+    - Simpler than balanced trees
+    
+    **Used in:**
+    - Redis (sorted sets)
+    - In-memory databases
+    - Concurrent data structures
+    
+    **Trade-offs:**
+    - ✅ Simple implementation
+    - ✅ Good concurrency
+    - ❌ Extra memory for pointers
+    - ❌ Probabilistic guarantees
+  </Accordion>
+
+  <Accordion title="Hash Index" icon="hashtag">
+    A very common implementation of the "Map" data structure (or "Collection").
+    
+    **Characteristics:**
+    - Direct addressing
+    - O(1) average lookup
+    - Hash function + buckets
+    - Collision handling
+    
+    **Used in:**
+    - Key-value stores
+    - Database hash indexes
+    - Cache implementations
+    
+    **Trade-offs:**
+    - ✅ Fast lookups
+    - ✅ Fast inserts
+    - ❌ No range queries
+    - ❌ No ordered traversal
+  </Accordion>
+
+  <Accordion title="SSTable" icon="table">
+    Immutable on-disk "Map" implementation.
+    
+    **Characteristics:**
+    - Sorted Strings Table
+    - Immutable on disk
+    - Sorted by key
+    - Efficient merging
+    
+    **Used in:**
+    - Cassandra
+    - LevelDB
+    - RocksDB
+    
+    **Trade-offs:**
+    - ✅ Sequential writes
+    - ✅ Efficient merging
+    - ❌ Write amplification
+    - ❌ Read overhead
+  </Accordion>
+
+  <Accordion title="LSM Tree" icon="tree">
+    Skiplist + SSTable. High write throughput.
+    
+    **Characteristics:**
+    - Log-Structured Merge Tree
+    - In-memory + on-disk components
+    - Background compaction
+    - Write-optimized
+    
+    **Used in:**
+    - Cassandra
+    - LevelDB
+    - RocksDB
+    - HBase
+    
+    **Trade-offs:**
+    - ✅ High write throughput
+    - ✅ Efficient updates
+    - ❌ Read amplification
+    - ❌ Compaction overhead
+  </Accordion>
+
+  <Accordion title="B-tree" icon="diagram-project">
+    Disk-based solution. Consistent read/write performance.
+    
+    **Characteristics:**
+    - Self-balancing tree
+    - Multiple keys per node
+    - Optimized for disk I/O
+    - Range queries supported
+    
+    **Used in:**
+    - MySQL (InnoDB)
+    - PostgreSQL
+    - Most relational databases
+    - File systems
+    
+    **Trade-offs:**
+    - ✅ Balanced read/write
+    - ✅ Range queries
+    - ✅ Sorted order
+    - ❌ Write overhead (rebalancing)
+  </Accordion>
+
+  <Accordion title="Inverted Index" icon="magnifying-glass">
+    Used for document indexing.
+    
+    **Characteristics:**
+    - Term → Document mapping
+    - Full-text search
+    - Posting lists
+    - Token-based
+    
+    **Used in:**
+    - Elasticsearch
+    - Apache Lucene
+    - Search engines
+    
+    **Trade-offs:**
+    - ✅ Fast text search
+    - ✅ Ranking support
+    - ❌ Storage overhead
+    - ❌ Update complexity
+  </Accordion>
+
+  <Accordion title="Suffix Tree" icon="code-merge">
+    For string pattern search.
+    
+    **Characteristics:**
+    - All suffixes indexed
+    - Pattern matching O(m)
+    - Space-intensive
+    - Build time O(n)
+    
+    **Used in:**
+    - Bioinformatics
+    - String search algorithms
+    - Text processing
+    
+    **Trade-offs:**
+    - ✅ Fast pattern matching
+    - ✅ Multiple patterns
+    - ❌ High memory usage
+    - ❌ Complex implementation
+  </Accordion>
+
+  <Accordion title="R-tree" icon="map">
+    Multi-dimension search, such as finding the nearest neighbor.
+    
+    **Characteristics:**
+    - Spatial indexing
+    - Bounding boxes (MBR)
+    - Multi-dimensional data
+    - Range queries
+    
+    **Used in:**
+    - PostGIS
+    - Geospatial databases
+    - Map applications
+    
+    **Trade-offs:**
+    - ✅ Spatial queries
+    - ✅ Nearest neighbor
+    - ❌ Complex updates
+    - ❌ Overlap in nodes
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  This is not an exhaustive list of all database index types. The choice depends on your specific use case, access patterns, and performance requirements.
+</Warning>
+
+## B-Tree vs LSM-Tree
+
+<img src="https://assets.bytebytego.com/diagrams/0091-btree-lsm.png" alt="B-Tree vs LSM-Tree" />
+
+Two of the most important data structures in database design:
+
+<Tabs>
+  <Tab title="B-Tree">
+    ### Most Widely Used in Relational Databases
+    
+    B-Tree is the most widely used indexing data structure in almost all relational databases.
+    
+    **How it Works:**
+    
+    The basic unit of information storage in B-Tree is usually called a "page". Looking up a key traces down the range of keys until the actual value is found.
+    
+    **Characteristics:**
+    
+    - Self-balancing tree structure
+    - Multiple keys per node
+    - All leaves at same level
+    - Sorted key order
+    - Range queries efficient
+    
+    **Performance:**
+    
+    - Read: O(log n) - **Optimized for reads**
+    - Write: O(log n)
+    - Range query: Efficient
+    - Point query: Efficient
+    
+    **Best For:**
+    
+    - Read-heavy workloads
+    - Range queries
+    - Transactional databases
+    - Traditional RDBMS
+    
+    **Used In:**
+    
+    - MySQL InnoDB
+    - PostgreSQL
+    - SQLite
+    - Most relational databases
+  </Tab>
+  
+  <Tab title="LSM-Tree">
+    ### Popular in NoSQL Databases
+    
+    LSM-Tree (Log-Structured Merge Tree) is widely used by many NoSQL databases.
+    
+    **How it Works:**
+    
+    LSM-trees maintain key-value pairs and are persisted to disk using a Sorted Strings Table (SSTable), in which the keys are sorted.
+    
+    Level 0 segments are periodically merged into Level 1 segments. This process is called **compaction**.
+    
+    **Characteristics:**
+    
+    - Write to in-memory structure first
+    - Flush to disk as SSTables
+    - Background compaction
+    - Multiple levels
+    - Append-only writes
+    
+    **Performance:**
+    
+    - Write: O(1) amortized - **Optimized for writes**
+    - Read: O(log n) with overhead
+    - Compaction: Background process
+    - Space amplification: Higher
+    
+    **Best For:**
+    
+    - Write-heavy workloads
+    - Time-series data
+    - Logging systems
+    - High-throughput applications
+    
+    **Used In:**
+    
+    - Cassandra
+    - RocksDB
+    - LevelDB
+    - HBase
+  </Tab>
+  
+  <Tab title="Comparison">
+    ### The Key Difference
+    
+    <CardGroup cols={2}>
+      <Card title="B-Tree: Read-Optimized" icon="book-open">
+        **Faster Reads**
+        
+        - Fewer disk seeks
+        - Predictable performance
+        - Better for point queries
+        - Efficient range scans
+      </Card>
+      
+      <Card title="LSM-Tree: Write-Optimized" icon="pen">
+        **Faster Writes**
+        
+        - Sequential writes
+        - Less write amplification initially
+        - Better write throughput
+        - Batch operations efficient
+      </Card>
+    </CardGroup>
+    
+    ### Trade-offs
+    
+    | Aspect | B-Tree | LSM-Tree |
+    |--------|--------|----------|
+    | **Read Performance** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+    | **Write Performance** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+    | **Space Efficiency** | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+    | **Range Queries** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+    | **Point Queries** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+    | **Write Amplification** | Higher | Lower (initially) |
+    | **Read Amplification** | Lower | Higher |
+    | **Compaction Overhead** | Lower | Higher |
+    
+    ### When to Choose
+    
+    **Choose B-Tree when:**
+    - Read-heavy workload
+    - Need consistent read latency
+    - Range queries are common
+    - Disk space is limited
+    
+    **Choose LSM-Tree when:**
+    - Write-heavy workload
+    - Can tolerate read latency variance
+    - Sequential writes common
+    - Compaction overhead acceptable
+  </Tab>
+</Tabs>
+
+## Key Algorithms for System Design
+
+<img src="https://assets.bytebytego.com/diagrams/0068-algorithms-geo-hash-linkedin.jpg" alt="Algorithms for System Design" />
+
+What are some of the algorithms you should know before taking system design interviews?
+
+<Note>
+  Understanding "how those algorithms are used in real-world systems" is generally more important than the implementation details in a system design interview.
+</Note>
+
+### Algorithm Importance Levels
+
+<Tabs>
+  <Tab title="⭐⭐⭐⭐⭐ Very Important">
+    Try to understand how it works and why.
+    
+    <CardGroup cols={2}>
+      <Card title="Consistent Hashing" icon="circle-nodes">
+        **Use Case**: Distributed caching, load balancing
+        
+        - Minimizes reorganization when nodes added/removed
+        - Used in: Cassandra, DynamoDB, CDNs
+        - Key concept: Hash ring
+      </Card>
+      
+      <Card title="Bloom Filter" icon="filter">
+        **Use Case**: Membership testing, cache optimization
+        
+        - Space-efficient probabilistic data structure
+        - False positives possible, no false negatives
+        - Used in: BigTable, Cassandra, Bitcoin
+      </Card>
+      
+      <Card title="Merkle Tree" icon="tree">
+        **Use Case**: Data synchronization, verification
+        
+        - Efficient comparison of datasets
+        - Detect inconsistencies
+        - Used in: Git, Bitcoin, Cassandra
+      </Card>
+      
+      <Card title="Geohash" icon="map-pin">
+        **Use Case**: Location-based services
+        
+        - Encode lat/long to string
+        - Proximity search
+        - Used in: Uber, Google Maps
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="⭐⭐⭐ Important">
+    Important to some extent. You may not need to know the implementation details.
+    
+    <CardGroup cols={2}>
+      <Card title="QuadTree" icon="grid">
+        **Use Case**: Spatial indexing
+        
+        - 2D space partitioning
+        - Used in: Google Maps, game engines
+      </Card>
+      
+      <Card title="Leaky Bucket" icon="bucket">
+        **Use Case**: Rate limiting
+        
+        - Smooth out bursty traffic
+        - Used in: API gateways, network devices
+      </Card>
+      
+      <Card title="Token Bucket" icon="coins">
+        **Use Case**: Rate limiting with bursts
+        
+        - Allow controlled bursts
+        - Used in: AWS API Gateway, rate limiters
+      </Card>
+      
+      <Card title="Trie" icon="diagram-project">
+        **Use Case**: Autocomplete, IP routing
+        
+        - Prefix tree
+        - Used in: Search engines, routers
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="⭐ Advanced">
+    Good to know for senior candidates.
+    
+    <CardGroup cols={2}>
+      <Card title="HyperLogLog" icon="calculator">
+        **Use Case**: Cardinality estimation
+        
+        - Count unique items with fixed memory
+        - Used in: Redis, analytics systems
+      </Card>
+      
+      <Card title="Count-Min Sketch" icon="chart-line">
+        **Use Case**: Frequency estimation
+        
+        - Approximate counting
+        - Used in: Stream processing
+      </Card>
+      
+      <Card title="Operational Transform" icon="code-compare">
+        **Use Case**: Collaborative editing
+        
+        - Conflict resolution
+        - Used in: Google Docs, collaborative tools
+      </Card>
+      
+      <Card title="Raft/Paxos" icon="server">
+        **Use Case**: Distributed consensus
+        
+        - Leader election
+        - Used in: etcd, ZooKeeper
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
+
+## Data Structure Selection Guide
+
+### Quick Reference
+
+<AccordionGroup>
+  <Accordion title="Need Fast Lookups?" icon="magnifying-glass">
+    **Hash Table / Hash Map**
+    
+    - O(1) average case
+    - Key-value pairs
+    - No ordering
+    
+    **When to use:**
+    - Caching
+    - Deduplication
+    - Fast membership testing
+    - Counting occurrences
+  </Accordion>
+
+  <Accordion title="Need Ordering?" icon="arrow-down-1-9">
+    **Tree-based structures**
+    
+    - B-Tree: Disk-based, balanced
+    - BST: In-memory, may be unbalanced
+    - Red-Black Tree: Self-balancing
+    
+    **When to use:**
+    - Range queries
+    - Sorted iteration
+    - Database indexes
+    - Priority queues (Heap)
+  </Accordion>
+
+  <Accordion title="Need Fast Writes?" icon="pen">
+    **LSM-Tree or Log-based**
+    
+    - Append-only writes
+    - Background compaction
+    - Write-optimized
+    
+    **When to use:**
+    - Time-series data
+    - Logging systems
+    - Write-heavy workloads
+    - Event sourcing
+  </Accordion>
+
+  <Accordion title="Need Spatial Queries?" icon="map">
+    **R-Tree or QuadTree**
+    
+    - Multi-dimensional indexing
+    - Bounding boxes
+    - Nearest neighbor
+    
+    **When to use:**
+    - Geospatial applications
+    - Location-based services
+    - Map applications
+    - Collision detection
+  </Accordion>
+
+  <Accordion title="Need Text Search?" icon="magnifying-glass-plus">
+    **Inverted Index or Trie**
+    
+    - Term-based indexing
+    - Full-text search
+    - Prefix matching
+    
+    **When to use:**
+    - Search engines
+    - Autocomplete
+    - Document search
+    - Log analysis
+  </Accordion>
+
+  <Accordion title="Need Graph Relationships?" icon="diagram-project">
+    **Graph structures**
+    
+    - Adjacency list
+    - Adjacency matrix
+    - Graph databases
+    
+    **When to use:**
+    - Social networks
+    - Recommendation engines
+    - Path finding
+    - Dependency resolution
+  </Accordion>
+</AccordionGroup>
+
+## Time Complexity Cheat Sheet
+
+### Common Data Structure Operations
+
+| Data Structure | Access | Search | Insert | Delete | Space |
+|---------------|--------|--------|--------|--------|-------|
+| **Array** | O(1) | O(n) | O(n) | O(n) | O(n) |
+| **Linked List** | O(n) | O(n) | O(1) | O(1) | O(n) |
+| **Hash Table** | - | O(1)* | O(1)* | O(1)* | O(n) |
+| **Binary Search Tree** | O(log n)* | O(log n)* | O(log n)* | O(log n)* | O(n) |
+| **B-Tree** | O(log n) | O(log n) | O(log n) | O(log n) | O(n) |
+| **Skip List** | O(log n) | O(log n) | O(log n) | O(log n) | O(n log n) |
+| **Heap** | - | O(n) | O(log n) | O(log n) | O(n) |
+
+<Note>
+  * Average case. Worst case may differ.
+</Note>
+
+## Interview Tips
+
+<Warning>
+  **Common Mistakes**
+  
+  - Choosing hash table when ordering is needed
+  - Using array when frequent insertions/deletions required
+  - Not considering space complexity
+  - Ignoring the read/write ratio of the workload
+  - Forgetting about the cost of data structure maintenance (rebalancing, compaction)
+</Warning>
+
+<Tip>
+  **Interview Strategy**
+  
+  When discussing data structures in system design:
+  
+  1. **Understand the access patterns**: Read-heavy? Write-heavy? Mixed?
+  2. **Consider the data characteristics**: Size? Growth rate? Data types?
+  3. **Think about trade-offs**: Speed vs space? Consistency vs performance?
+  4. **Discuss real-world examples**: How do major companies solve similar problems?
+  5. **Consider maintenance**: What's the operational overhead?
+</Tip>
+
+### Key Questions to Ask
+
+<CardGroup cols={2}>
+  <Card title="Access Patterns" icon="chart-mixed">
+    - What's the read/write ratio?
+    - Are range queries needed?
+    - Is ordering important?
+    - What's the query latency requirement?
+  </Card>
+  
+  <Card title="Scale Considerations" icon="chart-line">
+    - What's the data volume?
+    - How fast is it growing?
+    - How many concurrent users?
+    - What's the throughput requirement?
+  </Card>
+  
+  <Card title="Performance Requirements" icon="gauge-high">
+    - What's acceptable latency?
+    - Is consistency critical?
+    - Can we tolerate eventual consistency?
+    - What about durability?
+  </Card>
+  
+  <Card title="Operational Concerns" icon="screwdriver-wrench">
+    - What's the maintenance overhead?
+    - How do we handle compaction?
+    - What about memory usage?
+    - Is the structure disk-friendly?
+  </Card>
+</CardGroup>
+
+## Practice Problems
+
+<AccordionGroup>
+  <Accordion title="Design a Cache System" icon="database">
+    **Consider:**
+    - Hash table for O(1) lookups
+    - Doubly linked list for LRU eviction
+    - Combined: LRU Cache
+    
+    **Trade-offs:**
+    - Memory overhead for linked list
+    - Fast reads and updates
+    - Eviction policy implementation
+  </Accordion>
+
+  <Accordion title="Design a Real-time Leaderboard" icon="trophy">
+    **Consider:**
+    - Sorted Set (Skip List) for ranking
+    - Hash table for user scores
+    - Redis sorted sets
+    
+    **Trade-offs:**
+    - Memory for maintaining order
+    - Fast score updates
+    - Efficient range queries for top N
+  </Accordion>
+
+  <Accordion title="Design a Geospatial Index" icon="map-location-dot">
+    **Consider:**
+    - QuadTree for 2D partitioning
+    - Geohash for encoding
+    - R-Tree for bounding boxes
+    
+    **Trade-offs:**
+    - Balance between precision and performance
+    - Update complexity
+    - Query efficiency
+  </Accordion>
+
+  <Accordion title="Design a Search Engine" icon="magnifying-glass">
+    **Consider:**
+    - Inverted index for terms
+    - Trie for autocomplete
+    - Ranking algorithms
+    
+    **Trade-offs:**
+    - Storage overhead
+    - Index update latency
+    - Query performance
+  </Accordion>
+</AccordionGroup>
+
+## Summary
+
+<CardGroup cols={3}>
+  <Card title="Know the Basics" icon="book">
+    Master fundamental data structures: arrays, lists, hash tables, trees, graphs.
+  </Card>
+  
+  <Card title="Understand Trade-offs" icon="scale-balanced">
+    Every data structure has pros and cons. Know when to use which.
+  </Card>
+  
+  <Card title="Think Real-World" icon="building">
+    Connect data structures to actual systems: how does Redis use skip lists?
+  </Card>
+  
+  <Card title="Consider Scale" icon="arrow-up-right-dots">
+    What works for 1000 items may not work for 1 billion.
+  </Card>
+  
+  <Card title="Analyze Complexity" icon="calculator">
+    Always discuss time and space complexity of your choices.
+  </Card>
+  
+  <Card title="Practice" icon="dumbbell">
+    Work through real system design problems using different data structures.
+  </Card>
+</CardGroup>

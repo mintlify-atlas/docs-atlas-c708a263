@@ -1,0 +1,236 @@
+---
+title: 'AWS Services Guide'
+description: 'Comprehensive guide to essential AWS cloud services and their use cases'
+---
+
+## Overview
+
+Since its inception in 2006, AWS has rapidly evolved from simple offerings like S3 and EC2 to an expansive, versatile cloud ecosystem. Today, AWS provides a highly reliable, scalable infrastructure platform with over 200 services in the cloud, powering hundreds of thousands of businesses in 190 countries around the world.
+
+For both newcomers and seasoned professionals, navigating the broad set of AWS services is no small feat. From computing power, storage options, and networking capabilities to database management, analytics, and machine learning, AWS provides a wide array of tools that can be daunting to understand and master.
+
+<img src="https://assets.bytebytego.com/diagrams/0280-most-important-aws-services.png" alt="Most Important AWS Services" />
+
+## Core AWS Services
+
+### Compute Services
+
+**EC2 (Elastic Compute Cloud)**
+- Virtual servers in the cloud
+- Scalable computing capacity
+- Multiple instance types for different workloads
+
+**Lambda**
+- Serverless compute service
+- Run code without managing servers
+- Pay only for compute time consumed
+
+**ECS/EKS**
+- Container orchestration services
+- ECS: AWS-native container management
+- EKS: Managed Kubernetes service
+
+### Storage Services
+
+**S3 (Simple Storage Service)**
+- Object storage with high durability
+- Scalable and cost-effective
+- Multiple storage classes for different use cases
+
+**EBS (Elastic Block Store)**
+- Block-level storage for EC2 instances
+- Persistent storage with snapshots
+- High-performance volumes
+
+**EFS (Elastic File System)**
+- Scalable file storage for EC2
+- Shared file system across multiple instances
+- Automatic scaling
+
+### Database Services
+
+**RDS (Relational Database Service)**
+- Managed relational databases
+- Support for MySQL, PostgreSQL, Oracle, SQL Server
+- Automated backups and patching
+
+**DynamoDB**
+- NoSQL database service
+- Single-digit millisecond latency
+- Automatic scaling
+
+**ElastiCache**
+- In-memory caching service
+- Support for Redis and Memcached
+- Sub-millisecond latency
+
+### Networking Services
+
+**VPC (Virtual Private Cloud)**
+- Isolated cloud resources
+- Complete control over virtual networking
+- Security groups and network ACLs
+
+**CloudFront**
+- Content delivery network (CDN)
+- Low latency content delivery
+- Global edge locations
+
+**Route 53**
+- Scalable DNS and domain registration
+- Health checking and routing policies
+- High availability
+
+## AWS Network Architecture
+
+<img src="https://assets.bytebytego.com/diagrams/0123-typical-aws-network-architecture.png" alt="Typical AWS Network Architecture" />
+
+Amazon Web Services offers a comprehensive suite of networking services designed to provide businesses with secure, scalable, and highly available network infrastructure.
+
+### Key Components
+
+<CardGroup cols={2}>
+  <Card title="VPC" icon="cloud">
+    A logically isolated section of the AWS Cloud where you can launch AWS resources in a virtual network that you define.
+  </Card>
+  
+  <Card title="Availability Zones" icon="server">
+    One or more discrete data centers with redundant power, networking, and connectivity in an AWS Region.
+  </Card>
+  
+  <Card title="Internet Gateway" icon="globe">
+    Serves as the doorway between your AWS VPC and the internet, facilitating bidirectional communication.
+  </Card>
+  
+  <Card title="Transit Gateway" icon="network-wired">
+    Acts as a network transit hub, enabling you to connect multiple VPCs, VPNs, and AWS accounts together.
+  </Card>
+</CardGroup>
+
+### Network Connectivity Options
+
+**1. Internet Gateway (IGW)**
+Facilitates bidirectional communication between your VPC and the internet.
+
+**2. Client VPN Endpoint**
+Enables remote workers to access AWS resources or an on-premises network securely over the internet.
+
+**3. Virtual Gateway (VGW)**
+The VPN concentrator on the Amazon side of the Site-to-Site VPN connection between your network and your VPC.
+
+**4. VPC Peering**
+Connects two VPCs, enabling you to route traffic between them using private IPv4 or IPv6 addresses.
+
+**5. VPC Endpoints**
+- **Gateway Endpoints**: For S3 and DynamoDB without internet gateway
+- **Interface Endpoints**: For private connections to AWS services via PrivateLink
+
+**6. AWS PrivateLink**
+Provides private connectivity between VPCs and services hosted on AWS or on-premises.
+
+## AWS Lambda Deep Dive
+
+<img src="https://assets.bytebytego.com/diagrams/0417-what-makes-aws-lambda-so-fast.png" alt="What Makes AWS Lambda So Fast" />
+
+### What Makes AWS Lambda So Fast?
+
+There are 4 main pillars:
+
+#### Function Invocation
+
+AWS Lambda supports synchronous and asynchronous invocation:
+- **Synchronous**: Caller directly calls the Lambda function using AWS CLI, SDK, or other services
+- **Asynchronous**: Request is authorized and an event is placed in an internal SQS queue. Pollers read messages from the queue and send them for processing
+
+#### Assignment Service
+
+The Assignment Service manages the execution environments:
+- Written in Rust for high performance
+- Divided into multiple partitions with a leader-follower approach for high availability
+- State of execution environments is written to an external journal log
+
+#### Firecracker MicroVM
+
+Firecracker is a lightweight virtual machine manager:
+- Designed for running serverless workloads
+- Uses Linux's Kernel-based virtual machine
+- Creates and manages secure, fast-booting microVMs
+
+#### Component Storage
+
+AWS Lambda uses multiple optimization techniques:
+- **Chunking**: Store container images more efficiently
+- **Convergent encryption**: Secure shared data by appending additional data to compute a more robust hash
+- **SnapStart**: Reduce cold start latency by pre-initializing the execution environment
+
+## Amazon S3 Architecture
+
+<img src="https://assets.bytebytego.com/diagrams/0169-design-s3.jpg" alt="Amazon S3 Upload Process" />
+
+### Key Concepts
+
+<AccordionGroup>
+  <Accordion title="Bucket">
+    A logical container for objects. The bucket name is globally unique. To upload data to S3, you must first create a bucket.
+  </Accordion>
+  
+  <Accordion title="Object">
+    An individual piece of data stored in a bucket. Contains:
+    - **Metadata**: Mutable attributes (ID, bucket name, object name, etc.)
+    - **Object data**: Immutable actual data content
+  </Accordion>
+</AccordionGroup>
+
+### File Upload Process
+
+When uploading a file to S3:
+
+1. **Create Bucket**: Client sends HTTP PUT request to create a bucket
+2. **Authorization**: API service calls IAM to verify user permissions
+3. **Metadata Storage**: Bucket info stored in metadata database
+4. **Upload Object**: Client sends HTTP PUT request with object data
+5. **Validation**: API service verifies identity and WRITE permissions
+6. **Data Storage**: Object data persisted to data store, UUID returned
+7. **Metadata Update**: API service creates entry in metadata database with object details
+
+## AWS Services Cheat Sheet
+
+<img src="https://assets.bytebytego.com/diagrams/0082-aws-cloud-services-cheat-sheet.png" alt="AWS Services Cheat Sheet" />
+
+AWS grew from an in-house project to the market leader in cloud services. The platform not only caters to foundational cloud needs but also stays at the forefront of emerging technologies such as machine learning and IoT.
+
+<Note>
+This visual guide simplifies the exploration of AWS's expansive landscape, making it accessible for users to identify and leverage the right tools for their cloud-based endeavors.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="shield-halved">
+    Use IAM roles and policies, enable MFA, encrypt data at rest and in transit
+  </Card>
+  
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Use Reserved Instances, monitor spending with Cost Explorer, implement auto-scaling
+  </Card>
+  
+  <Card title="Reliability" icon="arrows-rotate">
+    Deploy across multiple AZs, implement backups, use CloudWatch monitoring
+  </Card>
+  
+  <Card title="Performance" icon="gauge-high">
+    Choose appropriate instance types, use CDN for content delivery, implement caching
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="AWS Documentation" icon="book" href="https://docs.aws.amazon.com">
+    Official AWS documentation and guides
+  </Card>
+  
+  <Card title="AWS Well-Architected Framework" icon="sitemap" href="https://aws.amazon.com/architecture/well-architected">
+    Best practices for building on AWS
+  </Card>
+</CardGroup>

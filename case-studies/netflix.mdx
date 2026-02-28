@@ -1,0 +1,340 @@
+---
+title: 'Netflix Architecture'
+description: 'Deep dive into Netflix architecture, tech stack, and evolution from monolith to federated gateway serving 200+ million subscribers.'
+icon: 'play'
+---
+
+## Overview
+
+Netflix has evolved from a simple DVD rental service to the world's leading streaming platform, serving over 200 million subscribers across 190+ countries. This case study explores the architectural decisions, technology choices, and evolution that enable Netflix to stream billions of hours of content globally.
+
+## Architecture Evolution
+
+### The Four Stages of Netflix API Architecture
+
+<Accordion title="Stage 1: Monolith (Early Days)">
+  The application was packaged and deployed as a single monolith - a Java WAR file. This approach is typical for most startups as it allows for rapid development and simple deployment.
+  
+  **Challenges:**
+  - Difficult to scale individual components
+  - Deployment risks affected entire application
+  - Limited team autonomy
+</Accordion>
+
+<Accordion title="Stage 2: Direct Access to Microservices">
+  Client applications could make requests directly to individual microservices. As Netflix grew, they decomposed the monolith into hundreds of specialized services.
+  
+  **Challenges:**
+  - Exposing hundreds/thousands of microservices to clients was unmanageable
+  - Network chattiness and latency issues
+  - Difficult to maintain backward compatibility
+</Accordion>
+
+<Accordion title="Stage 3: Gateway Aggregation Layer">
+  Many use cases span multiple services. For example, rendering the Netflix homepage requires data from movie, production, and talent APIs. The gateway aggregation layer solved this by:
+  
+  - Consolidating multiple service calls
+  - Reducing client complexity
+  - Providing a unified API interface
+  
+  **Key Technologies:**
+  - ZUUL - API Gateway
+  - Eureka - Service Discovery
+</Accordion>
+
+<Accordion title="Stage 4: Federated Gateway (Current)">
+  As the number of developers grew and domain complexity increased, even the aggregation layer became difficult to maintain. Netflix adopted **GraphQL Federation** which allows:
+  
+  - A single GraphQL gateway that fetches data from all other APIs
+  - Teams to own their domain's schema independently
+  - Unified data graph across the organization
+  
+  This architecture provides the best balance of centralization and team autonomy.
+</Accordion>
+
+![Netflix API Evolution](https://assets.bytebytego.com/diagrams/0290-netflix-api.png)
+
+## Technology Stack
+
+### Frontend
+
+<CardGroup cols={2}>
+  <Card title="Mobile Apps" icon="mobile">
+    - **iOS:** Swift
+    - **Android:** Kotlin
+    - Native apps for optimal performance
+  </Card>
+  
+  <Card title="Web Application" icon="browser">
+    - **Framework:** React
+    - **API Communication:** GraphQL
+    - Progressive Web App capabilities
+  </Card>
+</CardGroup>
+
+### Backend Services
+
+Netflix's backend is built on a microservices architecture with thousands of services:
+
+- **API Gateway:** ZUUL (custom-built)
+- **Service Discovery:** Eureka
+- **Framework:** Spring Boot
+- **Communication:** REST, gRPC, GraphQL
+
+### Database Architecture
+
+Netflix uses a polyglot persistence approach, selecting the right database for each use case:
+
+<Accordion title="Relational Databases">
+  **MySQL** - Used for:
+  - Billing transactions
+  - Subscriptions
+  - Tax information
+  - Revenue tracking
+  
+  **CockroachDB** - Used for:
+  - Multi-region active-active architecture
+  - Global transactions
+  - Data pipeline workflows
+</Accordion>
+
+<Accordion title="Columnar Databases">
+  Used primarily for analytics:
+  - **Redshift:** Structured data warehouse
+  - **Druid:** Real-time analytics
+  - **Spark:** Data pipeline processing
+  - **Tableau:** Data visualization
+</Accordion>
+
+<Accordion title="Key-Value Store">
+  **EVCache** (built on Memcached):
+  - Used for 10+ years across most services
+  - Caches Netflix homepage
+  - Stores personal recommendations
+  - Critical for low-latency access
+</Accordion>
+
+<Accordion title="Wide-Column Store">
+  **Cassandra** - The default choice at Netflix:
+  - Video and actor information
+  - User data
+  - Device information
+  - Viewing history
+  - Highly scalable and available
+</Accordion>
+
+<Accordion title="Time-Series Database">
+  **Atlas** (open-source, in-memory):
+  - Built by Netflix
+  - Metrics storage and aggregation
+  - Real-time operational insights
+</Accordion>
+
+<Accordion title="Object Storage">
+  **Amazon S3** - Stores almost everything:
+  - Image files
+  - Video content
+  - Metrics
+  - Log files
+  
+  **Apache Iceberg** with S3:
+  - Big data storage
+  - Data lake architecture
+</Accordion>
+
+![Netflix Database Stack](https://assets.bytebytego.com/diagrams/0098-databases-used-in-netflix.jpg)
+
+## Caching Strategy
+
+<Info>
+  **Key Insight:** Netflix's goal is to keep users streaming. With a typical attention span of just 90 seconds, reducing latency through caching is critical to maintaining engagement.
+</Info>
+
+Netflix uses **EVCache** (a distributed key-value store) in four distinct patterns:
+
+### 1. Lookaside Cache
+
+The most common caching pattern:
+
+1. Application requests data from EVCache client
+2. If cache miss, fetch from backend service and Cassandra
+3. Store result in cache for future requests
+4. Return data to application
+
+**Use Cases:** General data caching, user profiles, content metadata
+
+### 2. Transient Data Store
+
+Used for temporary session data:
+
+- Playback session information
+- One service starts the session
+- Another updates it during playback
+- Final service closes the session
+
+**Benefits:** Fast access without database writes for temporary data
+
+### 3. Primary Store
+
+EVCache as the source of truth:
+
+- Netflix runs large-scale pre-compute systems nightly
+- Computes personalized homepage for every user profile
+- Based on watch history and recommendations
+- Written directly to EVCache
+- Online services read from cache to build homepage
+
+**Why:** Faster than database queries for pre-computed results
+
+### 4. High Volume Data
+
+For data requiring:
+- High access volume
+- High availability
+- Low latency
+
+**Example:** UI strings and translations on Netflix homepage
+
+- Asynchronous process computes and publishes to EVCache
+- Applications read with minimal latency
+
+![Netflix Caching Patterns](https://assets.bytebytego.com/diagrams/0007-4-ways-netflix-uses-caching.png)
+
+## Video Delivery
+
+### Storage and Distribution
+
+<CardGroup cols={2}>
+  <Card title="Origin Storage" icon="database">
+    **Amazon S3:**
+    - Master copy of all content
+    - Multiple regions for redundancy
+    - Source for CDN distribution
+  </Card>
+  
+  <Card title="Content Delivery" icon="network-wired">
+    **Open Connect CDN:**
+    - Netflix's custom-built CDN
+    - Servers placed in ISP data centers
+    - Reduces internet transit costs
+    - Improves streaming quality
+  </Card>
+</CardGroup>
+
+### How Video Streaming Works
+
+1. **Content Encoding:** Videos encoded in multiple bitrates and resolutions
+2. **Distribution:** Content pushed to Open Connect edge servers worldwide
+3. **Client Request:** User selects content to watch
+4. **Server Selection:** Nearest/optimal edge server selected
+5. **Adaptive Streaming:** Bitrate adjusts based on network conditions
+
+## Messaging and Streaming
+
+Netflix employs event-driven architecture for real-time data processing:
+
+- **Apache Kafka:** Message broker for event streaming
+- **Apache Flink:** Stream processing for real-time analytics
+- **Use Cases:**
+  - User activity tracking
+  - Real-time recommendations
+  - Monitoring and alerting
+  - A/B testing data
+
+## CI/CD Pipeline
+
+Netflix has one of the most mature CI/CD practices in the industry:
+
+### Development Tools
+- **JIRA:** Project planning and tracking
+- **Confluence:** Documentation and collaboration
+- **Git:** Version control
+
+### Build and Test
+- **Jenkins:** Continuous integration
+- **Gradle:** Build automation
+- **Spinnaker:** Multi-cloud continuous delivery (open-sourced by Netflix)
+
+### Deployment
+- **Spinnaker:** Orchestrates deployments across regions
+- **Canary Deployments:** Test changes with small percentage of traffic
+- **Red/Black Deployments:** Quick rollback capability
+
+### Monitoring and Reliability
+- **Atlas:** Time-series metrics
+- **PagerDuty:** On-call management
+- **Chaos Monkey:** Randomly terminates instances to test resilience
+- **Simian Army:** Suite of chaos engineering tools
+
+<Info>
+  Netflix pioneered **Chaos Engineering** - the practice of intentionally introducing failures to test system resilience. Their Chaos Monkey randomly terminates production instances to ensure the system can handle failures gracefully.
+</Info>
+
+## Key Architecture Decisions
+
+### 1. Cloud-Native from the Start
+
+- Netflix migrated to AWS in 2008-2016
+- One of the largest AWS deployments
+- Multi-region for disaster recovery
+- Auto-scaling based on demand
+
+### 2. Polyglot Persistence
+
+- Different databases for different use cases
+- No single database solution
+- Optimized for specific access patterns
+
+### 3. Service-Oriented Architecture
+
+- Microservices for business capabilities
+- Teams own services end-to-end
+- Independent deployment and scaling
+
+### 4. API Gateway Evolution
+
+- From monolith → direct access → gateway → federated gateway
+- GraphQL for flexible data fetching
+- Reduced network overhead
+
+### 5. Heavy Investment in Observability
+
+- Custom tooling (Atlas, etc.)
+- Distributed tracing
+- Real-time anomaly detection
+
+## Lessons Learned
+
+<CardGroup cols={2}>
+  <Card title="Build for Failure" icon="shield-halved">
+    Assume everything will fail. Netflix's architecture is designed with redundancy and graceful degradation at every level.
+  </Card>
+  
+  <Card title="Right Tool for the Job" icon="wrench">
+    Netflix uses multiple databases and technologies, each selected for specific use cases rather than standardizing on one solution.
+  </Card>
+  
+  <Card title="Gateway Evolution" icon="layer-group">
+    Start simple (monolith), evolve to microservices when needed, and adopt aggregation layers (GraphQL) as complexity grows.
+  </Card>
+  
+  <Card title="Cache Everything" icon="bolt">
+    With 90-second attention spans, latency kills engagement. Aggressive caching at multiple layers is essential.
+  </Card>
+</CardGroup>
+
+## Scale Statistics
+
+- **200+ million** subscribers worldwide
+- **190+** countries served
+- **Billions** of hours streamed monthly
+- **Thousands** of microservices
+- **Hundreds of thousands** of streaming sessions concurrently
+- **Petabytes** of video content
+
+## References
+
+- [Netflix Tech Blog](https://netflixtechblog.com/)
+- [Netflix Open Source](https://netflix.github.io/)
+- [Netflix API Evolution](https://assets.bytebytego.com/diagrams/0290-netflix-api.png)
+- [Netflix Database Architecture](https://assets.bytebytego.com/diagrams/0098-databases-used-in-netflix.jpg)

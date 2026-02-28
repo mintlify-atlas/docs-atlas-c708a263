@@ -1,0 +1,319 @@
+---
+title: "Design Patterns"
+description: "Master essential design patterns to write cleaner, more maintainable, and reusable code."
+---
+
+## What Are Design Patterns?
+
+Design patterns are reusable solutions to common design problems, resulting in a smoother, more efficient development process. They serve as blueprints for building better software structures.
+
+Patterns help developers communicate complex ideas quickly and provide proven solutions that have been refined over time.
+
+## The 18 Essential Design Patterns
+
+![Design Patterns Overview](https://assets.bytebytego.com/diagrams/0032-oo-patterns-you-should-know.png)
+
+### Creational Patterns
+
+Creational patterns deal with object creation mechanisms, trying to create objects in a manner suitable to the situation.
+
+<CardGroup cols={2}>
+  <Card title="Abstract Factory" icon="industry">
+    **Family Creator** - Makes groups of related items without specifying their concrete classes.
+  </Card>
+  <Card title="Builder" icon="cubes-stacked">
+    **Lego Master** - Builds objects step by step, keeping creation and appearance separate.
+  </Card>
+  <Card title="Prototype" icon="clone">
+    **Clone Maker** - Creates copies of fully prepared examples.
+  </Card>
+  <Card title="Singleton" icon="user">
+    **One and Only** - A special class with just one instance.
+  </Card>
+</CardGroup>
+
+#### Abstract Factory Pattern
+
+<Accordion title="When to Use">
+**Use Abstract Factory when:**
+- You need to create families of related objects
+- You want to ensure compatibility between created objects
+- You want to hide the creation logic from clients
+
+**Example Use Cases:**
+- UI toolkit libraries (Windows, Mac, Linux themes)
+- Cross-platform applications
+- Database connection factories
+</Accordion>
+
+#### Builder Pattern
+
+<Note>
+The Builder pattern is perfect for constructing complex objects step by step. It separates the construction process from the representation, allowing the same construction process to create different representations.
+</Note>
+
+**Benefits:**
+- Clearer code for complex object creation
+- Different representations using the same construction code
+- Step-by-step construction with optional parameters
+
+#### Prototype Pattern
+
+<Tip>
+Use the Prototype pattern when creating new objects is expensive. Instead of creating from scratch, clone existing instances and modify them as needed.
+</Tip>
+
+#### Singleton Pattern
+
+**Key Characteristics:**
+- Ensures only one instance exists
+- Provides global access point
+- Lazy or eager initialization
+
+**Common Use Cases:**
+- Configuration managers
+- Logger instances
+- Database connection pools
+- Cache managers
+
+### Structural Patterns
+
+Structural patterns explain how to assemble objects and classes into larger structures while keeping these structures flexible and efficient.
+
+<CardGroup cols={2}>
+  <Card title="Adapter" icon="plug">
+    **Universal Plug** - Connects things with different interfaces.
+  </Card>
+  <Card title="Bridge" icon="bridge">
+    **Function Connector** - Links how an object works to what it does.
+  </Card>
+  <Card title="Composite" icon="sitemap">
+    **Tree Builder** - Forms tree-like structures of simple and complex parts.
+  </Card>
+  <Card title="Decorator" icon="paintbrush">
+    **Customizer** - Adds features to objects without changing their core.
+  </Card>
+  <Card title="Facade" icon="store">
+    **One-Stop-Shop** - Represents a whole system with a single, simplified interface.
+  </Card>
+  <Card title="Flyweight" icon="compress">
+    **Space Saver** - Shares small, reusable items efficiently.
+  </Card>
+  <Card title="Proxy" icon="shield">
+    **Stand-In Actor** - Represents another object, controlling access or actions.
+  </Card>
+</CardGroup>
+
+#### Adapter Pattern
+
+<Accordion title="Implementation Details">
+The Adapter pattern acts as a bridge between two incompatible interfaces. It wraps an existing class with a new interface.
+
+**Real-world examples:**
+- Converting XML to JSON
+- Integrating legacy code with new systems
+- Third-party library integration
+</Accordion>
+
+#### Decorator Pattern
+
+<Note>
+The Decorator pattern allows you to add new functionality to objects dynamically without altering their structure. This is achieved by wrapping the original object with decorator objects.
+</Note>
+
+**Advantages:**
+- More flexible than inheritance
+- Responsibilities can be added/removed at runtime
+- Combine multiple decorators
+
+#### Facade Pattern
+
+Provides a simplified interface to a complex subsystem. Great for:
+- Simplifying complex libraries
+- Providing a unified interface
+- Reducing dependencies on subsystem details
+
+### Behavioral Patterns
+
+Behavioral patterns are concerned with algorithms and the assignment of responsibilities between objects.
+
+<CardGroup cols={2}>
+  <Card title="Chain of Responsibility" icon="link">
+    **Request Relay** - Passes a request through a chain of objects until handled.
+  </Card>
+  <Card title="Command" icon="terminal">
+    **Task Wrapper** - Turns a request into an object, ready for action.
+  </Card>
+  <Card title="Iterator" icon="arrows-rotate">
+    **Collection Explorer** - Accesses elements in a collection one by one.
+  </Card>
+  <Card title="Mediator" icon="circle-nodes">
+    **Communication Hub** - Simplifies interactions between different classes.
+  </Card>
+  <Card title="Memento" icon="clock-rotate-left">
+    **Time Capsule** - Captures and restores an object's state.
+  </Card>
+  <Card title="Observer" icon="bell">
+    **News Broadcaster** - Notifies classes about changes in other objects.
+  </Card>
+  <Card title="Visitor" icon="user-plus">
+    **Skillful Guest** - Adds new operations to a class without altering it.
+  </Card>
+</CardGroup>
+
+#### Observer Pattern
+
+<Tip>
+The Observer pattern is fundamental to event-driven programming. It defines a one-to-many dependency between objects so that when one object changes state, all its dependents are notified automatically.
+</Tip>
+
+**Use Cases:**
+- Event handling systems
+- Model-View-Controller (MVC) architectures
+- Real-time data updates
+- Notification systems
+
+#### Command Pattern
+
+Encapsulates a request as an object, allowing you to:
+- Parameterize clients with different requests
+- Queue or log requests
+- Support undoable operations
+
+#### Chain of Responsibility Pattern
+
+<Accordion title="Benefits and Trade-offs">
+**Benefits:**
+- Decouples sender and receiver
+- Adds or removes responsibilities dynamically
+- Flexibility in assigning responsibilities
+
+**Trade-offs:**
+- No guarantee a request will be handled
+- Can be difficult to observe and debug
+</Accordion>
+
+## Multithreading Design Patterns
+
+![Multithreading Patterns](https://assets.bytebytego.com/diagrams/0381-top-6-multithreading-design-patterns-you-must-know.png)
+
+Multithreading enables a single program to execute multiple tasks concurrently. However, it introduces complexities like synchronization and race conditions.
+
+### Producer-Consumer Pattern
+
+This pattern involves two types of threads: producers generating data and consumers processing that data. A blocking queue acts as a buffer between the two.
+
+<Note>
+**Key Benefits:**
+- Decouples production from consumption
+- Natural load balancing
+- Thread-safe communication
+</Note>
+
+### Thread Pool Pattern
+
+A pool of worker threads that can be reused for executing tasks. Using a pool removes the overhead of creating and destroying threads.
+
+**Perfect for:**
+- Executing a large number of short-lived tasks
+- Server applications handling multiple requests
+- Background job processing
+
+### Futures and Promises Pattern
+
+<Accordion title="How It Works">
+The promise is an object that holds the eventual results and the future provides a way to access the result.
+
+**Great for:**
+- Executing long-running operations concurrently
+- Non-blocking asynchronous operations
+- Avoiding callback hell
+</Accordion>
+
+### Monitor Object Pattern
+
+Ensures that only one thread can access or modify a shared resource within an object at a time. This helps prevent race conditions.
+
+<Tip>
+Required when you need to protect shared data or resources from concurrent access.
+</Tip>
+
+### Barrier Pattern
+
+Synchronizes a group of threads. Each thread executes until it reaches a barrier point in the code and blocks until all threads have reached the same barrier.
+
+**Ideal for:**
+- Parallel tasks that need to reach a specific stage
+- MapReduce-style operations
+- Multi-phase algorithms
+
+### Read-Write Lock Pattern
+
+Allows multiple threads to read from a shared resource but only allows one thread to write to it at a time.
+
+**Benefits:**
+- Better concurrency than exclusive locks
+- Ideal when reads are more frequent than writes
+- Improved performance for read-heavy workloads
+
+## Design Pattern Cheatsheet
+
+![Design Patterns Cheatsheet](https://assets.bytebytego.com/diagrams/0167-design-patterns-cheat-sheet-part-2.png)
+
+<CardGroup cols={1}>
+  <Card title="Creational Patterns" icon="hammer">
+    Factory, Builder, Prototype, Singleton - Focus on object creation
+  </Card>
+  <Card title="Structural Patterns" icon="building">
+    Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy - Focus on composition
+  </Card>
+  <Card title="Behavioral Patterns" icon="gears">
+    Chain of Responsibility, Command, Iterator, Mediator, Memento, Observer, Visitor - Focus on communication
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+**When Using Design Patterns:**
+
+1. Don't overuse patterns - use them when they solve real problems
+2. Understand the problem before applying a pattern
+3. Patterns are guidelines, not strict rules
+4. Consider the trade-offs of each pattern
+5. Keep code simple and readable
+6. Document which patterns you're using and why
+</Tip>
+
+## Common Anti-Patterns to Avoid
+
+<Accordion title="What NOT to Do">
+**Pattern Overuse:**
+- Don't use patterns just to use them
+- Avoid premature optimization
+- Keep it simple (KISS principle)
+
+**Wrong Pattern Selection:**
+- Understand your requirements first
+- Consider scalability and maintainability
+- Think about team familiarity
+
+**Rigid Implementation:**
+- Adapt patterns to your needs
+- Don't follow implementations blindly
+- Focus on solving your specific problem
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Software Architecture" href="/architecture/software-architecture" icon="building">
+    Explore broader architectural patterns
+  </Card>
+  <Card title="Microservices" href="/architecture/microservices" icon="cubes">
+    Learn microservices-specific patterns
+  </Card>
+  <Card title="Scalability" href="/architecture/scalability" icon="chart-line">
+    Discover scalability design patterns
+  </Card>
+</CardGroup>

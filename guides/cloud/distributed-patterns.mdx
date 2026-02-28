@@ -1,0 +1,552 @@
+---
+title: 'Distributed System Patterns'
+description: 'Essential patterns for building robust distributed systems'
+---
+
+## Introduction
+
+Distributed systems are complex by nature, requiring careful design to handle challenges like network partitions, data consistency, and fault tolerance. This guide covers the most important patterns used in production distributed systems.
+
+<img src="https://assets.bytebytego.com/diagrams/0119-top-7-most-used-distributed-system-patterns.png" alt="Top 7 Distributed System Patterns" />
+
+## Top 7 Distributed System Patterns
+
+The most commonly used patterns in distributed system design are:
+
+- Ambassador
+- Circuit Breaker
+- CQRS (Command Query Responsibility Segregation)
+- Event Sourcing
+- Leader Election
+- Publisher/Subscriber
+- Sharding
+
+Let's explore each pattern in detail.
+
+## 1. Ambassador Pattern
+
+The Ambassador pattern places a helper service (ambassador) alongside your application to handle common connectivity tasks.
+
+**Use Cases:**
+- Offload common client connectivity tasks
+- Handle retries and timeouts
+- Implement monitoring and logging
+- Provide connection pooling
+
+**Benefits:**
+- Language-agnostic
+- Simplified application code
+- Centralized connectivity logic
+- Easier to update connection logic
+
+**Example Implementation:**
+```
+Application -> Ambassador Proxy -> External Service
+            (Retries, logging,
+             circuit breaking)
+```
+
+## 2. Circuit Breaker Pattern
+
+The Circuit Breaker pattern prevents an application from repeatedly trying to execute an operation that's likely to fail.
+
+**States:**
+
+<Steps>
+  <Step title="Closed">
+    Requests pass through normally. Monitor for failures.
+  </Step>
+  
+  <Step title="Open">
+    Requests fail immediately without attempting the operation. After timeout, move to Half-Open.
+  </Step>
+  
+  <Step title="Half-Open">
+    Limited requests are allowed through to test if the issue is resolved.
+  </Step>
+</Steps>
+
+**Configuration Parameters:**
+- **Failure Threshold**: Number of failures before opening circuit
+- **Timeout Duration**: How long circuit stays open
+- **Success Threshold**: Successful requests needed to close circuit
+
+**Benefits:**
+- Prevents cascading failures
+- Fails fast
+- Allows system to recover
+- Improves user experience
+
+## 3. CQRS (Command Query Responsibility Segregation)
+
+<img src="https://assets.bytebytego.com/diagrams/0100-eventual-consistency-patterns-you-must-know.png" alt="Eventual Consistency Patterns" />
+
+CQRS separates read and write operations into different models.
+
+**Architecture:**
+
+<Tabs>
+  <Tab title="Command Side (Write)">
+    - Handles all write operations
+    - Optimized for data modification
+    - Validates business rules
+    - Emits events on changes
+    - Can use normalized data model
+  </Tab>
+  
+  <Tab title="Query Side (Read)">
+    - Handles all read operations
+    - Optimized for queries
+    - Can use denormalized data
+    - Multiple read models possible
+    - Eventually consistent with command side
+  </Tab>
+</Tabs>
+
+**When to Use:**
+- Different read/write performance requirements
+- Complex business logic on writes
+- Need for multiple view models
+- High read/write ratio imbalance
+
+**Benefits:**
+- Independent scaling of reads and writes
+- Optimized data models for each operation
+- Better performance
+- Flexibility in data representation
+
+**Trade-offs:**
+- Increased complexity
+- Eventual consistency
+- More infrastructure
+- Synchronization overhead
+
+## 4. Event Sourcing Pattern
+
+Instead of storing just the current state, Event Sourcing stores the sequence of events that led to the current state.
+
+**Key Concepts:**
+
+<CardGroup cols={2}>
+  <Card title="Event Store" icon="database">
+    Append-only log of all events. Single source of truth for system state.
+  </Card>
+  
+  <Card title="Event" icon="bolt">
+    Immutable fact that something happened. Contains timestamp and data.
+  </Card>
+  
+  <Card title="Projection" icon="eye">
+    Current state derived by replaying events. Multiple projections possible.
+  </Card>
+  
+  <Card title="Snapshot" icon="camera">
+    Periodic checkpoint of state to improve performance. Optional optimization.
+  </Card>
+</CardGroup>
+
+**Benefits:**
+- Complete audit trail
+- Time travel queries
+- Easy to debug
+- Replay events for new projections
+- Natural fit for event-driven architectures
+
+**Challenges:**
+- Storage requirements grow over time
+- Eventual consistency
+- Learning curve
+- Schema evolution
+
+**Use Cases:**
+- Financial systems (transactions)
+- Audit requirements
+- Collaborative systems
+- Time-based analytics
+
+## 5. Leader Election Pattern
+
+Leader Election ensures that only one node in a distributed system performs a specific task at a time.
+
+**Common Algorithms:**
+
+<AccordionGroup>
+  <Accordion title="Raft">
+    Consensus algorithm designed for understandability.
+    
+    **Features:**
+    - Strong consistency
+    - Leader-based
+    - Log replication
+    - Used in etcd, Consul
+  </Accordion>
+  
+  <Accordion title="Paxos">
+    Classic consensus algorithm.
+    
+    **Features:**
+    - Proven correctness
+    - Complex to implement
+    - Multiple variants (Multi-Paxos, Fast Paxos)
+    - Academic foundation
+  </Accordion>
+  
+  <Accordion title="Bully Algorithm">
+    Simple election algorithm based on process IDs.
+    
+    **Features:**
+    - Highest ID becomes leader
+    - Easy to understand
+    - Less efficient than Raft/Paxos
+  </Accordion>
+  
+  <Accordion title="ZooKeeper">
+    Distributed coordination service.
+    
+    **Features:**
+    - Ephemeral nodes for leader election
+    - Watches for change notifications
+    - Sequential znodes
+    - Widely used in production
+  </Accordion>
+</AccordionGroup>
+
+**Use Cases:**
+- Database primary election
+- Job scheduling coordination
+- Configuration management
+- Distributed locking
+
+## 6. Publisher/Subscriber Pattern
+
+Pub/Sub pattern enables asynchronous communication between services without direct coupling.
+
+**Architecture:**
+
+```
+Publisher -> Topic/Channel -> Subscriber 1
+                          \-> Subscriber 2
+                          \-> Subscriber 3
+```
+
+**Key Characteristics:**
+
+- **Loose Coupling**: Publishers don't know about subscribers
+- **Scalability**: Add subscribers without affecting publishers
+- **Asynchronous**: Fire and forget communication
+- **Broadcasting**: One message to many subscribers
+
+**Popular Implementations:**
+- **Kafka**: High-throughput, distributed event streaming
+- **RabbitMQ**: Traditional message broker
+- **AWS SNS/SQS**: Managed pub/sub service
+- **Google Pub/Sub**: Cloud-native messaging
+- **Redis Pub/Sub**: Lightweight, in-memory
+
+**Message Patterns:**
+
+<Tabs>
+  <Tab title="Fan-out">
+    One message to multiple subscribers
+    
+    **Use**: Event broadcasting, notifications
+  </Tab>
+  
+  <Tab title="Work Queue">
+    Messages distributed among workers
+    
+    **Use**: Load distribution, parallel processing
+  </Tab>
+  
+  <Tab title="Topic-based">
+    Subscribe to specific topics/patterns
+    
+    **Use**: Event filtering, selective consumption
+  </Tab>
+</Tabs>
+
+## 7. Sharding Pattern
+
+Sharding distributes data across multiple databases to improve scalability and performance.
+
+**Covered in detail in the [Scalability Guide](/guides/cloud/scalability#7-database-sharding)**
+
+## Consistent Hashing
+
+<img src="https://assets.bytebytego.com/diagrams/0151-consistent-hashing.png" alt="Consistent Hashing" />
+
+What do Amazon DynamoDB, Apache Cassandra, Discord, and Akamai CDN have in common? They all use consistent hashing.
+
+### The Problem with Simple Hashing
+
+In a large-scale distributed system, data doesn't fit on a single server. Using simple hashing:
+
+```
+serverIndex = hash(key) % N
+```
+
+When servers are added or removed, most keys need to be remapped, causing a "storm of misses."
+
+### Consistent Hashing Solution
+
+**How it works:**
+
+<Steps>
+  <Step title="Create Hash Ring">
+    Use a hash function to place servers on a virtual ring (0 to 2^32-1).
+  </Step>
+  
+  <Step title="Place Servers">
+    Hash each server by its name or IP address and place on the ring.
+  </Step>
+  
+  <Step title="Place Keys">
+    Hash each object key with the same hash function.
+  </Step>
+  
+  <Step title="Find Server">
+    Go clockwise from the key's position until finding a server.
+  </Step>
+</Steps>
+
+**Benefits:**
+- Minimal key remapping when servers change
+- Only K/N keys need to move (K = total keys, N = servers)
+- Scalable and efficient
+
+**Virtual Nodes:**
+To improve distribution, each physical server is assigned multiple virtual nodes on the ring.
+
+**Real-World Usage:**
+- **Amazon DynamoDB**: Minimize data movement during rebalancing
+- **Apache Cassandra**: Distribute data across nodes
+- **CDNs (Akamai)**: Distribute web content evenly among edge servers
+- **Load Balancers**: Distribute persistent connections across backend servers
+
+## Failure Detection in Distributed Systems
+
+<img src="https://assets.bytebytego.com/diagrams/0370-top-6-heartbeat-detection-mechanisms.png" alt="Heartbeat Detection Mechanisms" />
+
+Heartbeat mechanisms are crucial for monitoring the health and status of components in distributed systems.
+
+### Heartbeat Mechanisms
+
+<AccordionGroup>
+  <Accordion title="Push-Based Heartbeat">
+    Nodes periodically send heartbeat signals to a monitor.
+    
+    **Pros**: Simple to implement
+    
+    **Cons**: Network congestion can cause false positives
+  </Accordion>
+  
+  <Accordion title="Pull-Based Heartbeat">
+    Central monitor periodically queries nodes for status.
+    
+    **Pros**: Reduces network traffic from nodes
+    
+    **Cons**: Increased latency in failure detection
+  </Accordion>
+  
+  <Accordion title="Heartbeat with Health Check">
+    Includes diagnostic information (CPU, memory, metrics).
+    
+    **Pros**: More detailed information, nuanced decision-making
+    
+    **Cons**: Larger network overhead, increased complexity
+  </Accordion>
+  
+  <Accordion title="Heartbeat with Timestamps">
+    Includes timestamps to detect network delays.
+    
+    **Pros**: Distinguishes between node failure and network issues
+    
+    **Cons**: Requires clock synchronization
+  </Accordion>
+  
+  <Accordion title="Heartbeat with Acknowledgement">
+    Receiver must acknowledge receipt of heartbeat.
+    
+    **Pros**: Verifies network path is functional
+    
+    **Cons**: Double the network traffic
+  </Accordion>
+  
+  <Accordion title="Heartbeat with Quorum">
+    Uses majority voting for consensus protocols (Paxos, Raft).
+    
+    **Pros**: Ensures sufficient nodes for decision-making
+    
+    **Cons**: Complex implementation, quorum management overhead
+  </Accordion>
+</AccordionGroup>
+
+## CAP Theorem
+
+<img src="https://assets.bytebytego.com/diagrams/0131-cap-theorem.jpeg" alt="CAP Theorem" />
+
+The CAP theorem states that a distributed system can't provide more than two of these three guarantees simultaneously:
+
+### The Three Guarantees
+
+<CardGroup cols={3}>
+  <Card title="Consistency" icon="equals">
+    All clients see the same data at the same time no matter which node they connect to.
+  </Card>
+  
+  <Card title="Availability" icon="check">
+    Any client requesting data gets a response even if some nodes are down.
+  </Card>
+  
+  <Card title="Partition Tolerance" icon="network-wired">
+    The system continues to operate despite network partitions.
+  </Card>
+</CardGroup>
+
+### Understanding the Trade-offs
+
+<Warning>
+The "2 of 3" formulation can be misleading. In reality:
+- Network partitions will happen
+- You must choose between Consistency and Availability during partitions
+- CAP prohibits only perfect availability and consistency during partitions
+</Warning>
+
+**Database Examples:**
+
+- **CP Systems** (Consistency + Partition Tolerance)
+  - MongoDB, HBase, Redis
+  - Prefer consistency over availability
+  - May return errors during partitions
+
+- **AP Systems** (Availability + Partition Tolerance)
+  - Cassandra, DynamoDB, CouchDB
+  - Prefer availability over consistency
+  - May return stale data during partitions
+
+- **CA Systems** (Consistency + Availability)
+  - Traditional RDBMS (PostgreSQL, MySQL)
+  - In single-node or same datacenter
+  - Cannot tolerate network partitions
+
+<Note>
+CAP opens our minds to trade-off discussions, but it's only part of the story. Consider PACELC theorem for a more complete picture: in case of Partition, choose Availability or Consistency; Else, choose Latency or Consistency.
+</Note>
+
+## Eventual Consistency Patterns
+
+Eventual consistency ensures that updates to a distributed database are eventually reflected across all nodes.
+
+### Event-based Eventual Consistency
+
+Services emit events and other services listen to update their database instances.
+
+**Characteristics:**
+- Loosely coupled services
+- Asynchronous communication
+- Delays in data consistency
+- Scalable architecture
+
+### Background Sync Eventual Consistency
+
+A background job makes data consistent across databases on a schedule.
+
+**Characteristics:**
+- Slower eventual consistency
+- Lower system load
+- Predictable sync patterns
+- Simpler implementation
+
+### Saga-based Eventual Consistency
+
+Sequence of local transactions where each transaction updates data within a single service.
+
+**Patterns:**
+- **Choreography**: Each service publishes events
+- **Orchestration**: Central coordinator manages saga
+
+### CQRS-based Eventual Consistency
+
+Separate read and write operations into different databases that are eventually consistent.
+
+**Benefits:**
+- Optimized read and write models
+- Independent scaling
+- Flexibility in data representation
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Design for Failure" icon="triangle-exclamation">
+    Assume components will fail and build redundancy into your system.
+  </Card>
+  
+  <Card title="Idempotency" icon="repeat">
+    Make operations idempotent so they can be safely retried.
+  </Card>
+  
+  <Card title="Loose Coupling" icon="link-slash">
+    Use message queues and events to decouple services.
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    Implement comprehensive monitoring and alerting.
+  </Card>
+</CardGroup>
+
+**Additional Guidelines:**
+
+1. **Use timeouts appropriately**
+   - Set reasonable timeout values
+   - Implement retry with backoff
+   - Consider timeout at each layer
+
+2. **Implement circuit breakers**
+   - Protect against cascading failures
+   - Allow systems to recover
+   - Provide fallback mechanisms
+
+3. **Design for observability**
+   - Distributed tracing
+   - Structured logging
+   - Metrics and monitoring
+   - Correlation IDs
+
+4. **Test for failure scenarios**
+   - Chaos engineering
+   - Network partition testing
+   - Load testing
+   - Disaster recovery drills
+
+## Cloud-Native Considerations
+
+<img src="https://assets.bytebytego.com/diagrams/0413-what-is-cloud-native.png" alt="What is Cloud Native" />
+
+Cloud native technologies enable organizations to build and run scalable applications in public, private, and hybrid clouds.
+
+**Four Aspects of Cloud Native:**
+
+1. **Development Process**: Waterfall → Agile → DevOps
+2. **Application Architecture**: Monolithic → Microservices
+3. **Deployment & Packaging**: Physical → Virtual → Containers
+4. **Infrastructure**: Self-hosted → Cloud
+
+<Tip>
+Cloud-native applications are designed to leverage cloud features, making them resilient to load and easy to scale.
+</Tip>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="AWS Services" icon="aws" href="/guides/cloud/aws-services">
+    Explore AWS services for distributed systems
+  </Card>
+  
+  <Card title="Scalability" icon="arrow-up-right-dots" href="/guides/cloud/scalability">
+    Learn strategies for scaling systems
+  </Card>
+  
+  <Card title="Resilience" icon="shield" href="/guides/cloud/resilience">
+    Build resilient and fault-tolerant systems
+  </Card>
+</CardGroup>

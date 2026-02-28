@@ -1,0 +1,768 @@
+---
+title: "Cache Eviction Policies"
+description: "Understand cache eviction strategies including LRU, LFU, FIFO, TTL, and more to optimize cache performance"
+---
+
+## What is Cache Eviction?
+
+Cache eviction is the process of removing entries from cache when it reaches capacity. The eviction policy determines which items to remove to make room for new data.
+
+<Info>
+  The cache eviction strategy you choose can significantly impact your system's performance, memory usage, and hit rates.
+</Info>
+
+![Cache Eviction Strategies](https://assets.bytebytego.com/diagrams/0281-most-popular-cache-eviction.png)
+
+## Why Cache Eviction Matters
+
+Caching can provide a significant performance boost by storing data in memory for faster access. However:
+
+- **Cache memory is limited**: Can't store everything
+- **Memory is expensive**: Must use it efficiently
+- **Data changes**: Need to remove stale entries
+- **Access patterns vary**: Different strategies suit different workloads
+
+<Warning>
+  Poor eviction strategies can lead to cache thrashing, where frequently accessed data is repeatedly evicted and reloaded.
+</Warning>
+
+## Popular Eviction Strategies
+
+### LRU (Least Recently Used)
+
+<Accordion title="How LRU Works" icon="clock" defaultOpen>
+  
+Evicts the least recently accessed items first. Based on the principle that recently accessed items are more likely to be accessed again soon (temporal locality).
+
+**Algorithm:**
+1. Track access time for each cache entry
+2. When cache is full, remove entry with oldest access time
+3. Update access time on every read/write
+
+</Accordion>
+
+**Implementation:**
+
+<CodeGroup>
+```python Python - LRU Cache
+from collections import OrderedDict
+
+class LRUCache:
+    def __init__(self, capacity):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+    
+    def get(self, key):
+        if key not in self.cache:
+            return None
+        
+        # Move to end (most recently used)
+        self.cache.move_to_end(key)
+        return self.cache[key]
+    
+    def put(self, key, value):
+        if key in self.cache:
+            # Update existing key
+            self.cache.move_to_end(key)
+        
+        self.cache[key] = value
+        
+        if len(self.cache) > self.capacity:
+            # Remove least recently used (first item)
+            self.cache.popitem(last=False)
+
+# Usage
+cache = LRUCache(capacity=3)
+cache.put("a", 1)
+cache.put("b", 2)
+cache.put("c", 3)
+cache.get("a")  # Access 'a'
+cache.put("d", 4)  # Evicts 'b' (least recently used)
+```
+
+```javascript JavaScript - LRU Cache
+class LRUCache {
+  constructor(capacity) {
+    this.capacity = capacity;
+    this.cache = new Map();
+  }
+  
+  get(key) {
+    if (!this.cache.has(key)) return null;
+    
+    // Move to end (most recently used)
+    const value = this.cache.get(key);
+    this.cache.delete(key);
+    this.cache.set(key, value);
+    
+    return value;
+  }
+  
+  put(key, value) {
+    // Delete if exists (will re-add at end)
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    }
+    
+    this.cache.set(key, value);
+    
+    // Evict least recently used if over capacity
+    if (this.cache.size > this.capacity) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+  }
+}
+```
+</CodeGroup>
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Good for temporal locality
+    - Simple to understand
+    - Effective for most workloads
+    - O(1) operations with proper data structure
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Doesn't account for frequency
+    - Can evict frequently used old items
+    - Overhead of tracking access order
+    - Vulnerable to scanning
+  </Card>
+</CardGroup>
+
+**Best for:** General-purpose caching, web applications, database query caches
+
+---
+
+### LFU (Least Frequently Used)
+
+<Accordion title="How LFU Works" icon="chart-bar">
+  
+Evicts items with the lowest access frequency. Keeps track of how many times each entry is accessed.
+
+**Algorithm:**
+1. Maintain access count for each cache entry
+2. When cache is full, remove entry with lowest count
+3. Increment count on every access
+
+</Accordion>
+
+**Implementation:**
+
+```python
+from collections import defaultdict
+
+class LFUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = {}  # key -> value
+        self.freq = defaultdict(int)  # key -> frequency
+        self.min_freq = 0
+    
+    def get(self, key):
+        if key not in self.cache:
+            return None
+        
+        # Increment frequency
+        self.freq[key] += 1
+        return self.cache[key]
+    
+    def put(self, key, value):
+        if self.capacity == 0:
+            return
+        
+        if key in self.cache:
+            self.cache[key] = value
+            self.freq[key] += 1
+            return
+        
+        if len(self.cache) >= self.capacity:
+            # Find and remove least frequently used
+            min_freq_key = min(self.freq, key=self.freq.get)
+            del self.cache[min_freq_key]
+            del self.freq[min_freq_key]
+        
+        self.cache[key] = value
+        self.freq[key] = 1
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Keeps popular items
+    - Good for skewed access patterns
+    - Resistant to one-time scans
+    - Adapts to usage patterns
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Complex implementation
+    - Old popular items stick around
+    - Slow to adapt to changes
+    - Higher memory overhead
+  </Card>
+</CardGroup>
+
+**Best for:** Content recommendation, video streaming, CDN caching
+
+---
+
+### FIFO (First In First Out)
+
+<Accordion title="How FIFO Works" icon="arrow-right-to-bracket">
+  
+Evicts the oldest items first, regardless of access patterns. Works like a queue.
+
+**Algorithm:**
+1. Track insertion order
+2. When cache is full, remove oldest entry
+3. No consideration of access patterns
+
+</Accordion>
+
+**Implementation:**
+
+```python
+from collections import deque
+
+class FIFOCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = {}
+        self.order = deque()
+    
+    def get(self, key):
+        return self.cache.get(key)
+    
+    def put(self, key, value):
+        if key not in self.cache and len(self.cache) >= self.capacity:
+            # Remove oldest
+            oldest = self.order.popleft()
+            del self.cache[oldest]
+        
+        if key not in self.cache:
+            self.order.append(key)
+        
+        self.cache[key] = value
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Simplest to implement
+    - Predictable behavior
+    - Low overhead
+    - Fast operations
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Ignores access patterns
+    - Can evict hot data
+    - Poor cache hit rates
+    - Not adaptive
+  </Card>
+</CardGroup>
+
+**Best for:** Simple scenarios, logging, circular buffers
+
+---
+
+### TTL (Time-to-Live)
+
+<Accordion title="How TTL Works" icon="hourglass">
+  
+Items are evicted after a predetermined time period, regardless of access patterns.
+
+**Algorithm:**
+1. Set expiration timestamp on insertion
+2. Check expiration before returning cached data
+3. Periodically scan and remove expired entries
+
+</Accordion>
+
+**Implementation:**
+
+<CodeGroup>
+```python Python - TTL Cache
+import time
+
+class TTLCache:
+    def __init__(self, default_ttl=3600):
+        self.cache = {}
+        self.expiry = {}
+        self.default_ttl = default_ttl
+    
+    def get(self, key):
+        if key not in self.cache:
+            return None
+        
+        # Check if expired
+        if time.time() > self.expiry[key]:
+            del self.cache[key]
+            del self.expiry[key]
+            return None
+        
+        return self.cache[key]
+    
+    def put(self, key, value, ttl=None):
+        if ttl is None:
+            ttl = self.default_ttl
+        
+        self.cache[key] = value
+        self.expiry[key] = time.time() + ttl
+    
+    def cleanup(self):
+        """Remove all expired entries"""
+        current_time = time.time()
+        expired_keys = [
+            key for key, expiry in self.expiry.items()
+            if current_time > expiry
+        ]
+        
+        for key in expired_keys:
+            del self.cache[key]
+            del self.expiry[key]
+```
+
+```javascript JavaScript - TTL Cache
+class TTLCache {
+  constructor(defaultTTL = 3600000) {  // ms
+    this.cache = new Map();
+    this.defaultTTL = defaultTTL;
+  }
+  
+  get(key) {
+    const item = this.cache.get(key);
+    
+    if (!item) return null;
+    
+    // Check expiration
+    if (Date.now() > item.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return item.value;
+  }
+  
+  put(key, value, ttl) {
+    const expiry = Date.now() + (ttl || this.defaultTTL);
+    this.cache.set(key, { value, expiry });
+  }
+  
+  cleanup() {
+    const now = Date.now();
+    for (const [key, item] of this.cache.entries()) {
+      if (now > item.expiry) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Guaranteed freshness
+    - Simple to implement
+    - Automatic cleanup
+    - Good for time-sensitive data
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Can evict hot data prematurely
+    - Requires cleanup mechanism
+    - Not adaptive to usage
+    - May waste space before expiry
+  </Card>
+</CardGroup>
+
+**Best for:** Session data, temporary tokens, rate limiting, API responses
+
+**Real-world example:**
+
+```python
+# Redis with TTL
+redis.setex("session:user123", 1800, session_data)  # 30 min
+redis.setex("rate_limit:192.168.1.1", 60, request_count)  # 1 min
+redis.setex("otp:user123", 300, otp_code)  # 5 min
+```
+
+---
+
+### MRU (Most Recently Used)
+
+<Accordion title="How MRU Works" icon="clock-rotate-left">
+  
+Evicts the most recently accessed items first. Counterintuitive but useful in specific scenarios.
+
+**Algorithm:**
+1. Track access time for each entry
+2. When cache is full, remove most recently accessed item
+3. Opposite of LRU
+
+</Accordion>
+
+```python
+class MRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = {}
+        self.most_recent = None
+    
+    def get(self, key):
+        if key in self.cache:
+            self.most_recent = key
+            return self.cache[key]
+        return None
+    
+    def put(self, key, value):
+        if len(self.cache) >= self.capacity and key not in self.cache:
+            # Remove most recently used
+            if self.most_recent:
+                del self.cache[self.most_recent]
+        
+        self.cache[key] = value
+        self.most_recent = key
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Good for sequential scans
+    - Useful for specific patterns
+    - Simple implementation
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Counterintuitive
+    - Limited use cases
+    - Poor for general caching
+  </Card>
+</CardGroup>
+
+**Best for:** Operating system buffer caches, streaming data, batch processing
+
+---
+
+### SLRU (Segmented LRU)
+
+<Accordion title="How SLRU Works" icon="layer-group">
+  
+Divides cache into probationary and protected segments, applying LRU separately to each.
+
+**Algorithm:**
+1. New items go to probationary segment
+2. On second access, promote to protected segment
+3. When protected is full, demote to probationary
+4. Apply LRU within each segment
+
+</Accordion>
+
+![SLRU Strategy](https://assets.bytebytego.com/diagrams/0059-top-8-cache-eviction-strategies.png)
+
+```python
+class SLRUCache:
+    def __init__(self, capacity):
+        self.probationary_size = capacity // 2
+        self.protected_size = capacity - self.probationary_size
+        
+        self.probationary = OrderedDict()
+        self.protected = OrderedDict()
+    
+    def get(self, key):
+        # Check protected segment
+        if key in self.protected:
+            self.protected.move_to_end(key)
+            return self.protected[key]
+        
+        # Check probationary segment
+        if key in self.probationary:
+            value = self.probationary.pop(key)
+            
+            # Promote to protected
+            if len(self.protected) >= self.protected_size:
+                # Demote oldest protected to probationary
+                demoted_key, demoted_value = self.protected.popitem(last=False)
+                self.probationary[demoted_key] = demoted_value
+            
+            self.protected[key] = value
+            return value
+        
+        return None
+    
+    def put(self, key, value):
+        # Add to probationary segment
+        if len(self.probationary) >= self.probationary_size:
+            self.probationary.popitem(last=False)
+        
+        self.probationary[key] = value
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Protects frequently accessed items
+    - Better than simple LRU
+    - Adapts to access patterns
+    - Resists scanning
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - More complex
+    - Higher memory overhead
+    - Tuning required
+  </Card>
+</CardGroup>
+
+**Best for:** Database buffer pools, CDN caching, large-scale systems
+
+---
+
+### RR (Random Replacement)
+
+<Accordion title="How RR Works" icon="shuffle">
+  
+Randomly selects and evicts a cache item when space is needed.
+
+</Accordion>
+
+```python
+import random
+
+class RRCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = {}
+    
+    def get(self, key):
+        return self.cache.get(key)
+    
+    def put(self, key, value):
+        if len(self.cache) >= self.capacity and key not in self.cache:
+            # Randomly evict an entry
+            random_key = random.choice(list(self.cache.keys()))
+            del self.cache[random_key]
+        
+        self.cache[key] = value
+```
+
+<CardGroup cols={2}>
+  <Card title="Pros" icon="circle-check">
+    - Extremely simple
+    - Fast
+    - No tracking overhead
+    - Unpredictable (can be good)
+  </Card>
+  
+  <Card title="Cons" icon="circle-xmark">
+    - Can evict hot data
+    - No guarantees
+    - Poor performance
+    - Not recommended for production
+  </Card>
+</CardGroup>
+
+**Best for:** Testing, simple prototypes, when overhead matters more than hit rate
+
+## Strategy Comparison
+
+<Tabs>
+  <Tab title="Performance">
+    | Strategy | Hit Rate | Memory Overhead | Complexity | Best For |
+    |----------|----------|-----------------|------------|----------|
+    | LRU | High | Medium | Medium | General purpose |
+    | LFU | Very High | High | High | Skewed access |
+    | FIFO | Low | Low | Low | Simple caching |
+    | TTL | Variable | Low | Low | Time-sensitive |
+    | MRU | Low | Low | Medium | Sequential scans |
+    | SLRU | Very High | High | High | Large systems |
+    | RR | Very Low | Very Low | Very Low | Testing |
+  </Tab>
+  
+  <Tab title="Use Cases">
+    **LRU:**
+    - Web page caching
+    - Database query results
+    - API responses
+    
+    **LFU:**
+    - Video streaming
+    - Content recommendation
+    - Popular content caching
+    
+    **TTL:**
+    - Session management
+    - Rate limiting
+    - Temporary tokens
+    
+    **SLRU:**
+    - Database buffer pools
+    - CDN edge caching
+    - Operating systems
+  </Tab>
+  
+  <Tab title="Workload Match">
+    | Workload Pattern | Recommended Strategy |
+    |------------------|---------------------|
+    | Temporal locality | LRU, SLRU |
+    | Skewed access (80/20) | LFU, SLRU |
+    | Time-sensitive data | TTL |
+    | Sequential scans | MRU |
+    | Uniform access | FIFO, RR |
+    | Mixed patterns | SLRU, LRU+TTL |
+  </Tab>
+</Tabs>
+
+## Two-Tiered Caching
+
+<Note>
+  Combining multiple cache layers can provide better overall performance.
+</Note>
+
+```python
+class TwoTierCache:
+    def __init__(self, l1_capacity, l2_capacity):
+        # L1: Fast in-memory cache (LRU)
+        self.l1_cache = LRUCache(l1_capacity)
+        
+        # L2: Distributed cache (Redis)
+        self.l2_cache = redis.Redis()
+    
+    def get(self, key):
+        # Try L1 first
+        value = self.l1_cache.get(key)
+        if value is not None:
+            return value
+        
+        # Try L2
+        value = self.l2_cache.get(key)
+        if value is not None:
+            # Populate L1
+            self.l1_cache.put(key, value)
+            return value
+        
+        # Cache miss - fetch from database
+        value = database.fetch(key)
+        
+        # Populate both caches
+        self.l1_cache.put(key, value)
+        self.l2_cache.setex(key, 3600, value)
+        
+        return value
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Choose based on access patterns">
+    - **Random access**: LRU or LFU
+    - **Time-sensitive**: TTL
+    - **Sequential**: MRU
+    - **Mixed**: SLRU or combination
+  </Step>
+  
+  <Step title="Monitor and measure">
+    ```python
+    metrics = {
+        'hit_rate': hits / (hits + misses),
+        'miss_rate': misses / (hits + misses),
+        'eviction_rate': evictions / total_puts,
+        'memory_usage': cache_size / max_size
+    }
+    ```
+  </Step>
+  
+  <Step title="Combine strategies">
+    ```python
+    # LRU with TTL
+    cache.put(key, value, ttl=3600)  # LRU eviction + TTL expiry
+    ```
+  </Step>
+  
+  <Step title="Tune cache size">
+    - Too small: High eviction rate
+    - Too large: Memory waste
+    - Monitor working set size
+  </Step>
+  
+  <Step title="Consider cache warming">
+    ```python
+    def warm_cache():
+        hot_keys = analytics.get_frequently_accessed()
+        for key in hot_keys:
+            cache.put(key, database.fetch(key))
+    ```
+  </Step>
+</Steps>
+
+## Common Pitfalls
+
+<Warning>
+  Avoid these common mistakes when implementing cache eviction:
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Cache Stampede" icon="burst">
+    When a popular item expires, multiple requests hit the database simultaneously.
+    
+    **Solution:**
+    ```python
+    import threading
+    locks = {}
+    
+    def get_with_lock(key):
+        if key not in locks:
+            locks[key] = threading.Lock()
+        
+        value = cache.get(key)
+        if value is not None:
+            return value
+        
+        with locks[key]:
+            # Double-check after acquiring lock
+            value = cache.get(key)
+            if value is not None:
+                return value
+            
+            # Only one thread fetches
+            value = database.fetch(key)
+            cache.put(key, value)
+            return value
+    ```
+  </Accordion>
+  
+  <Accordion title="Cache Pollution" icon="biohazard">
+    One-time scans filling cache with rarely accessed data.
+    
+    **Solution:**
+    - Use SLRU instead of LRU
+    - Implement bloom filters
+    - Separate cache for scan operations
+  </Accordion>
+  
+  <Accordion title="Inconsistent TTLs" icon="clock">
+    Different TTLs for related data causing inconsistency.
+    
+    **Solution:**
+    ```python
+    # Use consistent TTLs for related data
+    TTL_USER_DATA = 3600
+    cache.put(f"user:{id}", user, ttl=TTL_USER_DATA)
+    cache.put(f"user:{id}:profile", profile, ttl=TTL_USER_DATA)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Redis Caching" icon="database" href="/guides/caching/redis">
+    Learn how to implement these strategies with Redis
+  </Card>
+  <Card title="Caching Strategies" icon="diagram-project" href="/guides/caching/strategies">
+    Explore read/write caching patterns
+  </Card>
+  <Card title="CDN Caching" icon="globe" href="/guides/caching/cdn">
+    Understand edge caching and distribution
+  </Card>
+</CardGroup>

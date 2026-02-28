@@ -1,0 +1,652 @@
+---
+title: 'ACID Properties'
+description: 'Understanding ACID properties in database transactions: Atomicity, Consistency, Isolation, and Durability'
+---
+
+![ACID Properties](https://assets.bytebytego.com/diagrams/0407-what-does-acid-mean.png)
+
+## Introduction
+
+ACID is a set of properties that guarantee reliable processing of database transactions. These properties ensure data integrity even in the face of errors, power failures, and other mishaps.
+
+<Info>
+  ACID compliance is a hallmark of traditional relational databases and is critical for applications where data correctness is paramount.
+</Info>
+
+The acronym ACID stands for:
+- **A**tomicity
+- **C**onsistency  
+- **I**solation
+- **D**urability
+
+Let's explore each property in detail.
+
+## What is a Transaction?
+
+Before diving into ACID, let's understand transactions:
+
+**A transaction** is a sequence of one or more database operations (reads/writes) treated as a single logical unit of work.
+
+```sql
+BEGIN TRANSACTION;
+  UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+  UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;
+```
+
+Transactions must complete entirely or not at all—partial execution is not allowed.
+
+## The Four ACID Properties
+
+### Atomicity: All or Nothing
+
+**Definition**: The writes in a transaction are executed all at once and cannot be broken into smaller parts. If there are faults when executing the transaction, the writes in the transaction are rolled back.
+
+<CardGroup cols={1}>
+  <Card title="Atomicity means 'all or nothing'" icon="atom">
+    Either all operations in a transaction succeed, or none of them do. There's no partial success.
+  </Card>
+</CardGroup>
+
+#### How Atomicity Works
+
+**Successful transaction**:
+```
+BEGIN TRANSACTION
+  ✓ Operation 1: Deduct $100 from Account A
+  ✓ Operation 2: Add $100 to Account B
+COMMIT → Both operations persist
+```
+
+**Failed transaction**:
+```
+BEGIN TRANSACTION
+  ✓ Operation 1: Deduct $100 from Account A
+  ✗ Operation 2: Add $100 to Account B (FAILS)
+ROLLBACK → Operation 1 is undone, Account A unchanged
+```
+
+<Info>
+  Without atomicity, the first operation might succeed while the second fails, leaving the system in an inconsistent state (money disappeared!).
+</Info>
+
+#### Implementation Mechanisms
+
+Databases achieve atomicity through:
+
+**Write-Ahead Logging (WAL)**:
+```
+1. Transaction starts
+2. Write operations to log (not actual tables yet)
+3. If all operations succeed:
+   - Mark transaction as committed in log
+   - Apply changes to actual tables
+4. If any operation fails:
+   - Discard log entries
+   - No changes applied
+```
+
+**Rollback Segments**:
+- Store "before" images of data
+- If transaction fails, restore original values
+- After successful commit, discard rollback data
+
+#### Real-World Example
+
+**E-commerce order placement**:
+```sql
+BEGIN TRANSACTION;
+  -- Deduct item from inventory
+  UPDATE inventory SET quantity = quantity - 1 
+  WHERE product_id = 123;
+  
+  -- Create order record
+  INSERT INTO orders (user_id, product_id, amount) 
+  VALUES (456, 123, 99.99);
+  
+  -- Charge payment
+  INSERT INTO payments (order_id, amount, status)
+  VALUES (LAST_INSERT_ID(), 99.99, 'charged');
+COMMIT;
+```
+
+If the payment fails:
+- Order is not created
+- Inventory is not decremented
+- System remains consistent
+
+<Warning>
+  Without atomicity, you could charge a customer without creating an order, or reduce inventory without a corresponding sale.
+</Warning>
+
+### Consistency: Preserving Database Invariants
+
+**Definition**: Any data written by a transaction must be valid according to all defined rules and maintain the database in a good state.
+
+<Info>
+  Unlike "consistency" in the CAP theorem (which means every read receives the most recent write), ACID consistency means preserving database invariants and constraints.
+</Info>
+
+#### What are Invariants?
+
+Invariants are rules that must always be true:
+
+**Examples**:
+- Foreign key constraints (orders must reference valid customers)
+- Unique constraints (email addresses must be unique)
+- Check constraints (age must be >= 0)
+- Business rules (account balance cannot be negative)
+- Data types (age must be an integer)
+
+#### How Consistency Works
+
+**Before transaction**:
+```
+Account A: $500
+Account B: $300
+Total: $800 ✓
+```
+
+**During transaction**:
+```sql
+BEGIN TRANSACTION;
+  UPDATE accounts SET balance = balance - 100 WHERE id = 'A';
+  UPDATE accounts SET balance = balance + 100 WHERE id = 'B';
+COMMIT;
+```
+
+**After transaction**:
+```
+Account A: $400
+Account B: $400  
+Total: $800 ✓ (Invariant preserved)
+```
+
+<Check>The total amount of money in the system remains constant—a critical business invariant.</Check>
+
+#### Constraint Enforcement
+
+Databases enforce consistency through:
+
+**Foreign Key Constraints**:
+```sql
+CREATE TABLE orders (
+  id INT PRIMARY KEY,
+  customer_id INT,
+  FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+
+-- This will FAIL if customer 999 doesn't exist
+INSERT INTO orders (id, customer_id) VALUES (1, 999);
+```
+
+**Check Constraints**:
+```sql
+CREATE TABLE accounts (
+  id INT PRIMARY KEY,
+  balance DECIMAL(10,2),
+  CHECK (balance >= 0)  -- Balance cannot be negative
+);
+
+-- This will FAIL
+UPDATE accounts SET balance = -100 WHERE id = 1;
+```
+
+**Unique Constraints**:
+```sql
+CREATE TABLE users (
+  id INT PRIMARY KEY,
+  email VARCHAR(255) UNIQUE  -- No duplicate emails
+);
+
+-- Second insert will FAIL
+INSERT INTO users (id, email) VALUES (1, 'alice@example.com');
+INSERT INTO users (id, email) VALUES (2, 'alice@example.com'); -- ✗
+```
+
+**Triggers**:
+```sql
+-- Ensure orders don't exceed inventory
+CREATE TRIGGER check_inventory
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+  IF (SELECT quantity FROM inventory WHERE id = NEW.product_id) < NEW.quantity THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient inventory';
+  END IF;
+END;
+```
+
+<Tip>
+  Consistency is partially the responsibility of the application. The database enforces constraints, but business logic must ensure operations make sense.
+</Tip>
+
+### Isolation: Concurrent Transactions Don't Interfere
+
+**Definition**: When there are concurrent writes from two different transactions, the two transactions are isolated from each other.
+
+<Info>
+  The most strict isolation is **serializability**, where each transaction acts like it is the only transaction running in the database. However, this is hard to implement in reality, so we often adopt looser isolation levels.
+</Info>
+
+#### Why Isolation Matters
+
+Without isolation, concurrent transactions can interfere:
+
+```
+Transaction A                 Transaction B
+─────────────                 ─────────────
+READ balance (= 100)
+                              READ balance (= 100)
+balance = balance - 50
+                              balance = balance - 30
+WRITE balance (= 50)
+                              WRITE balance (= 70)
+                              
+Final balance: 70 ❌ (Should be 20)
+```
+
+**Lost Update**: Transaction B overwrites Transaction A's update.
+
+#### Isolation Levels
+
+SQL defines four isolation levels, trading off consistency for performance:
+
+<Accordion title="Read Uncommitted (Lowest)">
+  **Definition**: Transactions can read data modified by other uncommitted transactions.
+  
+  **Problems**:
+  - **Dirty Reads**: Reading uncommitted changes that may be rolled back
+  
+  **Example**:
+  ```
+  Transaction A: UPDATE balance = 500 (not committed)
+  Transaction B: READ balance → sees 500 (dirty read)
+  Transaction A: ROLLBACK
+  Transaction B: Used invalid data!
+  ```
+  
+  **Use cases**: Rarely used; perhaps for approximate analytics where accuracy isn't critical.
+</Accordion>
+
+<Accordion title="Read Committed">
+  **Definition**: Transactions can only read data that has been committed.
+  
+  **Problems Solved**:
+  - ✓ No dirty reads
+  
+  **Problems Remaining**:
+  - **Non-Repeatable Reads**: Reading same row twice gives different results
+  
+  **Example**:
+  ```
+  Transaction A:
+    READ balance → 100
+    (Transaction B updates balance to 200 and commits)
+    READ balance → 200 (different!)
+  ```
+  
+  **Use cases**: Default for many databases (PostgreSQL, Oracle).
+</Accordion>
+
+<Accordion title="Repeatable Read">
+  **Definition**: Data read during the transaction stays the same as when the transaction started.
+  
+  **Problems Solved**:
+  - ✓ No dirty reads
+  - ✓ No non-repeatable reads
+  
+  **Problems Remaining**:
+  - **Phantom Reads**: New rows appearing in range queries
+  
+  **Example**:
+  ```
+  Transaction A:
+    SELECT COUNT(*) FROM users WHERE age > 25 → 10 rows
+    (Transaction B inserts user with age=30 and commits)
+    SELECT COUNT(*) FROM users WHERE age > 25 → 11 rows (phantom!)
+  ```
+  
+  **Use cases**: MySQL/InnoDB default; good balance for most applications.
+</Accordion>
+
+<Accordion title="Serializable (Highest)">
+  **Definition**: Transactions execute as if they ran one at a time, in sequence.
+  
+  **Problems Solved**:
+  - ✓ No dirty reads
+  - ✓ No non-repeatable reads
+  - ✓ No phantom reads
+  
+  **Trade-off**:
+  - Significantly lower concurrency
+  - Higher latency
+  - More lock contention
+  
+  **Implementation**: Often uses locks or optimistic concurrency control.
+  
+  **Use cases**: Financial transactions, critical inventory operations.
+</Accordion>
+
+#### Implementation: MVCC
+
+![Database Isolation Levels](https://assets.bytebytego.com/diagrams/0239-isolation-level.png)
+
+Most modern databases use **MVCC (Multi-Version Concurrency Control)** to implement isolation efficiently.
+
+**How MVCC works**:
+
+Each row has hidden metadata:
+- `transaction_id`: Which transaction created/modified this version
+- `roll_pointer`: Pointer to previous version of the row
+
+**Example scenario**:
+
+<Steps>
+  <Step title="Initial State">
+    Balance = 100 (transaction_id = 200, committed)
+  </Step>
+  <Step title="Transaction A Starts">
+    Creates Read View with transaction_id = 201
+  </Step>
+  <Step title="Transaction B Starts">
+    Creates Read View with transaction_id = 202
+  </Step>
+  <Step title="Transaction A Modifies Balance">
+    New row: Balance = 200 (transaction_id = 201, uncommitted)
+    Roll pointer → old row (Balance = 100)
+  </Step>
+  <Step title="Transaction B Reads Balance">
+    Sees transaction_id = 201 is uncommitted
+    Follows roll_pointer → reads Balance = 100
+  </Step>
+  <Step title="Transaction A Commits">
+    Balance = 200 is now committed
+  </Step>
+  <Step title="Transaction B Still Reads 100">
+    Read View was created before Transaction A committed
+    Consistent snapshot maintained
+  </Step>
+</Steps>
+
+<Info>
+  MVCC allows readers and writers to avoid blocking each other, dramatically improving concurrency compared to traditional locking.
+</Info>
+
+### Durability: Surviving Failures
+
+**Definition**: Data is persisted after a transaction is committed, even in case of system failure. In a distributed system, this means the data is replicated to some other nodes.
+
+<CardGroup cols={1}>
+  <Card title="Durability guarantees permanence" icon="floppy-disk">
+    Once a transaction is committed, the changes are permanent—even if the server crashes immediately after.
+  </Card>
+</CardGroup>
+
+#### Why Durability Matters
+
+**Without durability**:
+```
+User: "Transfer $1000 to Alice"
+Database: "OK, committed!"
+💥 Server crashes 💥
+Database restarts: No record of transfer
+User: "Where's my money?!"
+```
+
+**With durability**:
+```
+User: "Transfer $1000 to Alice"
+Database: Writes to persistent storage
+Database: "OK, committed!"
+💥 Server crashes 💥  
+Database restarts: Recovers transfer from log
+User's money is safe ✓
+```
+
+#### Implementation Mechanisms
+
+**Write-Ahead Logging (WAL)**:
+
+<Steps>
+  <Step title="Transaction Executes">
+    Changes are made in memory (buffer pool)
+  </Step>
+  <Step title="Write to Log">
+    Changes are written to a durable log file on disk
+  </Step>
+  <Step title="Commit">
+    Log is fsynced to disk (forced to physical storage)
+  </Step>
+  <Step title="Return Success">
+    Only now does the database tell the client "committed"
+  </Step>
+  <Step title="Later: Write to Data Files">
+    Changes are eventually written to the actual data files
+  </Step>
+</Steps>
+
+<Info>
+  The key insight: Writing sequentially to a log file is much faster than random writes to data files. WAL improves both durability and performance.
+</Info>
+
+**fsync() System Call**:
+```c
+// Write transaction to log
+write(log_fd, transaction_data, size);
+
+// Force to disk before returning to client
+fsync(log_fd);  // Blocks until physically on disk
+
+// Now safe to tell client "committed"
+return SUCCESS;
+```
+
+**Checkpoints**:
+- Periodically flush dirty pages to disk
+- Allows truncating old log files
+- Reduces recovery time
+
+**Replication (Distributed Systems)**:
+```
+Primary Database
+       ↓
+  Write to Log
+       ↓
+  Replicate to Secondaries
+       ↓
+  Wait for acknowledgment
+       ↓
+  Commit
+```
+
+Data is durable once replicated to multiple nodes.
+
+<Warning>
+  fsync() is slow because it requires waiting for physical disk writes. This is why durability comes at a performance cost.
+</Warning>
+
+#### Durability vs Performance
+
+Strict durability (fsync after every commit) can be slow. Some systems offer options:
+
+**PostgreSQL**:
+```sql
+-- Strict durability (default)
+SET synchronous_commit = on;  -- fsync before commit returns
+
+-- Relaxed durability (faster, small data loss window)
+SET synchronous_commit = off;  -- fsync asynchronously
+```
+
+**MySQL**:
+```sql
+-- Strict durability
+SET innodb_flush_log_at_trx_commit = 1;  -- fsync every commit
+
+-- Relaxed (faster)
+SET innodb_flush_log_at_trx_commit = 2;  -- fsync every second
+```
+
+<Tip>
+  For most applications, strict durability is worth the performance cost. Losing committed transactions destroys user trust.
+</Tip>
+
+## ACID in Practice
+
+### Example: Bank Transfer
+
+Let's see all four ACID properties in action:
+
+```sql
+BEGIN TRANSACTION;  -- Start atomic unit
+
+-- Deduct from Account A
+UPDATE accounts 
+SET balance = balance - 100 
+WHERE account_id = 'A'
+AND balance >= 100;  -- Check constraint (Consistency)
+
+-- Add to Account B  
+UPDATE accounts 
+SET balance = balance + 100 
+WHERE account_id = 'B';
+
+-- Check affected rows
+IF @@ROWCOUNT != 2 THEN
+  ROLLBACK;  -- Atomicity: All or nothing
+  RETURN 'Transfer failed';
+END IF;
+
+COMMIT;  -- Persist changes (Durability)
+-- Other concurrent transactions don't see intermediate state (Isolation)
+```
+
+**ACID guarantees**:
+
+<Check>**Atomicity**: Both updates happen or neither does</Check>
+<Check>**Consistency**: Balance constraint is enforced; total money unchanged</Check>
+<Check>**Isolation**: Other transactions see either old or new state, not intermediate</Check>
+<Check>**Durability**: After commit, transfer survives crashes</Check>
+
+### ACID vs BASE
+
+NoSQL databases often follow BASE instead of ACID:
+
+**BASE** stands for:
+- **B**asically **A**vailable
+- **S**oft state  
+- **E**ventual consistency
+
+**Comparison**:
+
+| Aspect | ACID | BASE |
+|--------|------|------|
+| **Consistency** | Strong, immediate | Eventual |
+| **Availability** | May sacrifice for consistency | Prioritized |
+| **Complexity** | Database handles | Application handles |
+| **Use Case** | Financial, critical data | Social media, caching |
+| **Examples** | PostgreSQL, MySQL | Cassandra, DynamoDB |
+
+<Info>
+  ACID and BASE represent different trade-offs in the CAP theorem spectrum. Neither is universally better—choose based on your requirements.
+</Info>
+
+## When ACID is Critical
+
+Use ACID-compliant databases when:
+
+<Check>Financial transactions (banking, payments)</Check>
+<Check>Inventory management (can't oversell)</Check>
+<Check>Healthcare records (accuracy is critical)</Check>
+<Check>Booking systems (hotels, flights)</Check>
+<Check>Order processing (e-commerce)</Check>
+<Check>Any system where data correctness is paramount</Check>
+
+## When to Consider Non-ACID
+
+You might relax ACID requirements for:
+
+<Check>Social media feeds (eventual consistency is fine)</Check>
+<Check>Analytics and reporting (approximate is acceptable)</Check>
+<Check>Caching layers (stale data is tolerable)</Check>
+<Check>High-throughput logging</Check>
+<Check>IoT sensor data</Check>
+
+## Common Pitfalls
+
+<Warning>
+  **Pitfall #1**: Assuming all databases are ACID
+  
+  Many NoSQL databases sacrifice ACID for scalability. Always check your database's guarantees.
+</Warning>
+
+<Warning>
+  **Pitfall #2**: Long-running transactions
+  
+  ACID transactions hold resources. Long transactions can block others and cause performance issues.
+</Warning>
+
+<Warning>
+  **Pitfall #3**: Not understanding isolation levels
+  
+  Using the wrong isolation level can lead to data anomalies or unnecessary performance degradation.
+</Warning>
+
+<Warning>
+  **Pitfall #4**: Ignoring network failures in distributed transactions
+  
+  Distributed transactions are much harder to get right. Consider saga patterns or eventual consistency.
+</Warning>
+
+## Best Practices
+
+<Steps>
+  <Step title="Keep Transactions Short">
+    Minimize the time transactions hold locks. Do expensive operations outside transactions.
+  </Step>
+  <Step title="Choose the Right Isolation Level">
+    Don't default to serializable unless necessary. Most apps work fine with read committed or repeatable read.
+  </Step>
+  <Step title="Handle Failures Gracefully">
+    Always catch and handle transaction failures, with proper retry logic.
+  </Step>
+  <Step title="Use Constraints">
+    Let the database enforce invariants with foreign keys, checks, and triggers.
+  </Step>
+  <Step title="Monitor Transaction Duration">
+    Alert on long-running transactions that might indicate problems.
+  </Step>
+</Steps>
+
+## Conclusion
+
+ACID properties are fundamental to reliable data storage:
+
+- **Atomicity** ensures all-or-nothing execution
+- **Consistency** preserves database invariants
+- **Isolation** prevents concurrent transaction interference
+- **Durability** guarantees committed changes survive failures
+
+These properties come at a cost (performance, scalability), but for many applications, they're essential for correctness.
+
+<Tip>
+  When in doubt, start with ACID-compliant storage for critical data. You can always add eventually-consistent caches or read replicas later for performance.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CAP Theorem" icon="triangle-exclamation" href="/guides/database/cap-theorem">
+    Understand trade-offs in distributed databases
+  </Card>
+  <Card title="Database Isolation" icon="shield-halved">
+    Deep dive into isolation levels and MVCC
+  </Card>
+  <Card title="Choosing a Database" icon="database" href="/guides/database/choosing-database">
+    Select the right database for your needs
+  </Card>
+  <Card title="Database Replication" icon="copy" href="/guides/database/replication">
+    Learn how replication affects ACID properties
+  </Card>
+</CardGroup>

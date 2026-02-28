@@ -1,0 +1,655 @@
+---
+title: "Networking Fundamentals"
+description: "Essential networking concepts for system design interviews"
+---
+
+Networking is a cornerstone of system design. This guide covers the fundamental networking concepts you'll encounter in interviews.
+
+## OSI Model
+
+<img src="https://assets.bytebytego.com/diagrams/0295-osi-model.jpeg" alt="OSI Model" />
+
+How is data sent over the network? Why do we need so many layers in the OSI model?
+
+The diagram shows how data is encapsulated and de-encapsulated when transmitting over the network.
+
+### Data Encapsulation Process
+
+<Steps>
+  <Step title="Application Layer">
+    When Device A sends data to Device B over the network via the HTTP protocol, it is first added an HTTP header at the application layer.
+  </Step>
+  
+  <Step title="Transport Layer">
+    Then a TCP or a UDP header is added to the data. It is encapsulated into TCP segments at the transport layer. The header contains the source port, destination port, and sequence number.
+  </Step>
+  
+  <Step title="Network Layer">
+    The segments are then encapsulated with an IP header at the network layer. The IP header contains the source/destination IP addresses.
+  </Step>
+  
+  <Step title="Data Link Layer">
+    The IP datagram is added a MAC header at the data link layer, with source/destination MAC addresses.
+  </Step>
+  
+  <Step title="Physical Layer">
+    The encapsulated frames are sent to the physical layer and sent over the network in binary bits.
+  </Step>
+  
+  <Step title="De-encapsulation">
+    When Device B receives the bits from the network, it performs the de-encapsulation process, which is a reverse processing of the encapsulation process. The headers are removed layer by layer, and eventually, Device B can read the data.
+  </Step>
+</Steps>
+
+<Note>
+  We need layers in the network model because each layer focuses on its own responsibilities. Each layer can rely on the headers for processing instructions and does not need to know the meaning of the data from the last layer.
+</Note>
+
+## Network Protocols
+
+<img src="https://assets.bytebytego.com/diagrams/0292-explaining-8-popular-network-protocols-in-1-diagram.png" alt="Network Protocols" />
+
+Network protocols are standard methods of transferring data between two computers in a network.
+
+### Common Protocols
+
+<AccordionGroup>
+  <Accordion title="HTTP (HyperText Transfer Protocol)" icon="globe">
+    HTTP is a protocol for fetching resources such as HTML documents. It is the foundation of any data exchange on the Web and it is a client-server protocol.
+    
+    **Key Features:**
+    - Request-response model
+    - Stateless protocol
+    - Port 80 (default)
+    - Built on TCP
+  </Accordion>
+
+  <Accordion title="HTTP/3" icon="rocket">
+    HTTP/3 is the next major revision of the HTTP. It runs on QUIC, a new transport protocol designed for mobile-heavy internet usage.
+    
+    **Key Features:**
+    - Built on UDP instead of TCP
+    - Faster web page responsiveness
+    - Better for VR applications
+    - Reduced latency
+  </Accordion>
+
+  <Accordion title="HTTPS (HyperText Transfer Protocol Secure)" icon="lock">
+    HTTPS extends HTTP and uses encryption for secure communications.
+    
+    **Key Features:**
+    - TLS/SSL encryption
+    - Port 443 (default)
+    - Certificate validation
+    - Secure data transmission
+  </Accordion>
+
+  <Accordion title="WebSocket" icon="arrows-left-right">
+    WebSocket is a protocol that provides full-duplex communications over TCP.
+    
+    **Key Features:**
+    - Bidirectional communication
+    - Real-time updates
+    - Persistent connection
+    - Used in gaming, trading, messaging
+    
+    Unlike REST, which always "pulls" data, WebSocket enables data to be "pushed".
+  </Accordion>
+
+  <Accordion title="TCP (Transmission Control Protocol)" icon="network-wired">
+    TCP is designed to send packets across the internet and ensure the successful delivery of data and messages over networks.
+    
+    **Key Features:**
+    - Connection-oriented
+    - Reliable delivery
+    - Ordered packets
+    - Error checking
+    
+    Many application-layer protocols build on top of TCP.
+  </Accordion>
+
+  <Accordion title="UDP (User Datagram Protocol)" icon="bolt">
+    UDP sends packets directly to a target computer, without establishing a connection first.
+    
+    **Key Features:**
+    - Connectionless
+    - No delivery guarantee
+    - Lower latency
+    - Lightweight
+    
+    Voice and video traffic are often sent using this protocol.
+  </Accordion>
+
+  <Accordion title="SMTP (Simple Mail Transfer Protocol)" icon="envelope">
+    SMTP is a standard protocol to transfer electronic mail from one user to another.
+    
+    **Key Features:**
+    - Port 25 (default)
+    - Email transmission
+    - Text-based protocol
+    - Push protocol
+  </Accordion>
+
+  <Accordion title="FTP (File Transfer Protocol)" icon="file-arrow-down">
+    FTP is used to transfer computer files between client and server.
+    
+    **Key Features:**
+    - Port 21 (control)
+    - Separate data channel
+    - Authentication required
+    - Bidirectional transfer
+  </Accordion>
+</AccordionGroup>
+
+## TCP vs UDP
+
+<CardGroup cols={2}>
+  <Card title="TCP Use Cases" icon="check-double">
+    ### When Reliability Matters
+    
+    **Best for:**
+    - Web browsing (HTTP/HTTPS)
+    - Email (SMTP, IMAP, POP3)
+    - File transfers (FTP, SFTP)
+    - Database queries
+    - APIs (REST, GraphQL)
+    
+    **Why TCP:**
+    - Guaranteed delivery
+    - Order preservation
+    - Error correction
+    - Flow control
+  </Card>
+  
+  <Card title="UDP Use Cases" icon="bolt">
+    ### When Speed Matters
+    
+    **Best for:**
+    - Live video streaming
+    - VoIP (Voice over IP)
+    - DNS queries
+    - Market data multicast
+    - IoT communications
+    - Online gaming
+    
+    **Why UDP:**
+    - Lower latency
+    - No connection overhead
+    - Tolerates packet loss
+    - Lightweight
+  </Card>
+</CardGroup>
+
+<img src="https://assets.bytebytego.com/diagrams/0044-top-4-udp-use-cases.png" alt="UDP Use Cases" />
+
+## DNS (Domain Name System)
+
+<img src="https://assets.bytebytego.com/diagrams/0176-dns-look-up.png" alt="DNS Lookup" />
+
+DNS acts as an address book. It translates human-readable domain names (google.com) to machine-readable IP addresses (142.251.46.238).
+
+### DNS Hierarchy
+
+To achieve better scalability, the DNS servers are organized in a hierarchical tree structure.
+
+<Tabs>
+  <Tab title="Root Name Server">
+    **Root Name Server (.)**
+    
+    - Stores IP addresses of TLD name servers
+    - 13 logical root name servers globally
+    - First point of contact in DNS resolution
+    - Operated by different organizations
+  </Tab>
+  
+  <Tab title="TLD Name Server">
+    **Top Level Domain Name Server**
+    
+    Stores IP addresses of authoritative name servers.
+    
+    **Types of TLDs:**
+    - Generic TLD: `.com`, `.org`, `.net`
+    - Country code TLD: `.us`, `.uk`, `.jp`
+    - Test TLD: `.test`, `.localhost`
+  </Tab>
+  
+  <Tab title="Authoritative Name Server">
+    **Authoritative Name Server**
+    
+    - Provides actual answers to DNS queries
+    - Contains DNS records for specific domains
+    - Can be registered with domain registrars
+    - Examples: GoDaddy, Namecheap, Route53
+  </Tab>
+</Tabs>
+
+### DNS Lookup Process
+
+<Steps>
+  <Step title="Browser Query">
+    google.com is typed into the browser, and the browser sends the domain name to the DNS resolver.
+  </Step>
+  
+  <Step title="Root Server Query">
+    The resolver queries a DNS root name server.
+  </Step>
+  
+  <Step title="Root Server Response">
+    The root server responds to the resolver with the address of a TLD DNS server. In this case, it is .com.
+  </Step>
+  
+  <Step title="TLD Query">
+    The resolver then makes a request to the .com TLD.
+  </Step>
+  
+  <Step title="TLD Response">
+    The TLD server responds with the IP address of the domain's name server, google.com (authoritative name server).
+  </Step>
+  
+  <Step title="Authoritative Query">
+    The DNS resolver sends a query to the domain's nameserver.
+  </Step>
+  
+  <Step title="IP Address Return">
+    The IP address for google.com is then returned to the resolver from the nameserver.
+  </Step>
+  
+  <Step title="Browser Response">
+    The DNS resolver responds to the web browser with the IP address (142.251.46.238) of the domain requested initially.
+  </Step>
+</Steps>
+
+<Note>
+  DNS lookups on average take between 20-120 milliseconds to complete (according to YSlow).
+</Note>
+
+### DNS Record Types
+
+<img src="https://assets.bytebytego.com/diagrams/0175-dns-record-types-you-should-know.png" alt="DNS Record Types" />
+
+<CardGroup cols={2}>
+  <Card title="A Record" icon="a">
+    **Address Record**
+    
+    Maps a domain name to an IPv4 address. One of the most essential records for translating human-readable domain names into IP addresses.
+  </Card>
+  
+  <Card title="AAAA Record" icon="hashtag">
+    **IPv6 Address Record**
+    
+    Similar to an A record but maps a domain name to an IPv6 address. Used for websites and services that support the IPv6 protocol.
+  </Card>
+  
+  <Card title="CNAME Record" icon="link">
+    **Canonical Name Record**
+    
+    Used to alias one domain name to another. Often used for subdomains, pointing them to the main domain while keeping the actual domain name hidden.
+  </Card>
+  
+  <Card title="MX Record" icon="envelope">
+    **Mail Exchange Record**
+    
+    Directs email traffic to the correct mail server. Essential for email routing.
+  </Card>
+  
+  <Card title="NS Record" icon="server">
+    **Name Server Record**
+    
+    Specifies the authoritative DNS servers for the domain. These records help direct queries to the correct DNS servers for further lookups.
+  </Card>
+  
+  <Card title="PTR Record" icon="arrow-rotate-left">
+    **Pointer Record**
+    
+    Provides reverse DNS lookup, mapping an IP address back to a domain name. Commonly used in verifying the authenticity of a server.
+  </Card>
+  
+  <Card title="SRV Record" icon="sitemap">
+    **Service Record**
+    
+    Specifies a host and port for specific services such as VoIP. Used in conjunction with A records.
+  </Card>
+  
+  <Card title="TXT Record" icon="text">
+    **Text Record**
+    
+    Allows administrators to add human-readable text to DNS records. Used to include verification records, like SPF, for email security.
+  </Card>
+</CardGroup>
+
+## IP Addressing
+
+### IPv4 vs IPv6
+
+<img src="https://assets.bytebytego.com/diagrams/0236-ipv4-vs-ipv6.png" alt="IPv4 vs IPv6" />
+
+The transition from IPv4 to IPv6 is primarily driven by the need for more internet addresses, alongside the desire to streamline certain aspects of network management.
+
+<Tabs>
+  <Tab title="IPv4">
+    **Format and Length**
+    
+    - **Address Size**: 32-bit
+    - **Format**: Four decimal numbers separated by dots
+    - **Example**: `192.168.0.12`
+    - **Total Addresses**: ~4.3 billion
+    - **Status**: Address exhaustion
+    
+    **Header Complexity**
+    
+    The IPv4 header is more complex and includes fields such as:
+    - Header length
+    - Service type
+    - Total length
+    - Identification, flags, fragment offset
+    - Time to live (TTL)
+    - Protocol
+    - Header checksum
+    - Source and destination IP addresses
+    - Options
+  </Tab>
+  
+  <Tab title="IPv6">
+    **Format and Length**
+    
+    - **Address Size**: 128-bit
+    - **Format**: Eight groups of four hexadecimal digits
+    - **Example**: `50B3:F200:0211:AB00:0123:4321:6571:B000`
+    - **Total Addresses**: 340 undecillion (practically unlimited)
+    - **Status**: Future-proof
+    
+    **Header Simplification**
+    
+    IPv6 headers are designed to be simpler and more efficient:
+    - Fixed header size: 40 bytes
+    - Less frequently used fields in optional extension headers
+    - Main fields: version, traffic class, flow label, payload length, next header, hop limit, addresses
+    - Improves packet processing speeds
+  </Tab>
+  
+  <Tab title="Transition">
+    **Translation Mechanisms**
+    
+    As the internet transitions from IPv4 to IPv6, mechanisms to allow these protocols to coexist have become essential:
+    
+    **Dual Stack**
+    
+    - Runs IPv4 and IPv6 simultaneously
+    - Same network devices support both protocols
+    - Seamless communication in both protocols
+    - Depends on destination address availability
+    - Considered the best approach for smooth transition
+    
+    **Other Methods**
+    
+    - Tunneling (encapsulating IPv6 in IPv4)
+    - Translation (converting between protocols)
+    - IPv6-only networks with translation gateways
+  </Tab>
+</Tabs>
+
+## Network Types
+
+<img src="https://assets.bytebytego.com/diagrams/0405-wan-lan-pan-man-explained.png" alt="Network Types" />
+
+Different types of networks are defined based on their size, range, and purpose.
+
+<AccordionGroup>
+  <Accordion title="PAN - Personal Area Network" icon="mobile">
+    A PAN is a network used for communication among devices close to one person, typically within a range of a few meters.
+    
+    **Use Cases:**
+    - Connecting personal devices like smartphones, tablets, and wearables
+    - Enabling hands-free communication through Bluetooth headsets
+    - Synchronizing data between a computer and a smartphone
+    
+    **Range**: ~10 meters
+  </Accordion>
+
+  <Accordion title="LAN - Local Area Network" icon="building">
+    A LAN is a network that connects computers and devices within a limited area such as a home, office, or building.
+    
+    **Use Cases:**
+    - Sharing resources like printers and file servers within an office
+    - Facilitating communication and collaboration among employees
+    - Providing internet access within a home or small business
+    
+    **Range**: ~100-1000 meters
+  </Accordion>
+
+  <Accordion title="MAN - Metropolitan Area Network" icon="city">
+    A MAN covers a larger geographic area than a LAN but smaller than a WAN, typically spanning a city or a large campus.
+    
+    **Use Cases:**
+    - Connecting multiple campuses of a university
+    - Providing high-speed internet access across a city
+    - Linking local government offices within a metropolitan area
+    
+    **Range**: ~10 kilometers
+  </Accordion>
+
+  <Accordion title="WAN - Wide Area Network" icon="earth-americas">
+    A WAN spans a large geographic area, often a country or continent. The most prominent example of a WAN is the Internet.
+    
+    **Use Cases:**
+    - Connecting branch offices of multinational companies
+    - Facilitating global communication and data exchange
+    - Enabling remote access to central resources
+    
+    **Range**: Unlimited (global)
+  </Accordion>
+</AccordionGroup>
+
+## HTTP Evolution
+
+<img src="https://assets.bytebytego.com/diagrams/0101-http-1-http-2-http-3.png" alt="HTTP Evolution" />
+
+<Tabs>
+  <Tab title="HTTP/1.x">
+    **HTTP/1 (1996) and HTTP/1.1 (1997)**
+    
+    - Persistent connections
+    - Pipelining
+    - Header support
+    - Built on TCP
+    - Reliable communication
+    - Still widely used (25+ years old)
+    
+    **Limitations:**
+    - Head-of-line blocking
+    - No multiplexing
+    - Redundant headers
+    - Sequential requests
+  </Tab>
+  
+  <Tab title="HTTP/2">
+    **HTTP/2 (2015)**
+    
+    - Multiplexing (multiple requests over single connection)
+    - Stream prioritization
+    - Server push
+    - HPACK header compression
+    - Binary protocol (vs. text)
+    - Still uses TCP
+    
+    **Improvements:**
+    - Better performance
+    - Reduced latency
+    - More efficient use of connections
+  </Tab>
+  
+  <Tab title="HTTP/3">
+    **HTTP/3 (2019)**
+    
+    - Built on QUIC (not TCP)
+    - QUIC uses UDP
+    - Faster connection establishment
+    - Better handling of packet loss
+    - Improved mobile performance
+    - 0-RTT connection resumption
+    
+    **Key Innovation:**
+    Moving from TCP to UDP eliminates head-of-line blocking at the transport layer.
+  </Tab>
+</Tabs>
+
+## HTTPS and Security
+
+<img src="https://assets.bytebytego.com/diagrams/0220-how-does-https-work.png" alt="HTTPS" />
+
+HTTPS is an extension of HTTP that transmits encrypted data using Transport Layer Security (TLS). If the data is hijacked online, all the hijacker gets is binary code.
+
+### How HTTPS Works
+
+<Steps>
+  <Step title="TCP Connection">
+    The client (browser) and the server establish a TCP connection.
+  </Step>
+  
+  <Step title="TLS Handshake">
+    The client sends a "client hello" to the server. The message contains a set of necessary encryption algorithms (cipher suites) and the latest TLS version it can support. The server responds with a "server hello" so the browser knows whether it can support the algorithms and TLS version.
+    
+    The server then sends the SSL certificate to the client. The certificate contains the public key, hostname, expiry dates, etc. The client validates the certificate.
+  </Step>
+  
+  <Step title="Session Key Exchange">
+    After validating the SSL certificate, the client generates a session key and encrypts it using the public key. The server receives the encrypted session key and decrypts it with the private key.
+  </Step>
+  
+  <Step title="Secure Communication">
+    Now that both the client and the server hold the same session key (symmetric encryption), the encrypted data is transmitted in a secure bi-directional channel.
+  </Step>
+</Steps>
+
+### Why Switch to Symmetric Encryption?
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="shield">
+    The asymmetric encryption goes only one way. This means that if the server tries to send the encrypted data back to the client, anyone can decrypt the data using the public key.
+  </Card>
+  
+  <Card title="Performance" icon="gauge-high">
+    The asymmetric encryption adds quite a lot of mathematical overhead. It is not suitable for data transmissions in long sessions.
+  </Card>
+</CardGroup>
+
+## Common Ports
+
+<img src="https://assets.bytebytego.com/diagrams/0030-18-common-ports-you-must-know.png" alt="Common Ports" />
+
+<Tabs>
+  <Tab title="Web & Email">
+    | Port | Protocol | Description |
+    |------|----------|-------------|
+    | 21 | FTP | File Transfer Protocol |
+    | 22 | SSH | Secure Shell for Login |
+    | 23 | Telnet | Remote login (insecure) |
+    | 25 | SMTP | Simple Mail Transfer Protocol |
+    | 80 | HTTP | Hypertext Transfer Protocol |
+    | 110 | POP3 | Post Office Protocol V3 |
+    | 143 | IMAP | Internet Message Access Protocol |
+    | 443 | HTTPS | Secure HTTP |
+  </Tab>
+  
+  <Tab title="Network Services">
+    | Port | Protocol | Description |
+    |------|----------|-------------|
+    | 53 | DNS | DNS queries (UDP/TCP) |
+    | 67 | DHCP | DHCP Server (UDP) |
+    | 68 | DHCP | DHCP Client (UDP) |
+    | 123 | NTP | Network Time Protocol (UDP) |
+    | 139 | NetBIOS | NetBIOS service (TCP) |
+    | 445 | SMB | Server Message Block (TCP) |
+  </Tab>
+  
+  <Tab title="Databases">
+    | Port | Protocol | Description |
+    |------|----------|-------------|
+    | 1521 | Oracle | Oracle database communication |
+    | 3306 | MySQL | MySQL database communication |
+    | 3389 | RDP | Remote Desktop Protocol |
+    | 5432 | PostgreSQL | PostgreSQL database |
+  </Tab>
+</Tabs>
+
+## URL Components
+
+<img src="https://assets.bytebytego.com/diagrams/0116-structure-of-url.png" alt="URL Structure" />
+
+Uniform Resource Locator (URL) is used to locate resources on the internet. URLs comprise several components:
+
+<AccordionGroup>
+  <Accordion title="Protocol/Scheme" icon="plug">
+    The protocol or scheme, such as `http`, `https`, `ftp`, `ws`
+    
+    Example: `https://`
+  </Accordion>
+  
+  <Accordion title="Domain and Port" icon="server">
+    The domain name and port, separated by a period (.)
+    
+    Example: `www.example.com:443`
+    
+    - Domain: `www.example.com`
+    - Port: `443` (optional, defaults based on protocol)
+  </Accordion>
+  
+  <Accordion title="Path" icon="folder">
+    The path to the resource, separated by a slash (/)
+    
+    Example: `/products/category/item`
+  </Accordion>
+  
+  <Accordion title="Query Parameters" icon="question">
+    The parameters, which start with a question mark (?) and consist of key-value pairs
+    
+    Example: `?id=123&color=blue&size=large`
+    
+    Format: `key1=value1&key2=value2`
+  </Accordion>
+  
+  <Accordion title="Fragment/Anchor" icon="hashtag">
+    Indicated by a pound sign (#), used to bookmark a specific section of the resource
+    
+    Example: `#section-header`
+    
+    Note: Not sent to the server, processed by browser only
+  </Accordion>
+</AccordionGroup>
+
+## Interview Tips
+
+<Warning>
+  **Common Mistakes**
+  - Confusing HTTP/2 and HTTP/3 transport protocols (TCP vs UDP)
+  - Not understanding the difference between TCP and UDP trade-offs
+  - Forgetting that DNS has caching at multiple levels
+  - Mixing up OSI model layers and their responsibilities
+</Warning>
+
+<Tip>
+  **Interview Strategy**: When discussing networking in system design, always consider:
+  - Protocol choice (TCP vs UDP)
+  - DNS resolution and caching
+  - Network latency and bandwidth
+  - Security requirements (HTTPS, TLS)
+  - Geographic distribution (CDN, edge networks)
+</Tip>
+
+<CardGroup cols={2}>
+  <Card title="Protocol Selection" icon="list-check">
+    Know when to choose TCP (reliability) vs UDP (speed) based on application requirements.
+  </Card>
+  
+  <Card title="DNS Optimization" icon="bolt">
+    Understand DNS caching strategies and TTL values to reduce latency.
+  </Card>
+  
+  <Card title="Security First" icon="lock">
+    Always consider HTTPS, TLS versions, and certificate management in production systems.
+  </Card>
+  
+  <Card title="Network Types" icon="network-wired">
+    Know the appropriate network type (LAN, WAN, etc.) for different system components.
+  </Card>
+</CardGroup>

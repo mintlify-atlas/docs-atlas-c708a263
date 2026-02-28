@@ -1,0 +1,648 @@
+---
+title: 'Load Balancer'
+description: 'Learn about load balancers, distribution algorithms, types, use cases, and best practices for scalable systems.'
+---
+
+## What is a Load Balancer?
+
+<img src="https://assets.bytebytego.com/diagrams/0261-what-is-a-load-balancer.png" alt="What is a Load Balancer" />
+
+A load balancer is a device or software application that distributes network or application traffic across multiple servers to optimize resource utilization, maximize throughput, minimize response time, and avoid overload of any single server.
+
+<Info>
+  Load balancers ensure high availability and reliability by routing traffic only to healthy servers and distributing load efficiently.
+</Info>
+
+## What Does a Load Balancer Do?
+
+### Distributes Traffic
+
+Evenly spreads incoming requests across multiple servers to prevent any single server from becoming a bottleneck.
+
+### Ensures Availability and Reliability
+
+Monitors server health and automatically reroutes traffic away from failed or unhealthy servers, ensuring uninterrupted service.
+
+### Improves Performance
+
+Reduces response time by distributing load and preventing server overload, providing faster user experiences.
+
+### Scales Applications
+
+Facilitates horizontal scaling by managing traffic across newly added servers without client configuration changes.
+
+## Types of Load Balancers
+
+### By Deployment Type
+
+<Steps>
+  <Step title="Hardware Load Balancers">
+    Physical devices designed specifically for traffic distribution.
+    
+    **Pros:**
+    - High performance and throughput
+    - Dedicated hardware resources
+    - Vendor support
+    
+    **Cons:**
+    - Expensive
+    - Limited scalability
+    - Requires physical space
+  </Step>
+  
+  <Step title="Software Load Balancers">
+    Applications installed on standard hardware or virtual machines.
+    
+    **Examples:** NGINX, HAProxy, Traefik
+    
+    **Pros:**
+    - Cost-effective
+    - Flexible configuration
+    - Easy to scale
+    
+    **Cons:**
+    - Shares resources with host
+    - May require more maintenance
+  </Step>
+  
+  <Step title="Cloud-Based Load Balancers">
+    Managed services integrated into cloud infrastructure.
+    
+    **Examples:** AWS Elastic Load Balancer, Google Cloud Load Balancing, Azure Load Balancer
+    
+    **Pros:**
+    - Fully managed
+    - Auto-scaling
+    - Pay-as-you-go
+    
+    **Cons:**
+    - Vendor lock-in
+    - Ongoing costs
+  </Step>
+</Steps>
+
+### By OSI Layer
+
+<CodeGroup>
+```yaml Layer 4 (Transport Layer)
+Network Load Balancer (NLB)
+
+Operates at: Transport Layer
+Routes based on:
+  - IP address
+  - TCP/UDP ports
+  
+Characteristics:
+  - Does not inspect packet content
+  - Very fast (low latency)
+  - Simple routing decisions
+  - Protocol agnostic
+  
+Use cases:
+  - High-performance applications
+  - Non-HTTP protocols
+  - Gaming servers
+  - IoT applications
+```
+
+```yaml Layer 7 (Application Layer)
+Application Load Balancer (ALB)
+
+Operates at: Application Layer
+Routes based on:
+  - HTTP headers
+  - URL paths
+  - Query strings
+  - Cookies
+  
+Characteristics:
+  - Inspects request content
+  - Advanced routing rules
+  - SSL/TLS termination
+  - Content-based routing
+  
+Use cases:
+  - Web applications
+  - Microservices
+  - API gateways
+  - Container-based apps
+```
+</CodeGroup>
+
+### Global Server Load Balancing (GSLB)
+
+Distributes traffic across multiple geographical locations for:
+
+- Disaster recovery
+- Global redundancy
+- Latency optimization
+- Geographic traffic distribution
+
+## Top 6 Load Balancing Algorithms
+
+<img src="https://assets.bytebytego.com/diagrams/0251-lb-algorithms.png" alt="Load Balancing Algorithms" />
+
+### Static Algorithms
+
+Predetermined routing decisions not based on current server state.
+
+<Steps>
+  <Step title="Round Robin">
+    Client requests are sent to different service instances in sequential order.
+    
+    ```
+    Request 1 → Server A
+    Request 2 → Server B
+    Request 3 → Server C
+    Request 4 → Server A (cycle repeats)
+    ```
+    
+    **Best for:** Stateless services with equal capacity servers
+  </Step>
+  
+  <Step title="Sticky Round Robin">
+    Improvement of round-robin where subsequent requests from the same client go to the same server.
+    
+    ```
+    Alice's requests → Always Server A
+    Bob's requests   → Always Server B
+    ```
+    
+    **Best for:** Session-based applications
+    
+    <Note>
+      Also called "Session Persistence" or "Session Affinity"
+    </Note>
+  </Step>
+  
+  <Step title="Weighted Round Robin">
+    Admin assigns weights to servers based on capacity. Higher weight servers handle more requests.
+    
+    ```yaml
+    Server A (weight: 5) → Gets 50% of traffic
+    Server B (weight: 3) → Gets 30% of traffic
+    Server C (weight: 2) → Gets 20% of traffic
+    ```
+    
+    **Best for:** Heterogeneous server capacities
+  </Step>
+  
+  <Step title="Hash-Based">
+    Applies a hash function on incoming requests' IP or URL to determine routing.
+    
+    ```javascript
+    server_index = hash(client_ip) % number_of_servers
+    // OR
+    server_index = hash(url) % number_of_servers
+    ```
+    
+    **Best for:** Cache distribution, consistent routing
+  </Step>
+</Steps>
+
+### Dynamic Algorithms
+
+Routing decisions based on current server state and performance.
+
+<Steps>
+  <Step title="Least Connections">
+    New requests sent to the server with the fewest active connections.
+    
+    ```yaml
+    Server A: 45 connections
+    Server B: 32 connections ← Next request goes here
+    Server C: 51 connections
+    ```
+    
+    **Best for:** Varying request processing times
+  </Step>
+  
+  <Step title="Least Response Time">
+    New requests sent to the server with the fastest response time.
+    
+    ```yaml
+    Server A: avg 120ms
+    Server B: avg 85ms  ← Next request goes here
+    Server C: avg 200ms
+    ```
+    
+    **Best for:** Performance-critical applications
+  </Step>
+</Steps>
+
+## Key Use Cases for Load Balancers
+
+<img src="https://assets.bytebytego.com/diagrams/0046-top-6-load-balancer-use-cases.png" alt="Load Balancer Use Cases" />
+
+### 1. Traffic Distribution
+
+Load balancers evenly distribute incoming traffic among multiple servers, preventing any single server from becoming overwhelmed.
+
+**Benefits:**
+- Optimal performance
+- Better resource utilization
+- Improved scalability
+- Consistent response times
+
+### 2. High Availability
+
+Load balancers enhance system availability by rerouting traffic away from failed or unhealthy servers to healthy ones.
+
+```yaml
+Health Check Process:
+  1. LB sends health check every 10s
+  2. Server responds with status
+  3. If server fails 3 consecutive checks:
+     - Mark as unhealthy
+     - Stop sending traffic
+  4. Continue monitoring
+  5. When server recovers:
+     - Mark as healthy
+     - Resume traffic
+```
+
+**Result:** Uninterrupted service even when servers fail
+
+### 3. SSL Termination
+
+Load balancers offload SSL/TLS encryption and decryption from backend servers.
+
+```
+Client (HTTPS) → Load Balancer (SSL Termination) → Backend (HTTP)
+```
+
+**Benefits:**
+- Reduced backend server workload
+- Centralized certificate management
+- Improved overall performance
+- Simplified backend configuration
+
+### 4. Session Persistence
+
+For applications requiring user sessions on specific servers, load balancers ensure subsequent requests go to the same server.
+
+<CodeGroup>
+```yaml Cookie-Based
+Set-Cookie: SERVER_ID=server-a; Path=/
+
+All requests with this cookie → Server A
+```
+
+```yaml IP Hash-Based
+client_ip = 192.168.1.100
+server = hash(client_ip) % server_count
+
+Same IP → Same Server
+```
+</CodeGroup>
+
+### 5. Scalability
+
+Load balancers facilitate horizontal scaling by managing traffic across all servers.
+
+```yaml
+Initial Setup:
+  Servers: [A, B, C]
+  Capacity: 3000 req/s
+  
+Scale Out:
+  Add servers: [D, E]
+  New capacity: 5000 req/s
+  LB automatically includes new servers
+  
+Scale In:
+  Remove servers: [D, E]
+  Reduced capacity: 3000 req/s
+  LB gracefully drains connections
+```
+
+### 6. Health Monitoring
+
+Load balancers continuously monitor server health and performance.
+
+```yaml
+Health Check Configuration:
+  protocol: HTTP
+  path: /health
+  interval: 10s
+  timeout: 5s
+  healthy_threshold: 2
+  unhealthy_threshold: 3
+  
+Actions:
+  - Monitor response codes
+  - Track response times
+  - Remove failed servers
+  - Add recovered servers
+  - Alert on failures
+```
+
+## Realistic Load Balancer Use Cases
+
+### Failure Handling
+
+Automatically redirects traffic away from malfunctioning elements to maintain continuous service.
+
+```yaml
+Scenario: Server Crash
+  1. Server B crashes
+  2. Health check fails
+  3. LB marks Server B as down
+  4. Traffic redistributed to Servers A and C
+  5. No user impact
+```
+
+### Instance Health Checks
+
+Continuously evaluates instance functionality, directing requests only to operational servers.
+
+```yaml
+Health Check Types:
+  - HTTP/HTTPS: Check status code 200
+  - TCP: Verify port connectivity
+  - Custom: Application-specific checks
+```
+
+### Platform-Specific Routing
+
+Routes requests from different device types to specialized backends.
+
+```yaml
+User-Agent Based Routing:
+  Mobile (iOS/Android) → Mobile Backend
+  Desktop Browser → Web Backend
+  API Client → API Backend
+  Bot/Crawler → Rate-limited Backend
+```
+
+### SSL Termination
+
+Handles encryption/decryption of SSL traffic, reducing backend processing burden.
+
+### Cross-Zone Load Balancing
+
+Distributes traffic across various geographic or network zones.
+
+```yaml
+Multi-AZ Setup:
+  Zone A: [Server A1, Server A2]
+  Zone B: [Server B1, Server B2]
+  Zone C: [Server C1, Server C2]
+  
+Benefits:
+  - Increased resilience
+  - Zone failure tolerance
+  - Geographic distribution
+```
+
+### User Stickiness
+
+Maintains session integrity by consistently directing specific users to designated servers.
+
+## Load Balancer Configuration Example
+
+### NGINX Configuration
+
+<CodeGroup>
+```nginx Round Robin
+upstream backend {
+    server backend1.example.com;
+    server backend2.example.com;
+    server backend3.example.com;
+}
+
+server {
+    listen 80;
+    
+    location / {
+        proxy_pass http://backend;
+    }
+}
+```
+
+```nginx Weighted Round Robin
+upstream backend {
+    server backend1.example.com weight=5;
+    server backend2.example.com weight=3;
+    server backend3.example.com weight=2;
+}
+
+server {
+    listen 80;
+    
+    location / {
+        proxy_pass http://backend;
+    }
+}
+```
+
+```nginx Least Connections
+upstream backend {
+    least_conn;
+    server backend1.example.com;
+    server backend2.example.com;
+    server backend3.example.com;
+}
+
+server {
+    listen 80;
+    
+    location / {
+        proxy_pass http://backend;
+    }
+}
+```
+
+```nginx IP Hash with Health Checks
+upstream backend {
+    ip_hash;
+    server backend1.example.com max_fails=3 fail_timeout=30s;
+    server backend2.example.com max_fails=3 fail_timeout=30s;
+    server backend3.example.com max_fails=3 fail_timeout=30s;
+}
+
+server {
+    listen 80;
+    
+    location / {
+        proxy_pass http://backend;
+        proxy_next_upstream error timeout http_500 http_502 http_503;
+    }
+}
+```
+</CodeGroup>
+
+### HAProxy Configuration
+
+```haproxy
+frontend http_front
+    bind *:80
+    default_backend http_back
+
+backend http_back
+    balance roundrobin
+    option httpchk GET /health
+    http-check expect status 200
+    
+    server server1 192.168.1.10:8080 check inter 10s
+    server server2 192.168.1.11:8080 check inter 10s
+    server server3 192.168.1.12:8080 check inter 10s
+```
+
+## Load Balancer vs API Gateway
+
+<img src="https://assets.bytebytego.com/diagrams/0252-lb-api-gateway.png" alt="Load Balancer vs API Gateway" />
+
+| Feature | Load Balancer | API Gateway |
+|---------|---------------|-------------|
+| **Primary Function** | Traffic distribution | API management |
+| **OSI Layer** | Layer 4 or 7 | Layer 7 |
+| **Routing** | Simple (IP, port, path) | Complex (headers, auth, transforms) |
+| **Authentication** | No | Yes |
+| **Rate Limiting** | Basic | Advanced |
+| **Protocol Translation** | No | Yes |
+| **API Composition** | No | Yes |
+| **Best For** | Server distribution | API orchestration |
+
+<Info>
+  Load balancers and API gateways are often used together: LB distributes traffic, API Gateway manages API-specific concerns.
+</Info>
+
+## Best Practices
+
+<Steps>
+  <Step title="Implement Health Checks">
+    Configure appropriate health checks for your application.
+    
+    ```yaml
+    health_check:
+      type: http
+      path: /health
+      interval: 10s
+      timeout: 5s
+      healthy_threshold: 2
+      unhealthy_threshold: 3
+    ```
+  </Step>
+  
+  <Step title="Use Multiple Availability Zones">
+    Distribute servers across multiple zones for resilience.
+  </Step>
+  
+  <Step title="Monitor Key Metrics">
+    Track:
+    - Request rate
+    - Active connections
+    - Backend response times
+    - Error rates
+    - Health check status
+  </Step>
+  
+  <Step title="Configure Appropriate Timeouts">
+    Set connection and request timeouts to prevent hanging requests.
+    
+    ```yaml
+    timeouts:
+      connect: 5s
+      client: 50s
+      server: 50s
+    ```
+  </Step>
+  
+  <Step title="Enable SSL/TLS">
+    Terminate SSL at the load balancer for better performance.
+  </Step>
+  
+  <Step title="Implement Connection Draining">
+    Gracefully handle server removal by draining existing connections.
+  </Step>
+  
+  <Step title="Use Sticky Sessions Wisely">
+    Only when necessary - they can complicate scaling and failover.
+  </Step>
+</Steps>
+
+## Common Pitfalls to Avoid
+
+### Single Point of Failure
+
+<Note>
+  Deploy load balancers in high-availability pairs to avoid the load balancer itself becoming a single point of failure.
+</Note>
+
+```yaml
+HA Setup:
+  Primary LB:   Active
+  Secondary LB: Standby (with failover)
+  Virtual IP:   Shared between both
+```
+
+### Inadequate Capacity Planning
+
+- Monitor load balancer capacity
+- Plan for peak traffic
+- Consider auto-scaling
+
+### Poor Health Check Configuration
+
+```yaml
+Bad:
+  interval: 60s  # Too slow
+  timeout: 30s   # Too long
+  
+Good:
+  interval: 10s  # Quick detection
+  timeout: 5s    # Reasonable
+```
+
+### Ignoring Session Persistence Requirements
+
+- Understand application session needs
+- Choose appropriate persistence mechanism
+- Plan for session replication or external session storage
+
+## Advanced Features
+
+### Connection Pooling
+
+Reuse connections to backend servers for better performance.
+
+### Request Buffering
+
+Buffer client requests before forwarding to reduce slow client impact.
+
+### Compression
+
+Compress responses to reduce bandwidth usage.
+
+### WAF Integration
+
+Integrate Web Application Firewall for security.
+
+### Rate Limiting
+
+Limit requests per client to prevent abuse.
+
+```yaml
+rate_limits:
+  - path: /api/*
+    limit: 1000/minute
+    by: client_ip
+  - path: /api/heavy
+    limit: 10/minute
+    by: api_key
+```
+
+## Key Takeaways
+
+<Info>
+  Load balancers are essential for high-availability, scalable systems. Choose the right type and algorithm based on your specific requirements.
+</Info>
+
+- Load balancers distribute traffic across multiple servers for reliability and performance
+- Layer 4 (NLB) is faster; Layer 7 (ALB) provides richer routing capabilities
+- Static algorithms (round-robin) work for uniform workloads
+- Dynamic algorithms (least connections) adapt to varying loads
+- Health monitoring ensures traffic goes only to healthy servers
+- SSL termination offloads encryption work from backend servers
+- Often used in combination with API gateways for complete traffic management

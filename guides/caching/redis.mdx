@@ -1,0 +1,310 @@
+---
+title: "Redis for Caching"
+description: "Learn how Redis works as a high-performance in-memory cache and its practical applications"
+---
+
+## What is Redis?
+
+Redis (Remote Dictionary Server) is a multi-modal database that provides sub-millisecond latency. The core idea behind Redis is that a cache can also act as a full-fledged database.
+
+<Info>
+  Redis is one of the most popular data stores in the world, adopted by high-traffic websites like Airbnb, Uber, and Slack.
+</Info>
+
+## Why is Redis So Fast?
+
+![Redis Performance](https://assets.bytebytego.com/diagrams/0422-why-is-redis-so-fast.png)
+
+There are three main reasons why Redis delivers exceptional performance:
+
+<CardGroup cols={3}>
+  <Card title="RAM-Based Storage" icon="memory">
+    Redis stores data in RAM, which is at least 1000 times faster than random disk access.
+  </Card>
+  <Card title="IO Multiplexing" icon="bolt">
+    Leverages IO multiplexing and single-threaded execution loop for execution efficiency.
+  </Card>
+  <Card title="Optimized Data Structures" icon="layer-group">
+    Uses several efficient lower-level data structures for fast operations.
+  </Card>
+</CardGroup>
+
+## Redis Data Structures
+
+Redis stores data in key-value format and supports various data structures:
+
+- **Strings**: Simple key-value pairs
+- **Bitmaps**: Efficient for tracking binary states
+- **Lists**: Ordered collections
+- **Sets**: Unordered collections of unique items
+- **Sorted Sets**: Sets with scores for ranking
+- **Hash**: Key-value pairs within a key
+- **JSON**: Native JSON support
+
+## Common Use Cases
+
+![Redis Use Cases](https://assets.bytebytego.com/diagrams/0388-how-can-redis-be-used.png)
+
+Redis can be used in a variety of scenarios beyond just caching:
+
+### Session Management
+Share user session data among different services for consistent user experiences across your application.
+
+```python
+# Store session data
+redis.set(f"session:{user_id}", json.dumps(session_data), ex=3600)
+
+# Retrieve session data
+session = json.loads(redis.get(f"session:{user_id}"))
+```
+
+### Caching
+Cache objects or pages, especially for hotspot data that's frequently accessed.
+
+```python
+# Cache-aside pattern
+def get_user(user_id):
+    # Try cache first
+    cached = redis.get(f"user:{user_id}")
+    if cached:
+        return json.loads(cached)
+    
+    # Cache miss - fetch from database
+    user = db.query("SELECT * FROM users WHERE id = ?", user_id)
+    
+    # Store in cache for future requests
+    redis.setex(f"user:{user_id}", 3600, json.dumps(user))
+    return user
+```
+
+### Distributed Lock
+Use a Redis string to acquire locks among distributed services, ensuring only one service can execute a critical section at a time.
+
+```python
+# Acquire lock
+lock = redis.set("lock:resource", "token", nx=True, ex=30)
+
+if lock:
+    try:
+        # Critical section
+        process_resource()
+    finally:
+        # Release lock
+        redis.delete("lock:resource")
+```
+
+### Counter and Rate Limiter
+
+<Tabs>
+  <Tab title="Counter">
+    Count metrics like article views or likes:
+    ```python
+    # Increment view count
+    redis.incr(f"article:{article_id}:views")
+    
+    # Get view count
+    views = redis.get(f"article:{article_id}:views")
+    ```
+  </Tab>
+  <Tab title="Rate Limiter">
+    Apply rate limiting for specific user IPs:
+    ```python
+    def is_rate_limited(user_ip):
+        key = f"rate_limit:{user_ip}"
+        requests = redis.incr(key)
+        
+        if requests == 1:
+            redis.expire(key, 60)  # 1 minute window
+        
+        return requests > 100  # Max 100 requests per minute
+    ```
+  </Tab>
+</Tabs>
+
+### Shopping Cart
+Use Redis Hash to represent key-value pairs in a shopping cart.
+
+```python
+# Add item to cart
+redis.hset(f"cart:{user_id}", product_id, quantity)
+
+# Get entire cart
+cart = redis.hgetall(f"cart:{user_id}")
+
+# Remove item
+redis.hdel(f"cart:{user_id}", product_id)
+```
+
+### Ranking Systems
+Use ZSet (Sorted Sets) to sort and rank items:
+
+```python
+# Add article with score (timestamp or votes)
+redis.zadd("trending:articles", {article_id: score})
+
+# Get top 10 articles
+top_articles = redis.zrevrange("trending:articles", 0, 9, withscores=True)
+```
+
+### Message Queue
+Use List data structure for implementing a simple message queue.
+
+```python
+# Producer - push to queue
+redis.lpush("task_queue", json.dumps(task))
+
+# Consumer - pop from queue
+task = redis.brpop("task_queue", timeout=5)
+```
+
+### User Retention Tracking
+Use Bitmap to represent daily user login and calculate retention:
+
+```python
+# Mark user as active on a specific day
+redis.setbit("active:2024-02-28", user_id, 1)
+
+# Count active users for the day
+active_count = redis.bitcount("active:2024-02-28")
+
+# Check if specific user was active
+was_active = redis.getbit("active:2024-02-28", user_id)
+```
+
+## Data Persistence
+
+![Redis Persistence](https://assets.bytebytego.com/diagrams/0214-how-redis-presists-data.png)
+
+While Redis is an in-memory database, it provides mechanisms to persist data to disk:
+
+<AccordionGroup>
+  <Accordion title="AOF (Append-Only File)" icon="file-lines">
+    Redis executes commands to modify data in memory first, then writes to the log file. AOF records the commands instead of the data, simplifying recovery.
+    
+    **Pros:**
+    - More durable - logs every write operation
+    - Easy to understand and debug
+    
+    **Cons:**
+    - Larger file size
+    - Slower recovery for large datasets
+  </Accordion>
+  
+  <Accordion title="RDB (Redis Database)" icon="camera">
+    Records snapshots of data at specific points in time. When recovery is needed, the snapshot is loaded into memory.
+    
+    **How it works:**
+    1. Main thread forks a 'bgsave' sub-process
+    2. Sub-process reads data and writes to RDB file
+    3. Main thread continues serving requests
+    4. If data is modified, a copy is created (copy-on-write)
+    
+    **Pros:**
+    - Fast recovery
+    - Compact file size
+    
+    **Cons:**
+    - Potential data loss between snapshots
+  </Accordion>
+  
+  <Accordion title="Mixed Approach (Recommended)" icon="arrows-split-up-and-left">
+    In production systems, use RDB to record snapshots periodically and AOF to record commands since the last snapshot. This provides both fast recovery and minimal data loss.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Data persistence is not performed on the critical path and doesn't block the write process in Redis.
+</Note>
+
+## Redis Architecture Evolution
+
+![Redis Architecture Evolution](https://assets.bytebytego.com/diagrams/0223-how-redis-architecture-evolve.png)
+
+### 2010 - Standalone Redis
+When Redis 1.0 was released, the architecture was simple - a single instance used as cache. However, restarting Redis meant losing all data.
+
+### 2013 - Persistence & Replication
+Redis 2.8 introduced:
+- **RDB snapshots** to persist data
+- **AOF** (Append-Only-File) logging
+- **Replication** with primary-replica architecture for high availability
+
+### 2013 - Sentinel
+Redis 2.8 added Sentinel to monitor instances and perform:
+- Monitoring
+- Notification
+- Automatic failover
+- Configuration management
+
+### 2015 - Cluster
+Redis 3.0 introduced distributed database solution through sharding:
+- Data divided into 16,384 slots
+- Each node responsible for portion of slots
+- Automatic resharding support
+
+### Modern Redis (2017-2020)
+- **Redis 5.0**: Added Stream data type for event sourcing
+- **Redis 6.0**: Introduced multi-threaded I/O in network module
+
+## Redis Modules
+
+Redis modules extend functionality beyond core features:
+
+<CardGroup cols={2}>
+  <Card title="RediSearch" icon="magnifying-glass">
+    Full-text search, secondary indexing, and query engine
+  </Card>
+  <Card title="RedisJSON" icon="brackets-curly">
+    Native JSON document storage and manipulation
+  </Card>
+  <Card title="RedisGraph" icon="diagram-project">
+    Graph database for relationship queries
+  </Card>
+  <Card title="RedisBloom" icon="filter">
+    Probabilistic data structures (Bloom filters, Cuckoo filters)
+  </Card>
+  <Card title="RedisTimeSeries" icon="chart-line">
+    Time-series data storage and queries
+  </Card>
+  <Card title="RedisAI" icon="brain">
+    Machine learning model serving
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Warning>
+  Always set expiration times on cached data to prevent memory bloat and stale data issues.
+</Warning>
+
+<Steps>
+  <Step title="Choose the right data structure">
+    Select the appropriate Redis data type for your use case - don't default to strings for everything.
+  </Step>
+  <Step title="Set memory limits">
+    Configure `maxmemory` and choose an appropriate eviction policy.
+  </Step>
+  <Step title="Monitor key metrics">
+    Track memory usage, hit rate, eviction rate, and latency.
+  </Step>
+  <Step title="Use connection pooling">
+    Reuse connections instead of creating new ones for each operation.
+  </Step>
+  <Step title="Avoid big keys">
+    Large keys can impact Redis performance. Split large data across multiple keys.
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Caching Strategies" icon="diagram-project" href="/guides/caching/strategies">
+    Learn different caching patterns and when to use them
+  </Card>
+  <Card title="Cache Eviction" icon="trash" href="/guides/caching/cache-eviction">
+    Understand how to manage cache size with eviction policies
+  </Card>
+  <Card title="CDN Caching" icon="globe" href="/guides/caching/cdn">
+    Explore content delivery networks for edge caching
+  </Card>
+</CardGroup>

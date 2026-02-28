@@ -1,0 +1,619 @@
+---
+title: 'Common System Design Questions'
+description: 'Practice with the most frequently asked system design interview questions and learn proven solutions.'
+icon: 'messages-question'
+---
+
+## Popular System Design Questions
+
+These are the most common system design questions asked at top tech companies. Understanding these patterns will prepare you for variations and similar problems.
+
+<Tip>
+Don't memorize solutions. Focus on understanding the design decisions and tradeoffs. Interviewers can tell when you're reciting vs. thinking through a problem.
+</Tip>
+
+## Communication & Messaging Systems
+
+### Design a Chat Application (WhatsApp/Messenger/Discord)
+
+A classic question that tests your understanding of real-time communication.
+
+<AccordionGroup>
+  <Accordion title="Requirements & Scale">
+    **Functional Requirements**:
+    - 1-on-1 messaging
+    - Group chats
+    - Online presence indicators
+    - Message history
+    - Read receipts
+    - Media sharing
+    
+    **Scale Considerations**:
+    - Millions of concurrent users
+    - Billions of messages per day
+    - Real-time delivery (&lt;1 second)
+    - High availability required
+  </Accordion>
+
+  <Accordion title="Key Design Components">
+    **User Login Flow**:
+    1. User logs in and establishes WebSocket connection
+    2. Presence service receives notification
+    3. Updates user's online status
+    4. Notifies user's contacts about presence
+    
+    **Messaging Flow**:
+    1. Alice sends message to Bob via WebSocket
+    2. Message routed to Chat Service
+    3. Sequencing service generates unique message ID
+    4. Message persisted in message store
+    5. Message sent to sync queue
+    6. Message sync service checks Bob's presence
+    7. If online: deliver via WebSocket
+    8. If offline: send push notification
+  </Accordion>
+
+  <Accordion title="Technical Decisions">
+    **Communication Protocol**: WebSocket for bidirectional real-time communication
+    
+    **Database Design**:
+    - User data: SQL (PostgreSQL)
+    - Messages: NoSQL (Cassandra) for horizontal scaling
+    - Presence: Redis for fast in-memory lookups
+    
+    **Key Services**:
+    - Chat Service: Handle message routing
+    - Presence Service: Track online/offline status
+    - Sequencing Service: Generate message IDs
+    - Message Sync Service: Deliver to recipients
+    - Push Notification Service: Offline delivery
+    
+    **Scalability**:
+    - Shard users across multiple chat servers
+    - Use message queues (Kafka) for reliable delivery
+    - Cache active conversations in Redis
+    - CDN for media content
+  </Accordion>
+</AccordionGroup>
+
+### Design a Notification System
+
+Tests understanding of multi-channel communication and async processing.
+
+<AccordionGroup>
+  <Accordion title="Notification Channels">
+    - **In-App Notifications**: Real-time updates within the application
+    - **Email Notifications**: Marketing, summaries, important updates
+    - **SMS/OTP**: Verification codes, critical alerts
+    - **Push Notifications**: Mobile device alerts
+    - **Social Media**: Twitter, Facebook posts
+  </Accordion>
+
+  <Accordion title="Architecture Components">
+    **Flow**:
+    1. Business services send notifications to gateway
+    2. Gateway accepts single or batch notifications
+    3. Distribution service validates and formats messages
+    4. Template repository provides message formats
+    5. Preference repository determines delivery channels
+    6. Routers (message queues) distribute to channels
+    7. Channel services communicate with delivery providers
+    8. Tracking service captures delivery metrics
+    
+    **Key Considerations**:
+    - Rate limiting per channel
+    - Retry logic for failed deliveries
+    - User notification preferences
+    - Template management
+    - Analytics and tracking
+    - Priority queues for urgent notifications
+  </Accordion>
+</AccordionGroup>
+
+## Content & Media Systems
+
+### Design Netflix/YouTube
+
+A comprehensive question covering video streaming, storage, and CDN.
+
+<AccordionGroup>
+  <Accordion title="Core Requirements">
+    **Functional**:
+    - Video upload and processing
+    - Video playback with adaptive quality
+    - Search and recommendations
+    - User profiles and watch history
+    - Subtitles and multiple audio tracks
+    
+    **Non-Functional**:
+    - Millions of concurrent viewers
+    - Low latency streaming (&lt;2s buffer time)
+    - High availability (99.99%)
+    - Global distribution
+    - Petabytes of video storage
+  </Accordion>
+
+  <Accordion title="System Architecture">
+    **Video Upload Pipeline**:
+    1. Upload to object storage (S3)
+    2. Trigger transcoding service
+    3. Generate multiple quality versions (1080p, 720p, 480p, etc.)
+    4. Create thumbnails and previews
+    5. Extract metadata
+    6. Distribute to CDN edge locations
+    7. Update database with video info
+    
+    **Video Playback**:
+    1. User requests video
+    2. API returns video metadata and CDN URLs
+    3. Client requests appropriate quality based on bandwidth
+    4. CDN serves video chunks (HLS/DASH)
+    5. Track watch progress
+    6. Update recommendations
+    
+    **Technology Stack**:
+    - **Storage**: Object storage (S3) for source videos
+    - **CDN**: CloudFront/Akamai for global delivery
+    - **Transcoding**: AWS Elastic Transcoder or custom
+    - **Database**: SQL for metadata, NoSQL for viewing history
+    - **Streaming**: HLS or DASH protocols
+    - **Caching**: Redis for metadata, CDN for content
+  </Accordion>
+
+  <Accordion title="Optimization Strategies">
+    **Caching** (How Netflix uses caching):
+    1. Edge caching for popular content
+    2. Pre-fetching upcoming video chunks
+    3. Metadata caching for quick browsing
+    4. Thumbnail and preview caching
+    
+    **Scalability**:
+    - Distribute transcoding across worker fleet
+    - Shard user data by region
+    - Use CDN POPs in every major city
+    - Adaptive bitrate streaming
+    - Lazy loading for UI elements
+  </Accordion>
+</AccordionGroup>
+
+### Design Gmail
+
+Email system design covering SMTP, storage, and search.
+
+<AccordionGroup>
+  <Accordion title="Email Flow">
+    **Sending an Email**:
+    1. Alice composes email in client (Outlook)
+    2. Client sends via SMTP to mail server
+    3. Outlook server queries DNS for recipient's server
+    4. Transfers email via SMTP to Gmail server
+    5. Gmail stores email in recipient's mailbox
+    
+    **Receiving an Email**:
+    1. Bob's Gmail client connects to server
+    2. Client fetches new emails via IMAP/POP3
+    3. Emails downloaded to client
+    4. Mark as read, delete, archive, etc.
+  </Accordion>
+
+  <Accordion title="Key Components">
+    - **SMTP Server**: Send and receive emails
+    - **IMAP/POP Server**: Client email retrieval
+    - **Storage**: Email content and attachments
+    - **Search Index**: Fast email search
+    - **Spam Filter**: Machine learning-based filtering
+    - **Attachment Service**: Handle large files
+    - **Sync Service**: Multi-device synchronization
+  </Accordion>
+</AccordionGroup>
+
+## Collaborative & Document Systems
+
+### Design Google Docs
+
+Tests knowledge of real-time collaboration and conflict resolution.
+
+<AccordionGroup>
+  <Accordion title="Real-Time Collaboration Challenge">
+    The biggest challenge: How do multiple users edit the same document simultaneously without conflicts?
+    
+    **Conflict Resolution Algorithms**:
+    - **Operational Transformation (OT)**: Used by Google Docs
+    - **Conflict-free Replicated Data Type (CRDT)**: Active research area
+    - **Differential Synchronization (DS)**: Alternative approach
+  </Accordion>
+
+  <Accordion title="Architecture">
+    **Components**:
+    1. **WebSocket Server**: Handle real-time communication
+    2. **Message Queue**: Persist document operations
+    3. **File Operation Server**: Transform and apply edits
+    4. **Storage**:
+       - File metadata (SQL)
+       - File content (Document DB)
+       - Operations log (NoSQL)
+    
+    **Edit Flow**:
+    1. User makes edit in browser
+    2. Send operation via WebSocket
+    3. Operation persisted in queue
+    4. Server transforms operation using OT
+    5. Broadcast to all connected clients
+    6. Clients apply transformation
+    7. Periodically save snapshots
+  </Accordion>
+</AccordionGroup>
+
+## Location-Based Systems
+
+### Design Google Maps
+
+Comprehensive system covering location services, routing, and map rendering.
+
+<AccordionGroup>
+  <Accordion title="Three Core Components">
+    **1. Location Service**:
+    - Records user location updates (every few seconds)
+    - Detects new and closed roads
+    - Improves map accuracy over time
+    - Feeds live traffic data
+    
+    **2. Map Rendering**:
+    - World map divided into tiles
+    - Pre-calculated at different zoom levels
+    - Served via CDN from S3
+    - Client loads necessary tiles
+    - Efficient zooming and panning
+    
+    **3. Navigation Service**:
+    - Geocoding: Address → GPS coordinates
+    - Route Planning:
+      - Calculate top-K shortest paths (Dijkstra's, A*)
+      - Estimate time based on traffic
+      - Rank paths by user preferences
+    - Turn-by-turn directions
+    - Real-time rerouting
+  </Accordion>
+
+  <Accordion title="Technical Considerations">
+    **Geospatial Indexing**:
+    - Quad-trees or Geohash for location indexing
+    - Quick nearby location queries
+    - Efficient spatial searches
+    
+    **Graph Algorithms**:
+    - Dijkstra's algorithm for shortest path
+    - A* for optimal pathfinding
+    - Contraction Hierarchies for fast routing
+    
+    **Data Volume**:
+    - Petabytes of map imagery
+    - Billions of location updates daily
+    - Millions of concurrent users
+  </Accordion>
+</AccordionGroup>
+
+## Social Media & Feed Systems
+
+### Design Twitter/News Feed
+
+Classic question testing feed generation and timeline algorithms.
+
+<AccordionGroup>
+  <Accordion title="Requirements">
+    **Functional**:
+    - Post tweets (280 characters)
+    - Follow users
+    - View timeline (following + recommendations)
+    - Like, retweet, reply
+    - Trending topics
+    
+    **Scale**:
+    - 300M daily active users
+    - 600M tweets/day
+    - 100:1 read-to-write ratio
+    - Timeline load &lt;300ms
+  </Accordion>
+
+  <Accordion title="Feed Generation Strategies">
+    **Fan-out on Write** (Twitter's approach):
+    - When user posts, immediately push to followers' feeds
+    - Pros: Fast reads
+    - Cons: Slow writes for users with many followers
+    - Solution: Hybrid approach for celebrities
+    
+    **Fan-out on Read**:
+    - Generate feed when user requests it
+    - Pros: Fast writes
+    - Cons: Slow reads
+    
+    **Hybrid Approach**:
+    - Fan-out on write for normal users
+    - Fan-out on read for celebrities
+    - Best of both worlds
+  </Accordion>
+
+  <Accordion title="System Components">
+    - **Tweet Service**: Create and store tweets
+    - **Timeline Service**: Generate user feeds
+    - **Follow Graph**: Store user relationships
+    - **Fan-out Service**: Distribute tweets to feeds
+    - **Cache Layer**: Redis for hot timelines
+    - **Search Service**: Index tweets for search
+    - **Trending Service**: Calculate trending topics
+  </Accordion>
+</AccordionGroup>
+
+## E-Commerce & Marketplace Systems
+
+### Design Amazon/E-Commerce Platform
+
+Complex system covering inventory, orders, payments, and recommendations.
+
+<AccordionGroup>
+  <Accordion title="Core Services">
+    - **Product Catalog**: Search and browse products
+    - **Inventory Management**: Track stock levels
+    - **Shopping Cart**: Temporary order storage
+    - **Order Service**: Process purchases
+    - **Payment Service**: Handle transactions
+    - **Recommendation Engine**: Suggest products
+    - **Review Service**: User ratings and reviews
+  </Accordion>
+
+  <Accordion title="Critical Challenges">
+    **Inventory Consistency**:
+    - Prevent overselling
+    - Handle concurrent purchases
+    - Use optimistic locking or distributed locks
+    
+    **Payment Processing**:
+    - Idempotency for retry safety
+    - Two-phase commit for orders
+    - Integration with payment gateways
+    - Handle refunds and cancellations
+    
+    **Search & Discovery**:
+    - Elasticsearch for product search
+    - ML-based recommendations
+    - Faceted search and filters
+    - Personalized rankings
+  </Accordion>
+</AccordionGroup>
+
+## Infrastructure & Platform Systems
+
+### Design a URL Shortener (bit.ly)
+
+Simpler question, great for demonstrating fundamentals.
+
+<AccordionGroup>
+  <Accordion title="Core Functionality">
+    **Requirements**:
+    - Shorten long URLs to short codes
+    - Redirect short URLs to originals
+    - Optional: Custom aliases, expiration
+    - Optional: Analytics (click tracking)
+    
+    **Scale**:
+    - 100M new URLs per month
+    - 100:1 read-to-write ratio
+    - Low latency (&lt;100ms redirects)
+  </Accordion>
+
+  <Accordion title="Short URL Generation">
+    **Option 1: Hash Function**
+    - Use MD5/SHA256 on long URL
+    - Take first 7 characters
+    - Risk: Collisions
+    
+    **Option 2: Base62 Encoding**
+    - Use auto-incrementing ID
+    - Convert to base62 (a-z, A-Z, 0-9)
+    - 7 characters = 62^7 ≈ 3.5 trillion URLs
+    - No collisions
+    
+    **Option 3: Random Generation**
+    - Generate random string
+    - Check for collisions
+    - Retry if exists
+  </Accordion>
+
+  <Accordion title="System Design">
+    ```
+    Client → Load Balancer → API Servers → Cache (Redis)
+                                         ↓
+                                      Database
+    ```
+    
+    **Database Schema**:
+    ```sql
+    Table: urls
+    - id (primary key)
+    - short_url (indexed, unique)
+    - long_url
+    - created_at
+    - expires_at
+    - click_count
+    ```
+    
+    **Optimization**:
+    - Cache popular URLs in Redis
+    - Database read replicas
+    - CDN for global access
+    - Rate limiting to prevent abuse
+  </Accordion>
+</AccordionGroup>
+
+### Design Stack Overflow
+
+Q&A platform testing knowledge of search, ranking, and reputation systems.
+
+<AccordionGroup>
+  <Accordion title="Surprising Reality">
+    **What people expect**:
+    - Microservices architecture
+    - Cloud-native deployment
+    - Heavy sharding and caching
+    - Event sourcing with CQRS
+    
+    **What it actually is**:
+    - Monolithic architecture
+    - Only 9 on-premise servers
+    - No cloud infrastructure
+    - Serves all traffic efficiently
+    
+    This challenges common assumptions about system design!
+  </Accordion>
+
+  <Accordion title="Key Features to Design">
+    - **Questions & Answers**: Post, edit, delete
+    - **Voting**: Upvote/downvote with reputation
+    - **Tags**: Categorization and filtering
+    - **Search**: Full-text search across Q&A
+    - **Reputation System**: Points and badges
+    - **User Profiles**: Activity and statistics
+  </Accordion>
+</AccordionGroup>
+
+## Problem-Solving Patterns
+
+### 8 Common System Design Problems & Solutions
+
+Recognize these patterns and apply appropriate solutions.
+
+<Steps>
+  <Step title="Read-Heavy System">
+    **Problem**: Most traffic is reads, database becomes bottleneck
+    
+    **Solution**: Use caching extensively
+    - Application cache (Redis/Memcached)
+    - Database query cache
+    - CDN for static content
+  </Step>
+
+  <Step title="High Write Traffic">
+    **Problem**: Database can't handle write volume
+    
+    **Solution**: 
+    - Use async workers to process writes
+    - Choose databases optimized for writes (LSM-trees)
+    - Examples: Cassandra, RocksDB, LevelDB
+  </Step>
+
+  <Step title="Single Point of Failure">
+    **Problem**: Critical component failure breaks entire system
+    
+    **Solution**:
+    - Implement redundancy for critical components
+    - Database replication (primary + replicas)
+    - Multiple application server instances
+    - Geographic distribution
+  </Step>
+
+  <Step title="High Availability Requirements">
+    **Problem**: System must stay operational 99.9%+ uptime
+    
+    **Solution**:
+    - Load balancing across healthy instances
+    - Database replication for durability
+    - Auto-failover mechanisms
+    - Health checks and monitoring
+  </Step>
+
+  <Step title="High Latency">
+    **Problem**: Users experiencing slow response times
+    
+    **Solution**:
+    - CDN for global content delivery
+    - Edge computing for processing close to users
+    - Database query optimization
+    - Connection pooling
+  </Step>
+
+  <Step title="Handling Large Files">
+    **Problem**: Need to store and serve large media files
+    
+    **Solution**:
+    - Block storage for structured large files
+    - Object storage (S3) for unstructured data
+    - CDN for delivery
+    - Chunked upload/download
+  </Step>
+
+  <Step title="Monitoring & Alerting">
+    **Problem**: Need visibility into system health
+    
+    **Solution**:
+    - Centralized logging (ELK stack)
+    - Metrics collection (Prometheus, DataDog)
+    - Distributed tracing (Jaeger)
+    - Alert management (PagerDuty)
+  </Step>
+
+  <Step title="Slower Database Queries">
+    **Problem**: Queries taking too long
+    
+    **Solution**:
+    - Proper indexing on query columns
+    - Query optimization and EXPLAIN analysis
+    - Database sharding for horizontal scaling
+    - Read replicas for read distribution
+  </Step>
+</Steps>
+
+## Practice Strategy
+
+<Tip>
+Pick 5-7 questions from different categories and practice them thoroughly. Understanding the patterns deeply is better than knowing many questions superficially.
+</Tip>
+
+### Recommended Practice Order
+
+1. **Start Simple**: URL Shortener
+2. **Add Complexity**: Chat Application
+3. **Scale Up**: Twitter/News Feed
+4. **Real-Time**: Google Docs
+5. **Media Heavy**: Netflix/YouTube
+6. **Location Services**: Google Maps
+7. **Full Stack**: E-Commerce Platform
+
+### How to Practice
+
+<Steps>
+  <Step title="Solve Alone">
+    Time yourself (45 minutes)
+    Follow the 7-step framework
+    Draw diagrams on paper
+    Talk through your solution out loud
+  </Step>
+
+  <Step title="Review Solutions">
+    Compare your approach to published solutions
+    Identify what you missed
+    Understand alternative approaches
+    Note different tradeoffs
+  </Step>
+
+  <Step title="Mock Interview">
+    Practice with a peer or use platforms like:
+    - Pramp
+    - Interviewing.io
+    - Meetapro
+  </Step>
+
+  <Step title="Iterate">
+    Solve the same problem again after a week
+    Try different approaches
+    Optimize for different requirements
+  </Step>
+</Steps>
+
+<Note>
+Remember: In real interviews, you'll likely encounter variations of these questions. Focus on understanding the underlying patterns and principles rather than memorizing specific solutions.
+</Note>
+
+## Next Steps
+
+- [Essential Algorithms](/interviews/algorithms) - Learn the algorithms that power these systems
+- [How to Ace Interviews](/interviews/how-to-ace) - Review the 7-step framework
